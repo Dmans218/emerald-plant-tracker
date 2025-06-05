@@ -1,6 +1,13 @@
 # 🌿 Emerald Plant Tracker - Cannabis Cultivation Tracker
 
-A self-hosted web application for tracking cannabis plant growth, activities, and progress. Perfect for personal cultivation management.
+[![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Dockerized](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
+[![GitHub Sponsors](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-fc2967?logo=github)](https://github.com/sponsors/Dmans218)
+[![Donate with PayPal](https://img.shields.io/badge/donate-PayPal-00457C?logo=paypal)](https://paypal.me/Emeraldplanttracker?country.x=CA&locale.x=en_US)
+
+A modern, self-hosted web application for tracking cannabis plant growth, activities, and progress. Built with React, Express, and SQLite, and fully Dockerized for easy deployment. Perfect for personal cultivation management and privacy-focused growers.
+
+---
 
 ## Features
 
@@ -18,15 +25,16 @@ A self-hosted web application for tracking cannabis plant growth, activities, an
 
 ### 📈 Dashboard Overview
 - View all plants at a glance
-- Monitor recent activities
 - Track cultivation statistics
 - Quick access to plant details
 
 ### 🐳 Self-Hosted & Docker Ready
-- Complete Docker setup for easy deployment
-- SQLite database for simplicity
+- Single-container Docker setup for easy deployment
+- SQLite database for simplicity and persistence
 - No external dependencies required
 - Runs entirely on your own hardware
+
+---
 
 ## Quick Start
 
@@ -39,68 +47,53 @@ A self-hosted web application for tracking cannabis plant growth, activities, an
 
 1. **Clone the repository:**
    ```bash
-   git clone <repository-url>
-   cd Emerald-Plant-Tracker
+   git clone https://github.com/Dmans218/emerald-plant-tracker.git
+   cd emerald-plant-tracker
    ```
 
 2. **Start the application:**
    ```bash
-   npm run docker:up
+   sudo docker-compose up --build -d
    ```
 
 3. **Access the application:**
-   - Open your browser to `http://localhost:3000`
-   - The API is available at `http://localhost:5000`
+   - Open your browser to `http://localhost:420`
+   - The API is available at `/api` (same port)
 
 ### Development Setup
 
 1. **Install dependencies:**
    ```bash
-   npm install
    cd backend && npm install
    cd ../frontend && npm install
    ```
 
 2. **Start development servers:**
    ```bash
-   # From project root
-   npm run dev
+   # From project root, in two terminals:
+   npm --prefix backend run dev
+   npm --prefix frontend start
    ```
-
    This starts both frontend (port 3000) and backend (port 5000) in development mode.
 
-## Usage Guide
+---
 
-### Adding Your First Plant
+## Support & Donations
 
-1. Navigate to the **Plants** page
-2. Click **"Add Plant"**
-3. Fill in the plant details:
-   - **Name**: A unique identifier (e.g., "Plant #1", "Blue Dream")
-   - **Strain**: The cannabis strain you're growing
-   - **Stage**: Current growth stage
-   - **Planted Date**: When you started growing
-   - **Expected Harvest**: Estimated harvest date
-   - **Notes**: Any additional information
+If you find Emerald Plant Tracker useful, please consider supporting its development!
 
-### Logging Activities
+- [![GitHub Sponsors](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-fc2967?logo=github)](https://github.com/sponsors/Dmans218)
+- [![Donate with PayPal](https://img.shields.io/badge/donate-PayPal-00457C?logo=paypal)](https://paypal.me/Emeraldplanttracker?country.x=CA&locale.x=en_US)
 
-1. Go to **Activity Logs** page
-2. Click **"Add Log"**
-3. Select the plant and activity type:
-   - **Watering**: Track watering sessions
-   - **Feeding**: Record nutrient feeding
-   - **Pruning**: Log trimming and pruning
-   - **Training**: Document LST, topping, etc.
-   - **Observation**: General notes and observations
-   - **Harvest**: Record harvest activities
+*Your support helps keep this project free and open source!*
 
-### Tracking Progress
+---
 
-- Use the **Dashboard** for a quick overview
-- Check individual **Plant Details** for specific plant timelines
-- Upload photos to visually document growth progress
-- Add measurements with values and units for detailed tracking
+## License
+
+This project is licensed under the [MIT License](LICENSE). You are free to use, modify, and distribute it, including for commercial purposes. Donations are welcome but not required.
+
+---
 
 ## File Structure
 
@@ -121,6 +114,8 @@ Emerald-Plant-Tracker/
 └── README.md
 ```
 
+---
+
 ## API Endpoints
 
 ### Plants
@@ -137,51 +132,7 @@ Emerald-Plant-Tracker/
 - `DELETE /api/logs/:id` - Delete log
 - `GET /api/logs/stats/:plantId` - Get plant statistics
 
-## Configuration
-
-### Environment Variables
-
-**Backend:**
-- `PORT` - Server port (default: 5000)
-- `DATABASE_URL` - SQLite database path
-- `NODE_ENV` - Environment (development/production)
-
-**Frontend:**
-- `REACT_APP_API_URL` - Backend API URL
-
-### Docker Compose Override
-
-Create `docker-compose.override.yml` for custom configuration:
-
-```yaml
-version: '3.8'
-services:
-  frontend:
-    ports:
-      - "8080:3000"  # Custom port
-  backend:
-    environment:
-      - NODE_ENV=production
-    volumes:
-      - ./data:/app/data  # Persistent data
-```
-
-## Data Management
-
-### Backup
-Your cultivation data is stored in SQLite database. To backup:
-
-```bash
-# Copy the database file
-docker cp growlogger_backend_1:/app/data/growlogger.db ./backup.db
-```
-
-### Restore
-```bash
-# Restore from backup
-docker cp ./backup.db growlogger_backend_1:/app/data/growlogger.db
-docker restart growlogger_backend_1
-```
+---
 
 ## Security Notes
 
@@ -191,43 +142,22 @@ docker restart growlogger_backend_1
 - Regular backups are recommended
 - Understand your local laws regarding cannabis cultivation
 
+---
+
 ## Troubleshooting
 
-### Common Issues
-
 **Cannot connect to backend:**
-- Ensure both containers are running: `docker ps`
-- Check backend logs: `docker logs growlogger_backend_1`
+- Ensure the container is running: `docker ps`
+- Check logs: `docker logs emerald_plant_tracker`
 
-**Database errors:**
-- Verify data directory permissions
-- Check available disk space
-- Restart backend container
+**Database persistence:**
+- The SQLite database is stored in a Docker volume (`emerald_data`) and will persist across container rebuilds.
 
-**Frontend not loading:**
-- Clear browser cache
-- Check frontend logs: `docker logs growlogger_frontend_1`
-- Verify API URL configuration
-
-### Development Issues
-
-**Port conflicts:**
-- Backend: Change port in `backend/package.json` and `docker-compose.yml`
-- Frontend: Modify `frontend/package.json` start script
-
-**Database reset:**
-```bash
-docker-compose down -v  # Removes volumes
-docker-compose up --build
-```
+---
 
 ## Contributing
 
-This is a personal cultivation tracking tool. Feel free to fork and modify for your own needs.
-
-## License
-
-MIT License - see LICENSE file for details.
+Pull requests and suggestions are welcome! Please open an issue or PR on GitHub.
 
 ## Disclaimer
 
