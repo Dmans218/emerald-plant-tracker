@@ -36,14 +36,53 @@ A modern, self-hosted web application for tracking cannabis plant growth, activi
 
 ---
 
-## Quick Start
+## 🚀 Quick Start (Docker Hub)
 
-### Prerequisites
-- Docker and Docker Compose installed
-- At least 2GB of available RAM
-- 1GB of free disk space
+You can run Emerald Plant Tracker directly from Docker Hub—no need to clone the repo!
 
-### Installation
+### **Option 1: Docker Run**
+
+```bash
+sudo docker run -d \
+  --name emerald-plant-tracker \
+  -p 420:5000 \
+  -v emerald_data:/app/backend/data \
+  -v $(pwd)/backend/uploads:/app/backend/uploads \
+  dmans218/emerald-plant-tracker:latest
+```
+- App will be available at [http://localhost:420](http://localhost:420)
+- Data is persisted in the `emerald_data` Docker volume
+
+### **Option 2: Docker Compose**
+
+Create a `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+services:
+  app:
+    image: dmans218/emerald-plant-tracker:latest
+    container_name: emerald_plant_tracker
+    ports:
+      - "420:5000"
+    volumes:
+      - emerald_data:/app/backend/data
+      - ./backend/uploads:/app/backend/uploads
+    restart: unless-stopped
+volumes:
+  emerald_data:
+```
+
+Then run:
+```bash
+sudo docker-compose up -d
+```
+
+---
+
+## 🛠️ Development Setup (from Source)
+
+If you want to contribute or run the app in development mode:
 
 1. **Clone the repository:**
    ```bash
@@ -51,24 +90,13 @@ A modern, self-hosted web application for tracking cannabis plant growth, activi
    cd emerald-plant-tracker
    ```
 
-2. **Start the application:**
-   ```bash
-   sudo docker-compose up --build -d
-   ```
-
-3. **Access the application:**
-   - Open your browser to `http://localhost:420`
-   - The API is available at `/api` (same port)
-
-### Development Setup
-
-1. **Install dependencies:**
+2. **Install dependencies:**
    ```bash
    cd backend && npm install
    cd ../frontend && npm install
    ```
 
-2. **Start development servers:**
+3. **Start development servers:**
    ```bash
    # From project root, in two terminals:
    npm --prefix backend run dev
