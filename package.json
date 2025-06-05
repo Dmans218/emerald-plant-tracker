@@ -1,0 +1,22 @@
+{
+  "name": "emerald-plant-tracker",
+  "version": "1.0.0",
+  "description": "Cannabis plant growth tracking application",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "server:dev": "cd backend && npm run dev",
+    "client:dev": "cd frontend && npm start",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && npm start",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": ["cannabis", "grow", "tracker", "plants"],
+  "author": "",
+  "license": "MIT"
+} 

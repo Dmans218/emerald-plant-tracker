@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: emerald_plant_tracker
+    ports:
+      - "420:5000"
+    volumes:
+      - emerald_data:/app/backend/data
+      - ./backend/uploads:/app/backend/uploads
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+
+volumes:
+  emerald_data: 
