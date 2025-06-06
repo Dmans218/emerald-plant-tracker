@@ -16,11 +16,7 @@
     "audit-fix": "npm audit fix"
   },
   "devDependencies": {
-<<<<<<< HEAD
     "concurrently": "^9.1.2"
-=======
-    "concurrently": "^9.1.0"
->>>>>>> d089004c (Fix CI workflow: Update audit scripts and test configurations)
   },
   "keywords": [
     "cannabis",
