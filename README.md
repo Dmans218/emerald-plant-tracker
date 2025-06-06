@@ -187,6 +187,20 @@ Emerald-Plant-Tracker/
 
 Pull requests and suggestions are welcome! Please open an issue or PR on GitHub.
 
+### Continuous Integration / Continuous Deployment
+
+This project uses GitHub Actions for CI/CD:
+
+- **CI Workflow**: Automatically tests and builds the application on every push and pull request.
+- **CodeQL Analysis**: Security scanning to detect vulnerabilities in the codebase.
+- **Docker Workflow**: Builds and tests Docker images when changes are made to Docker-related files.
+- **Dependabot**: Automatically submits PRs for dependency updates with the following schedule:
+  - NPM dependencies: Weekly updates
+  - Docker dependencies: Monthly updates
+  - GitHub Actions: Monthly updates
+
+Minor and patch updates from Dependabot will be automatically merged if all tests pass.
+
 ## Disclaimer
 
 This software is for educational and personal use only. Users are responsible for complying with all applicable local, state, and federal laws regarding cannabis cultivation. The developers assume no responsibility for any illegal activities.

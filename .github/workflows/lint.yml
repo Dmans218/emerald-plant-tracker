@@ -1,0 +1,36 @@
+name: Lint
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '**/*.js'
+      - '**/*.jsx'
+      - '**/*.ts'
+      - '**/*.tsx'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - '**/*.js'
+      - '**/*.jsx'
+      - '**/*.ts'
+      - '**/*.tsx'
+
+jobs:
+  eslint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+      
+      - name: Run ESLint
+        run: cd frontend && npx eslint --ext .js,.jsx,.ts,.tsx src/ 
