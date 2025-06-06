@@ -8,6 +8,7 @@ import Plants from './pages/Plants';
 import PlantDetail from './pages/PlantDetail';
 import Calculator from './pages/Calculator';
 import Environment from './pages/Environment';
+import Logs from './pages/Logs';
 
 function App() {
   return (
@@ -19,7 +20,8 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/plants" element={<Plants />} />
             <Route path="/plants/:id" element={<PlantDetail />} />
-            <Route path="/logs" element={<Calculator />} />
+            <Route path="/logs" element={<Logs />} />
+            <Route path="/calculator" element={<Calculator />} />
             <Route path="/environment" element={<Environment />} />
           </Routes>
         </main>

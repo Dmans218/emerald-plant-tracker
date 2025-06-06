@@ -14,16 +14,16 @@
  }
  */
 export function arrify<T>(
-  value: T
+  value: T,
 ): T extends null | undefined
   ? []
   : T extends string
-  ? [string]
-  : T extends readonly unknown[]
-  ? T
-  : T extends Iterable<infer T_1>
-  ? T_1[]
-  : [T];
+    ? [string]
+    : T extends readonly unknown[]
+      ? T
+      : T extends Iterable<infer T_1>
+        ? T_1[]
+        : [T];
 /**
  * @param {string|string[]} files
  * @param {string} context
@@ -37,7 +37,7 @@ export function parseFiles(files: string | string[], context: string): string[];
  */
 export function parseFoldersToGlobs(
   patterns: string | string[],
-  extensions?: string | string[]
+  extensions?: string | string[],
 ): string[];
 /**
  * @param {string} _ key, but unused

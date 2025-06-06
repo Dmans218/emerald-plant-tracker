@@ -8,7 +8,7 @@ const Header = () => {
   const navItems = [
     { path: '/', label: 'Dashboard', icon: Home },
     { path: '/plants', label: 'Plants', icon: Sprout },
-    { path: '/logs', label: 'Nutrient Calculator', icon: Calculator },
+    { path: '/calculator', label: 'Nutrient Calculator', icon: Calculator },
     { path: '/environment', label: 'Environment', icon: Thermometer },
   ];
 

@@ -39,6 +39,7 @@ const logSchema = Joi.object({
   description: Joi.string().max(1000).allow(null, ''),
   value: Joi.number().allow(null, ''),
   unit: Joi.string().max(20).allow(null, ''),
+  growth_stage: Joi.string().valid('seedling', 'vegetative', 'flowering', 'harvest', 'cured').allow(null, ''),
   logged_at: Joi.date().iso().allow(null, '')
 });
 
@@ -65,7 +66,7 @@ router.get('/', (req, res) => {
     params.push(type);
   }
   
-  sql += ' ORDER BY l.logged_at DESC LIMIT ? OFFSET ?';
+  sql += ' ORDER BY l.logged_at ASC LIMIT ? OFFSET ?';
   params.push(parseInt(limit), parseInt(offset));
   
   database.all(sql, params, (err, rows) => {
@@ -116,10 +117,10 @@ router.post('/', (req, res) => {
   }
 
   const database = db.getDb();
-  const { plant_id, type, description, value: logValue, unit, logged_at } = value;
+  const { plant_id, type, description, value: logValue, unit, growth_stage, logged_at } = value;
   
-  // Verify plant exists
-  database.get('SELECT id FROM plants WHERE id = ?', [plant_id], (err, plant) => {
+  // Verify plant exists and get current stage if growth_stage not provided
+  database.get('SELECT id, stage FROM plants WHERE id = ?', [plant_id], (err, plant) => {
     if (err) {
       console.error('Error checking plant:', err);
       return res.status(500).json({ error: 'Failed to verify plant' });
@@ -129,12 +130,15 @@ router.post('/', (req, res) => {
       return res.status(404).json({ error: 'Plant not found' });
     }
     
+    // Use provided growth_stage or default to plant's current stage
+    const logGrowthStage = growth_stage || plant.stage;
+    
     const sql = `
-      INSERT INTO logs (plant_id, type, description, value, unit, logged_at)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO logs (plant_id, type, description, value, unit, growth_stage, logged_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     
-    database.run(sql, [plant_id, type, description, logValue, unit, logged_at || new Date().toISOString()], function(err) {
+    database.run(sql, [plant_id, type, description, logValue, unit, logGrowthStage, logged_at || new Date().toISOString()], function(err) {
       if (err) {
         console.error('Error creating log:', err);
         return res.status(500).json({ error: 'Failed to create log' });
@@ -174,8 +178,8 @@ router.post('/photo', upload.single('photo'), (req, res) => {
   const database = db.getDb();
   const photoUrl = `/uploads/${req.file.filename}`;
   
-  // Verify plant exists
-  database.get('SELECT id FROM plants WHERE id = ?', [parseInt(plant_id)], (err, plant) => {
+  // Verify plant exists and get current stage
+  database.get('SELECT id, stage FROM plants WHERE id = ?', [parseInt(plant_id)], (err, plant) => {
     if (err) {
       console.error('Error checking plant:', err);
       return res.status(500).json({ error: 'Failed to verify plant' });
@@ -186,11 +190,11 @@ router.post('/photo', upload.single('photo'), (req, res) => {
     }
     
     const sql = `
-      INSERT INTO logs (plant_id, type, description, photo_url, logged_at)
-      VALUES (?, 'photo', ?, ?, ?)
+      INSERT INTO logs (plant_id, type, description, photo_url, growth_stage, logged_at)
+      VALUES (?, 'photo', ?, ?, ?, ?)
     `;
     
-    database.run(sql, [parseInt(plant_id), description || 'Photo upload', photoUrl, new Date().toISOString()], function(err) {
+    database.run(sql, [parseInt(plant_id), description || 'Photo upload', photoUrl, plant.stage, new Date().toISOString()], function(err) {
       if (err) {
         console.error('Error creating photo log:', err);
         return res.status(500).json({ error: 'Failed to create photo log' });
