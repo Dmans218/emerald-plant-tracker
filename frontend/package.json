@@ -10,7 +10,7 @@
     "date-fns": "^4.1.0",
     "exif-js": "^2.3.0",
     "lucide-react": "^0.513.0",
-    "react": "^18.2.0",
+    "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.48.2",
     "react-hot-toast": "^2.4.1",
