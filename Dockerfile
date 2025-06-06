@@ -1,22 +1,19 @@
 # ---- Build frontend ----
-FROM oven/bun:1 AS frontend-build
+FROM node:18 AS frontend-build
 WORKDIR /app/frontend
-COPY frontend/package.json ./
-RUN bun install
+COPY frontend/package*.json ./
+RUN npm ci
 COPY frontend/ ./
-# Disable parallel processing to avoid worker_threads issues
-ENV DISABLE_ESLINT_PLUGIN=true
-ENV TERSER_PARALLEL=false
-RUN bun run build
+RUN npm run build
 
 # ---- Build backend ----
-FROM oven/bun:1 AS backend-build
+FROM node:18 AS backend-build
 WORKDIR /app
-COPY backend/package.json ./backend/
-RUN cd backend && bun install --production
+COPY backend/package*.json ./backend/
+RUN cd backend && npm ci --only=production
 
 # ---- Final image ----
-FROM oven/bun:1
+FROM node:18
 WORKDIR /app
 
 # Copy backend code
@@ -26,13 +23,13 @@ COPY backend ./backend
 COPY --from=frontend-build /app/frontend/build ./backend/public
 
 # Install backend dependencies
-RUN cd backend && bun install --production
+RUN cd backend && npm ci --only=production
 
 # Ensure data and uploads directories exist
 RUN mkdir -p backend/data backend/uploads
 
 # Expose backend port
-EXPOSE 420
+EXPOSE 5000
 
 # Start the backend server
-CMD ["bun", "run", "backend/server.js"] 
+CMD ["node", "backend/server.js"] 
