@@ -11,12 +11,28 @@
     "start": "cd backend && npm start",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down"
+    "docker:down": "docker-compose down",
+    "audit": "npm audit || true",
+    "audit-fix": "npm audit fix"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^9.1.0"
   },
-  "keywords": ["cannabis", "grow", "tracker", "plants"],
+  "keywords": [
+    "cannabis",
+    "grow",
+    "tracker",
+    "plants"
+  ],
   "author": "",
-  "license": "MIT"
-} 
+  "license": "MIT",
+  "dependencies": {
+    "chart.js": "^4.4.9",
+    "react-chartjs-2": "^5.3.0",
+    "tesseract.js": "^6.0.1"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}
