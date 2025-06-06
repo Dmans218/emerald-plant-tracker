@@ -12,9 +12,9 @@
   },
   "dependencies": {
     "express": "^5.1.0",
+    "cors": "^2.8.5",
     "multer": "^2.0.0-rc.4",
     "tesseract.js": "^6.0.1",
-    "cors": "^2.8.5",
     "helmet": "^8.0.0",
     "axios": "^1.7.9",
     "sharp": "^0.34.2",
