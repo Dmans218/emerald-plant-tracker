@@ -13,16 +13,12 @@
   "dependencies": {
     "express": "^5.1.0",
     "cors": "^2.8.5",
-    "multer": "^2.0.0-rc.4",
-    "tesseract.js": "^6.0.1",
-    "helmet": "^8.0.0",
-    "axios": "^1.7.9",
-    "sharp": "^0.34.2",
-    "jimp": "^1.6.0",
+    "sqlite3": "^5.1.6",
+    "multer": "^2.0.1",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^8.1.0",
     "morgan": "^1.10.0",
-    "express-rate-limit": "^7.4.1",
-    "joi": "^17.13.3",
-    "sqlite3": "^5.1.7"
+    "joi": "^17.13.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"
