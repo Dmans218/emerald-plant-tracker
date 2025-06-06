@@ -17,16 +17,17 @@ A modern, self-hosted web application for tracking cannabis plant growth, activi
 - Store strain information and cultivation notes
 - Monitor planted dates and expected harvest times
 
-### 📊 Activity Logging
-- Log various activities: watering, feeding, pruning, training, observations
-- Record measurements with values and units
+### 📊 Activity & Environment Logging
+- Log activities: watering, feeding, pruning, training, observations
+- Record environmental data: temperature, humidity, VPD, CO₂, PPFD, pH, light hours, growth stage, grow tent, notes
 - Upload photos to track visual progress
-- Maintain detailed cultivation timeline
+- Maintain a detailed cultivation timeline
 
 ### 📈 Dashboard Overview
 - View all plants at a glance
-- Track cultivation statistics
-- Quick access to plant details
+- Track cultivation and environment statistics
+- Quick access to plant and environment details
+- Export environment data to CSV
 
 ### 🐳 Self-Hosted & Docker Ready
 - Single-container Docker setup for easy deployment
@@ -45,7 +46,7 @@ You can run Emerald Plant Tracker directly from Docker Hub—no need to clone th
 ```bash
 sudo docker run -d \
   --name emerald-plant-tracker \
-  -p 420:5000 \
+  -p 420:420 \
   -v emerald_data:/app/backend/data \
   -v $(pwd)/backend/uploads:/app/backend/uploads \
   dmans218/emerald-plant-tracker:latest
@@ -92,31 +93,22 @@ If you want to contribute or run the app in development mode:
    # From project root:
    npm run dev
    ```
-   This starts both frontend (port 3000) and backend (port 5000) in development mode.
+   This starts both frontend and backend. The app will be available at [http://localhost:420](http://localhost:420).
 
 ---
 
-## Support & Donations
+## ⚙️ Configuration & Environment Variables
 
-Emerald Plant Tracker is built and maintained by a Canadian developer. If you find this project useful, please consider supporting its development—your donations help pay my bills and keep this project alive!
-
-- [![GitHub Sponsors](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-fc2967?logo=github)](https://github.com/sponsors/Dmans218)
-- [![Donate with PayPal](https://img.shields.io/badge/donate-PayPal-00457C?logo=paypal)](https://paypal.me/Emeraldplanttracker?country.x=CA&locale.x=en_US)
-
-*Your support means a lot and helps keep this project free and open source for everyone!*
-
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE). You are free to use, modify, and distribute it, including for commercial purposes. Donations are welcome but not required.
+- **PORT**: The backend and frontend both use port `420` by default. You can override this by setting the `PORT` environment variable, but all examples and Docker configs assume 420.
+- **NODE_ENV**: Set to `production` or `development` as needed (default is `production` in Docker).
+- No other required environment variables by default.
 
 ---
 
 ## File Structure
 
 ```
-Emerald-Plant-Tracker/
+Growlogger/
 ├── backend/                 # Node.js API server
 │   ├── data/               # SQLite database files
 │   ├── routes/             # API routes
@@ -127,16 +119,14 @@ Emerald-Plant-Tracker/
 │   └── Dockerfile
 ├── frontend/               # React web application
 │   ├── public/             # Static files
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── pages/          # Page components
-│   │   └── utils/          # Utilities and API calls
+│   ├── src/                # Source code (components, pages, utils)
 │   └── Dockerfile
 ├── docs/                   # Documentation files
-├── .github/                # GitHub Actions and templates
 ├── docker-compose.yml      # Docker orchestration
 ├── setup-dev.sh            # Development setup script
 ├── setup-prod.sh           # Production setup script
+├── .dockerignore           # Docker build context exclusions
+├── .gitignore              # Git exclusions
 └── README.md
 ```
 
@@ -158,15 +148,30 @@ Emerald-Plant-Tracker/
 - `DELETE /api/logs/:id` - Delete log
 - `GET /api/logs/stats/:plantId` - Get plant statistics
 
+### Environment
+- `GET /api/environment` - List environment logs
+- `POST /api/environment` - Create new environment log
+- `GET /api/environment/weekly` - Get weekly environment averages
+- `GET /api/environment/grow-tents` - List available grow tents
+
 ---
 
 ## Security Notes
 
-- This application is designed for **personal use only**
-- Run behind a VPN or on a private network
-- Do not expose to the public internet without proper security measures
+- This application is designed for **personal/private use only**
+- **Do not expose to the public internet** without proper security measures (VPN, firewall, etc.)
+- Data is stored locally in SQLite and Docker volumes
+- `.env` files and local SQLite DBs are excluded from Docker images by `.dockerignore`
 - Regular backups are recommended
 - Understand your local laws regarding cannabis cultivation
+
+---
+
+## Production & Build Context
+
+- The `.dockerignore` file ensures that development files, local node_modules, logs, test images, and other non-production files are **not** included in your Docker images.
+- The `.gitignore` file keeps your repository clean by ignoring dependencies, build output, logs, and local environment files.
+- Only production-ready code and configuration are shipped in your Docker images.
 
 ---
 
@@ -178,6 +183,9 @@ Emerald-Plant-Tracker/
 
 **Database persistence:**
 - The SQLite database is stored in a Docker volume (`emerald_data`) and will persist across container rebuilds.
+
+**Port conflicts:**
+- Make sure port 420 is not in use by another application.
 
 ---
 
@@ -199,19 +207,22 @@ This project uses GitHub Actions for CI/CD:
 
 Minor and patch updates from Dependabot will be automatically merged if all tests pass.
 
-### Development Resources
+---
 
-The project contains a `dev-resources/` directory that is not included in the releases but is useful for development:
+## Support & Donations
 
-- **test_images/**: Sample controller images for OCR testing
-- **db-backups/**: Development database backups
-- **Log files**: Build logs and Docker build output for debugging
+Emerald Plant Tracker is built and maintained by a Canadian developer. If you find this project useful, please consider supporting its development—your donations help pay my bills and keep this project alive!
 
-These resources are excluded from the .gitignore file and should not be committed to the repository.
+- [![GitHub Sponsors](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-fc2967?logo=github)](https://github.com/sponsors/Dmans218)
+- [![Donate with PayPal](https://img.shields.io/badge/donate-PayPal-00457C?logo=paypal)](https://paypal.me/Emeraldplanttracker?country.x=CA&locale.x=en_US)
 
-## Disclaimer
+*Your support means a lot and helps keep this project free and open source for everyone!*
 
-This software is for educational and personal use only. Users are responsible for complying with all applicable local, state, and federal laws regarding cannabis cultivation. The developers assume no responsibility for any illegal activities.
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE). You are free to use, modify, and distribute it, including for commercial purposes. Donations are welcome but not required.
 
 ---
 

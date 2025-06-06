@@ -1,0 +1,47 @@
+# Ignore node_modules everywhere
+node_modules
+**/node_modules
+
+# Ignore VCS and CI/CD files
+.git
+.gitignore
+.github
+
+# Ignore documentation and dev resources
+docs
+SPIDER_FARMER_INTER*
+
+# Ignore local environment and setup scripts
+setup-dev.sh
+setup-prod.sh
+
+# Ignore log files
+*.log
+logs
+
+# Ignore local SQLite DBs and backups
+backend/data/*.db
+backend/data/*.sqlite
+backend/data/*.sqlite3
+backend/data/*.bak
+backend/data/*.backup
+
+# Ignore uploads (optional, unless you want to keep sample images)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Ignore build output (if any)
+/build
+/dist
+/frontend/build
+/frontend/dist
+
+# Ignore test images and dev resources
+dev-resources/
+
+# Ignore OS and editor files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo 
