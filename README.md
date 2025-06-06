@@ -55,28 +55,19 @@ sudo docker run -d \
 
 ### **Option 2: Docker Compose**
 
-Create a `docker-compose.yml`:
+The repository comes with a pre-configured docker-compose.yml file.
 
-```yaml
-version: '3.8'
-services:
-  app:
-    image: dmans218/emerald-plant-tracker:latest
-    container_name: emerald_plant_tracker
-    ports:
-      - "420:5000"
-    volumes:
-      - emerald_data:/app/backend/data
-      - ./backend/uploads:/app/backend/uploads
-    restart: unless-stopped
-volumes:
-  emerald_data:
+Run the setup script:
+```bash
+./setup-prod.sh
 ```
 
-Then run:
+Then start the container:
 ```bash
 sudo docker-compose up -d
 ```
+
+Access the application at [http://localhost:420](http://localhost:420)
 
 ---
 
@@ -90,17 +81,16 @@ If you want to contribute or run the app in development mode:
    cd emerald-plant-tracker
    ```
 
-2. **Install dependencies:**
+2. **Run the setup script:**
    ```bash
-   cd backend && npm install
-   cd ../frontend && npm install
+   ./setup-dev.sh
    ```
+   This will install all dependencies and create necessary directories.
 
 3. **Start development servers:**
    ```bash
-   # From project root, in two terminals:
-   npm --prefix backend run dev
-   npm --prefix frontend start
+   # From project root:
+   npm run dev
    ```
    This starts both frontend (port 3000) and backend (port 5000) in development mode.
 
@@ -128,17 +118,25 @@ This project is licensed under the [MIT License](LICENSE). You are free to use, 
 ```
 Emerald-Plant-Tracker/
 ├── backend/                 # Node.js API server
+│   ├── data/               # SQLite database files
 │   ├── routes/             # API routes
+│   ├── services/           # Business logic and services
+│   ├── uploads/            # Uploaded images
 │   ├── database.js         # SQLite database setup
 │   ├── server.js           # Express server
 │   └── Dockerfile
 ├── frontend/               # React web application
+│   ├── public/             # Static files
 │   ├── src/
 │   │   ├── components/     # React components
 │   │   ├── pages/          # Page components
 │   │   └── utils/          # Utilities and API calls
 │   └── Dockerfile
+├── docs/                   # Documentation files
+├── .github/                # GitHub Actions and templates
 ├── docker-compose.yml      # Docker orchestration
+├── setup-dev.sh            # Development setup script
+├── setup-prod.sh           # Production setup script
 └── README.md
 ```
 
@@ -200,6 +198,16 @@ This project uses GitHub Actions for CI/CD:
   - GitHub Actions: Monthly updates
 
 Minor and patch updates from Dependabot will be automatically merged if all tests pass.
+
+### Development Resources
+
+The project contains a `dev-resources/` directory that is not included in the releases but is useful for development:
+
+- **test_images/**: Sample controller images for OCR testing
+- **db-backups/**: Development database backups
+- **Log files**: Build logs and Docker build output for debugging
+
+These resources are excluded from the .gitignore file and should not be committed to the repository.
 
 ## Disclaimer
 

@@ -25,6 +25,9 @@ package-lock.json
 /backend/data/*.sqlite
 /backend/data/*.sqlite3
 
+# Development resources
+/dev-resources/
+
 # Logs
 logs
 *.log
