@@ -123,11 +123,16 @@ const runMigrations = () => {
             reject(err);
             return;
           }
-          
+          const hasEnvPlantId = envColumns.some(col => col.name === 'plant_id');
           const hasEnvGrowTent = envColumns.some(col => col.name === 'grow_tent');
           const hasVpd = envColumns.some(col => col.name === 'vpd');
           const hasCo2 = envColumns.some(col => col.name === 'co2_ppm');
           const hasPpfd = envColumns.some(col => col.name === 'ppfd');
+          const hasGrowthStage = envColumns.some(col => col.name === 'growth_stage');
+          if (!hasEnvPlantId) {
+            migrations.push("ALTER TABLE environment_logs ADD COLUMN plant_id INTEGER REFERENCES plants(id)");
+            console.log('🔄 Adding plant_id column to environment_logs table...');
+          }
           
           if (!hasEnvGrowTent) {
             migrations.push("ALTER TABLE environment_logs ADD COLUMN grow_tent TEXT");
@@ -149,24 +154,44 @@ const runMigrations = () => {
             console.log('🔄 Adding ppfd column to environment_logs table...');
           }
           
-          if (migrations.length === 0) {
-            console.log('✅ All migrations up to date');
-            resolve();
-            return;
+          if (!hasGrowthStage) {
+            migrations.push("ALTER TABLE environment_logs ADD COLUMN growth_stage TEXT");
+            console.log('🔄 Adding growth_stage column to environment_logs table...');
           }
+          
+          // Check logs table for growth_stage column
+          db.all("PRAGMA table_info(logs)", (err, logColumns) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            
+            const hasLogGrowthStage = logColumns.some(col => col.name === 'growth_stage');
+            
+            if (!hasLogGrowthStage) {
+              migrations.push("ALTER TABLE logs ADD COLUMN growth_stage TEXT");
+              console.log('🔄 Adding growth_stage column to logs table...');
+            }
+          
+            if (migrations.length === 0) {
+              console.log('✅ All migrations up to date');
+              resolve();
+              return;
+            }
         
-          let completed = 0;
-          migrations.forEach(migration => {
-            db.run(migration, (err) => {
-              if (err) {
-                reject(err);
-                return;
-              }
-              completed++;
-              if (completed === migrations.length) {
-                console.log('✅ Database migrations completed');
-                resolve();
-              }
+            let completed = 0;
+            migrations.forEach(migration => {
+              db.run(migration, (err) => {
+                if (err) {
+                  reject(err);
+                  return;
+                }
+                completed++;
+                if (completed === migrations.length) {
+                  console.log('✅ Database migrations completed');
+                  resolve();
+                }
+              });
             });
           });
         });

@@ -5,7 +5,6 @@ export type AsyncTask = () => Promise<void>;
 export type LintTask = (files: string | string[]) => Promise<LintResult[]>;
 export type Linter = {
   threads: number;
-  ESLint: ESLint;
   eslint: ESLint;
   lintFiles: LintTask;
   cleanup: AsyncTask;
@@ -18,31 +17,31 @@ export type Worker = JestWorker & {
 /** @typedef {import('./options').Options} Options */
 /** @typedef {() => Promise<void>} AsyncTask */
 /** @typedef {(files: string|string[]) => Promise<LintResult[]>} LintTask */
-/** @typedef {{threads: number, ESLint: ESLint, eslint: ESLint, lintFiles: LintTask, cleanup: AsyncTask}} Linter */
+/** @typedef {{threads: number, eslint: ESLint, lintFiles: LintTask, cleanup: AsyncTask}} Linter */
 /** @typedef {JestWorker & {lintFiles: LintTask}} Worker */
 /**
  * @param {Options} options
- * @returns {Linter}
+ * @returns {Promise<Linter>}
  */
-export function loadESLint(options: Options): Linter;
+export function loadESLint(options: Options): Promise<Linter>;
 /**
  * @param {string|undefined} key
  * @param {number} poolSize
  * @param {Options} options
- * @returns {Linter}
+ * @returns {Promise<Linter>}
  */
 export function loadESLintThreaded(
   key: string | undefined,
   poolSize: number,
-  options: Options
-): Linter;
+  options: Options,
+): Promise<Linter>;
 /**
  * @param {string|undefined} key
  * @param {Options} options
- * @returns {Linter}
+ * @returns {Promise<Linter>}
  */
 export function getESLint(
   key: string | undefined,
-  { threads, ...options }: Options
-): Linter;
+  { threads, ...options }: Options,
+): Promise<Linter>;
 import { Worker as JestWorker } from 'jest-worker';

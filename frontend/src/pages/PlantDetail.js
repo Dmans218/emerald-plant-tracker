@@ -276,11 +276,6 @@ const PlantDetail = () => {
               </div>
             )}
             <div className="stat-item">
-              <div className="stat-label">Total Activities</div>
-              <div className="stat-value">{plant.log_count || 0}</div>
-              <div className="stat-description">logged events</div>
-            </div>
-            <div className="stat-item">
               <div className="stat-label">Last Activity</div>
               <div className="stat-value">
                 {plant.last_log_date 
@@ -300,57 +295,6 @@ const PlantDetail = () => {
             <div className="mt-6 p-4 bg-accent-primary/10 rounded-lg border border-accent-primary/20">
               <div className="stat-label mb-2">📝 Notes</div>
               <p className="text-text-primary">{plant.notes}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Recent Logs */}
-      <div className="dashboard-section">
-        <div className="section-header">
-          <h2 className="section-title">📋 Recent Activity</h2>
-          <Link to="/logs" className="btn btn-primary">
-            <Plus className="w-4 h-4" />
-            Add Log
-          </Link>
-        </div>
-        
-        <div className="section-content">
-          {logs.length === 0 ? (
-            <div className="empty-state">
-              <Calendar className="empty-state-icon" />
-              <h3 className="empty-state-title">No activity logs yet</h3>
-              <p className="empty-state-description">
-                Start tracking your plant's growth by adding your first log entry.
-              </p>
-              <Link to="/logs" className="btn btn-primary mt-4">
-                <Plus className="w-4 h-4" />
-                Add First Log
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {logs.slice(0, 10).map((log) => (
-                <div key={log.id} className="activity-log-item">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="activity-log-type">{log.type}</span>
-                      <span className="text-text-secondary">•</span>
-                      <span className="activity-log-time">
-                        {formatDistanceToNow(new Date(log.logged_at))} ago
-                      </span>
-                    </div>
-                    {log.description && (
-                      <p className="activity-log-description">{log.description}</p>
-                    )}
-                    {log.value && (
-                      <p className="activity-log-value">
-                        Value: {log.value} {log.unit || ''}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
             </div>
           )}
         </div>

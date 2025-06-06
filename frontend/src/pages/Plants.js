@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Edit, Trash2, Calendar, Sprout, Copy, Archive, ArchiveRestore, Home } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -16,8 +16,20 @@ const Plants = () => {
   const [selectedGrowTent, setSelectedGrowTent] = useState('');
   const [growTents, setGrowTents] = useState([]);
   const [groupByTent, setGroupByTent] = useState(true);
+  
+  // Get URL search parameters for filtering
+  const [searchParams] = useSearchParams();
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm();
+
+  useEffect(() => {
+    // Check for tent filter from URL
+    const tentFromUrl = searchParams.get('tent');
+    if (tentFromUrl) {
+      setSelectedGrowTent(tentFromUrl);
+      setGroupByTent(false); // Switch to list view when filtering
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchPlants();
@@ -123,6 +135,24 @@ const Plants = () => {
     }
   };
 
+  const handleExportEnvironment = async (plantId) => {
+    try {
+      const response = await fetch(`/api/environment/plant/${plantId}/export`);
+      if (!response.ok) throw new Error('Failed to export environment log');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `plant-${plantId}-environment.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error('Failed to export environment log');
+    }
+  };
+
   const resetForm = () => {
     setShowForm(false);
     setEditingPlant(null);
@@ -158,89 +188,101 @@ const Plants = () => {
     return groups;
   }, {}) : { 'All Plants': plants };
 
-  const renderPlantCard = (plant) => (
-    <div key={plant.id} className="plant-card">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
+  const renderPlantCard = (plant) => {
+    // Defensive: ensure only the card is returned, nothing else
+    return (
+      <div className="plant-card">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <Link
+              to={`/plants/${plant.id}`}
+              className="plant-name"
+            >
+              {plant.name}
+            </Link>
+            <p className="plant-strain">{plant.strain || 'Unknown strain'}</p>
+            {plant.grow_tent && (
+              <span className="plant-tent-label">
+                <Home className="w-3 h-3 inline mr-1" />
+                {plant.grow_tent}
+              </span>
+            )}
+          </div>
+          <span className={`stage-badge stage-${plant.stage}`}>
+            {getStageIcon(plant.stage)} {plant.stage}
+          </span>
+        </div>
+
+        {plant.notes && (
+          <p className="plant-notes">{plant.notes}</p>
+        )}
+
+        <div className="plant-meta">
+          {plant.planted_date && (
+            <div className="plant-meta-item">
+              <Calendar className="w-4 h-4" />
+              <span>Planted {formatDistanceToNow(new Date(plant.planted_date))} ago</span>
+            </div>
+          )}
+        </div>
+
+        <div className="plant-actions">
           <Link
             to={`/plants/${plant.id}`}
-            className="plant-name"
+            className="plant-link"
           >
-            {plant.name}
+            View Details →
           </Link>
-          <p className="plant-strain">{plant.strain || 'Unknown strain'}</p>
-          {plant.grow_tent && (
-            <p className="text-xs text-muted mt-1">
-              <Home className="w-3 h-3 inline mr-1" />
-              {plant.grow_tent}
-            </p>
-          )}
-        </div>
-        <span className={`stage-badge stage-${plant.stage}`}>
-          {getStageIcon(plant.stage)} {plant.stage}
-        </span>
-      </div>
-
-      {plant.notes && (
-        <p className="plant-notes">{plant.notes}</p>
-      )}
-
-      <div className="plant-meta">
-        {plant.planted_date && (
-          <div className="plant-meta-item">
-            <Calendar className="w-4 h-4" />
-            <span>Planted {formatDistanceToNow(new Date(plant.planted_date))} ago</span>
-          </div>
-        )}
-        <div className="plant-meta-item">
-          <Sprout className="w-4 h-4" />
-          <span>{plant.log_count || 0} activity logs</span>
-        </div>
-      </div>
-
-      <div className="plant-actions">
-        <Link
-          to={`/plants/${plant.id}`}
-          className="plant-link"
-        >
-          View Details →
-        </Link>
-        <div className="flex gap-2">
-          {!plant.archived && (
+          <div className="flex gap-2">
+            {!plant.archived && (
+              <button
+                onClick={() => handleClone(plant)}
+                className="btn btn-secondary btn-sm"
+                title="Clone Plant"
+              >
+                <Copy className="w-3 h-3" />
+              </button>
+            )}
             <button
-              onClick={() => handleClone(plant)}
+              onClick={() => handleEdit(plant)}
               className="btn btn-secondary btn-sm"
-              title="Clone Plant"
+              title="Edit Plant"
+              type="button"
             >
-              <Copy className="w-3 h-3" />
+              <Edit className="w-3 h-3" />
             </button>
-          )}
-          <button
-            onClick={() => handleEdit(plant)}
-            className="btn btn-secondary btn-sm"
-            title="Edit Plant"
-          >
-            <Edit className="w-3 h-3" />
-          </button>
-          <button
-            onClick={() => handleArchive(plant)}
-            className="btn btn-outline btn-sm"
-            title={plant.archived ? "Unarchive Plant" : "Archive Plant"}
-          >
-            {plant.archived ? <ArchiveRestore className="w-3 h-3" /> : <Archive className="w-3 h-3" />}
-          </button>
-          <button
-            onClick={() => handleDelete(plant)}
-            className="btn btn-danger btn-sm"
-            title="Delete Plant"
-          >
-            <Trash2 className="w-3 h-3" />
-          </button>
+            <button
+              onClick={() => handleArchive(plant)}
+              className="btn btn-outline btn-sm"
+              title={plant.archived ? "Unarchive Plant" : "Archive Plant"}
+              type="button"
+            >
+              {plant.archived ? <ArchiveRestore className="w-3 h-3" /> : <Archive className="w-3 h-3" />}
+            </button>
+            <button
+              onClick={() => handleDelete(plant)}
+              className="btn btn-danger btn-sm"
+              title="Delete Plant"
+              type="button"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+            {plant.archived && (
+              <button
+                onClick={() => handleExportEnvironment(plant.id)}
+                className="btn btn-secondary btn-sm"
+                title="Export Environment Log"
+                type="button"
+              >
+                <Export className="w-3 h-3" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
-
+    );
+  };
+  
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -257,8 +299,8 @@ const Plants = () => {
             onClick={() => setGroupByTent(!groupByTent)}
             className={`btn ${groupByTent ? 'btn-secondary' : 'btn-outline'}`}
           >
-            <Home className="w-4 h-4" />
-            {groupByTent ? 'List View' : 'Group by Tent'}
+            {groupByTent ? <Home className="w-4 h-4" /> : <List className="w-4 h-4" />}
+            {groupByTent ? 'Group by Tent' : 'List View'}
           </button>
           
           {!groupByTent && (
@@ -326,12 +368,6 @@ const Plants = () => {
                   ))}
                 </select>
               )}
-              <button
-                onClick={resetForm}
-                className="btn btn-secondary"
-              >
-                Cancel
-              </button>
             </div>
           </div>
 
@@ -465,7 +501,11 @@ const Plants = () => {
                 </div>
               )}
               <div className="grid grid-2">
-                {tentPlants.map(plant => renderPlantCard(plant))}
+                {tentPlants.map(plant => (
+                  <React.Fragment key={plant.id}>
+                    {renderPlantCard(plant)}
+                  </React.Fragment>
+                ))}
               </div>
             </div>
           ))}

@@ -13,10 +13,22 @@ const logsRouter = require('./routes/logs');
 const environmentRouter = require('./routes/environment');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 420;
 
 // Middleware
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        workerSrc: ["'self'", 'blob:'],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:'],
+      },
+    },
+  })
+);
 app.use(cors());
 app.use(morgan('combined'));
 app.use(express.json());

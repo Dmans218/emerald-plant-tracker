@@ -1,11 +1,15 @@
 version: '3.8'
 
+# Enable BuildKit for better performance
+x-buildkit: &buildkit
+  driver: docker
+
 services:
   app:
     build: .
     container_name: emerald_plant_tracker
     ports:
-      - "420:5000"
+      - "420:420"
     volumes:
       - emerald_data:/app/backend/data
       - ./backend/uploads:/app/backend/uploads

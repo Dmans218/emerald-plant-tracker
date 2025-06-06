@@ -19,7 +19,7 @@ const NutrientCalculator = () => {
     if (growthStage === 'vegetative' && feedingStrength === 'medium') {
       // Already optimal, no change needed
     }
-  }, []);
+  }, [growthStage, feedingStrength]);
 
   // Smart handlers for interconnected growth stage and feeding strength
   const handleGrowthStageChange = (newStage) => {
@@ -533,6 +533,7 @@ const NutrientCalculator = () => {
 
   useEffect(() => {
     calculateNutrients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBrand, growthStage, tankSize, waterType, growMedium, feedingStrength, wateringMethod]);
 
   return (
@@ -560,39 +561,47 @@ const NutrientCalculator = () => {
       </div>
 
       {/* Quick Reference - Moved to Top */}
-      <div className="card">
+      <div className="card quick-reference-card mb-6">
         <h2 className="section-title">📚 Quick Reference</h2>
-        
-        <div className="grid grid-4 gap-4">
-          <div>
-            <h3 className="font-semibold mb-2 text-green-700">🌱 Growth Stages</h3>
-            <div className="space-y-1 text-sm">
+        <div className="quick-reference-grid">
+          <div className="quick-reference-section">
+            <div className="quick-reference-header">
+              <span className="quick-reference-icon">🌱</span>
+              <span className="quick-reference-title">Growth Stages</span>
+            </div>
+            <div className="quick-reference-list">
               <div>🌿 <strong>Vegetative:</strong> Higher N, Light-Medium strength</div>
               <div>🌸 <strong>Flowering:</strong> Higher P&K, Medium-Aggressive strength</div>
             </div>
           </div>
-          
-          <div>
-            <h3 className="font-semibold mb-2 text-blue-700">💧 PPM Guidelines</h3>
-            <div className="space-y-1 text-sm">
+          <div className="quick-reference-section">
+            <div className="quick-reference-header">
+              <span className="quick-reference-icon">💧</span>
+              <span className="quick-reference-title">PPM Guidelines</span>
+            </div>
+            <div className="quick-reference-list">
               <div>🌿 Light: 300-600 PPM</div>
               <div>🌱 Medium: 600-1200 PPM</div>
               <div>💪 Aggressive: 1200-1600 PPM</div>
             </div>
           </div>
-
-          <div>
-            <h3 className="font-semibold mb-2 text-purple-700">🧪 pH Ranges</h3>
-            <div className="space-y-1 text-sm">
+          <div className="quick-reference-section">
+            <div className="quick-reference-header">
+              <span className="quick-reference-icon">🧪</span>
+              <span className="quick-reference-title">pH Ranges</span>
+            </div>
+            <div className="quick-reference-list">
               <div>💧 Hydro/Coco: 5.5-6.5</div>
               <div>🌾 Soilless: 5.5-6.5</div>
               <div>🌍 Soil: 6.0-7.0</div>
             </div>
           </div>
-
-          <div>
-            <h3 className="font-semibold mb-2 text-orange-700">🚿 Watering Method Adjustments</h3>
-            <div className="space-y-1 text-sm">
+          <div className="quick-reference-section">
+            <div className="quick-reference-header">
+              <span className="quick-reference-icon">🚿</span>
+              <span className="quick-reference-title">Watering Method</span>
+            </div>
+            <div className="quick-reference-list">
               <div>🪣 Hand: Standard (100%)</div>
               <div>💧 Drip: Reduced (80%)</div>
               <div>⬆️ Wicking: Lower (70%)</div>
@@ -602,131 +611,60 @@ const NutrientCalculator = () => {
         </div>
       </div>
 
-      {/* Calculator Form */}
-      <div className="card">
-        <h2 className="section-title">⚙️ Calculator Settings</h2>
-        
-        {/* Smart Feeding Guide */}
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-semibold text-blue-800 mb-1">💡 Smart Feeding Guide</h4>
-          <p className="text-blue-700 text-sm">
+      {/* Calculator Settings */}
+      <div className="card mb-6">
+        <h2 className="section-title flex items-center gap-2 mb-2">
+          <Calculator className="w-6 h-6 text-primary" /> Calculator Settings
+        </h2>
+        <div className="text-sm text-gray-400 mb-3 flex items-center gap-2">
+          <span className="font-semibold text-yellow-400">Smart Feeding Guide</span>
+          <Info className="w-4 h-4 text-yellow-400" />
+          <span>
             Growth stage and feeding strength work together. The calculator automatically adjusts recommendations:
-            <br />
-            🌱 <strong>Vegetative:</strong> Light to Medium strength (avoid aggressive feeding)
-            <br />
-            🌸 <strong>Flowering:</strong> Medium to Aggressive strength (avoid light feeding for optimal yields)
-          </p>
+            <span className="block text-xs text-gray-500 mt-1">
+              <b>Vegetative:</b> Light to Medium strength (avoid aggressive feeding)
+              <span className="mx-2">|</span>
+              <b>Flowering:</b> Medium to Aggressive strength (avoid light feeding for optimal yields)
+            </span>
+          </span>
         </div>
-        
-        <div className="grid grid-3 gap-4">
+        <div className="grid grid-2 gap-4 mb-0">
+          {/* Nutrient Brand */}
           <div className="form-group">
             <label className="label">Nutrient Brand</label>
-            <select 
+            <select
               className="select"
               value={selectedBrand}
-              onChange={(e) => setSelectedBrand(e.target.value)}
+              onChange={e => setSelectedBrand(e.target.value)}
             >
               {Object.entries(nutrientBrands).map(([key, brand]) => (
                 <option key={key} value={key}>{brand.name}</option>
               ))}
             </select>
-            <p className="text-sm text-gray-500 mt-1">
-              {nutrientBrands[selectedBrand].description}
-            </p>
+            <span className="text-xs text-gray-500 mt-1 block">{nutrientBrands[selectedBrand].description}</span>
           </div>
-
+          {/* Growth Stage */}
           <div className="form-group">
             <label className="label">Growth Stage</label>
-            <select 
+            <select
               className="select"
               value={growthStage}
-              onChange={(e) => handleGrowthStageChange(e.target.value)}
+              onChange={e => handleGrowthStageChange(e.target.value)}
             >
               <option value="vegetative">🌱 Vegetative</option>
               <option value="flowering">🌸 Flowering</option>
             </select>
-            <p className="text-sm text-gray-500 mt-1">
-              {growthStage === 'vegetative' 
-                ? 'Typically uses light to medium feeding strength' 
-                : 'Typically uses medium to aggressive feeding strength'}
-            </p>
+            <span className="text-xs text-gray-500 mt-1 block">
+              {growthStage === 'vegetative' ? 'Typically uses light to medium feeding strength' : 'Medium to aggressive feeding for optimal yields'}
+            </span>
           </div>
-
-          <div className="form-group">
-            <label className="label">Tank Size (Liters)</label>
-            <input
-              type="number"
-              className="input"
-              value={tankSize}
-              onChange={(e) => setTankSize(parseFloat(e.target.value) || 50)}
-              min="1"
-              max="1000"
-              step="1"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="label">Feeding Strength</label>
-            <select 
-              className={`select ${
-                (feedingStrength === 'light' && growthStage === 'flowering') ||
-                (feedingStrength === 'aggressive' && growthStage === 'vegetative')
-                  ? 'border-amber-300 bg-amber-50' 
-                  : ''
-              }`}
-              value={feedingStrength}
-              onChange={(e) => handleFeedingStrengthChange(e.target.value)}
-            >
-              <option value="light">🌿 Light (50% strength)</option>
-              <option value="medium">🌱 Medium (75% strength)</option>
-              <option value="aggressive">💪 Aggressive (100% strength)</option>
-            </select>
-            <p className={`text-sm mt-1 ${
-              (feedingStrength === 'light' && growthStage === 'flowering') ||
-              (feedingStrength === 'aggressive' && growthStage === 'vegetative')
-                ? 'text-amber-600' 
-                : 'text-gray-500'
-            }`}>
-              {feedingStrength === 'light' && growthStage === 'vegetative' && '🌿 Perfect for early vegetative growth'}
-              {feedingStrength === 'light' && growthStage === 'flowering' && '⚠️ Light feeding might limit flowering potential'}
-              {feedingStrength === 'medium' && '🌱 Balanced strength - good for most plants'}
-              {feedingStrength === 'aggressive' && growthStage === 'flowering' && '💪 Maximum strength for heavy feeding flowering plants'}
-              {feedingStrength === 'aggressive' && growthStage === 'vegetative' && '⚠️ High strength - monitor for nutrient burn'}
-            </p>
-          </div>
-
-          <div className="form-group">
-            <label className="label">Grow Medium</label>
-            <select 
-              className="select"
-              value={growMedium}
-              onChange={(e) => setGrowMedium(e.target.value)}
-            >
-              <option value="hydro">💧 Hydroponic/DWC</option>
-              <option value="soilless">🌾 Soilless/Peat (ASB WP420, Pro-Mix, etc.)</option>
-              <option value="coco">🥥 Coco Coir</option>
-              <option value="soil">🌍 Soil</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label className="label">Water Type</label>
-            <select 
-              className="select"
-              value={waterType}
-              onChange={(e) => setWaterType(e.target.value)}
-            >
-              <option value="soft">💧 Soft Water (RO/Distilled)</option>
-              <option value="hard">🪨 Hard Water (Tap)</option>
-            </select>
-          </div>
-
+          {/* Watering Method (moved up) */}
           <div className="form-group">
             <label className="label">Watering Method</label>
-            <select 
+            <select
               className="select"
               value={wateringMethod}
-              onChange={(e) => setWateringMethod(e.target.value)}
+              onChange={e => setWateringMethod(e.target.value)}
             >
               <option value="hand-watering">🪣 Hand Watering</option>
               <option value="drip-irrigation">💧 Drip Irrigation</option>
@@ -735,14 +673,70 @@ const NutrientCalculator = () => {
               <option value="flood-drain">🌊 Flood & Drain (Ebb & Flow)</option>
               <option value="aeroponic">💨 Aeroponic</option>
             </select>
-            <p className="text-sm text-gray-500 mt-1">
+            <span className="text-xs text-gray-500 mt-1 block">
               {wateringMethod === 'hand-watering' && '🪣 Standard watering with can or hose'}
               {wateringMethod === 'drip-irrigation' && '💧 Automated drip lines - lower concentration'}
               {wateringMethod === 'bottom-wicking' && '⬆️ Passive uptake - reduced strength'}
               {wateringMethod === 'recirculating' && '🔄 Continuous circulation - stable concentration'}
               {wateringMethod === 'flood-drain' && '🌊 Periodic flooding - standard strength'}
               {wateringMethod === 'aeroponic' && '💨 Misting system - very low concentration'}
-            </p>
+            </span>
+          </div>
+          {/* Feeding Strength */}
+          <div className="form-group">
+            <label className="label">Feeding Strength</label>
+            <select
+              className={`select ${
+                (feedingStrength === 'light' && growthStage === 'flowering') ||
+                (feedingStrength === 'aggressive' && growthStage === 'vegetative')
+                  ? 'border-amber-300 bg-amber-50'
+                  : ''
+              }`}
+              value={feedingStrength}
+              onChange={e => handleFeedingStrengthChange(e.target.value)}
+            >
+              <option value="light">🌿 Light (50% strength)</option>
+              <option value="medium">🌱 Medium (75% strength)</option>
+              <option value="aggressive">💪 Aggressive (100% strength)</option>
+            </select>
+            <span className={`text-xs mt-1 block ${
+              (feedingStrength === 'light' && growthStage === 'flowering') ||
+              (feedingStrength === 'aggressive' && growthStage === 'vegetative')
+                ? 'text-amber-600'
+                : 'text-gray-500'
+            }`}>
+              {feedingStrength === 'light' && growthStage === 'vegetative' && '🌿 Perfect for early vegetative growth'}
+              {feedingStrength === 'light' && growthStage === 'flowering' && '⚠️ Light feeding might limit flowering potential'}
+              {feedingStrength === 'medium' && '🌱 Balanced strength - good for most plants'}
+              {feedingStrength === 'aggressive' && growthStage === 'flowering' && '💪 Maximum strength for heavy feeding flowering plants'}
+              {feedingStrength === 'aggressive' && growthStage === 'vegetative' && '⚠️ High strength - monitor for nutrient burn'}
+            </span>
+          </div>
+          {/* Grow Medium */}
+          <div className="form-group">
+            <label className="label">Grow Medium</label>
+            <select
+              className="select"
+              value={growMedium}
+              onChange={e => setGrowMedium(e.target.value)}
+            >
+              <option value="hydro">💧 Hydroponic/DWC</option>
+              <option value="soilless">🌾 Soilless/Peat (ASB WP420, Pro-Mix, etc.)</option>
+              <option value="coco">🥥 Coco Coir</option>
+              <option value="soil">🌍 Soil</option>
+            </select>
+          </div>
+          {/* Water Type */}
+          <div className="form-group">
+            <label className="label">Water Type</label>
+            <select
+              className="select"
+              value={waterType}
+              onChange={e => setWaterType(e.target.value)}
+            >
+              <option value="soft">💧 Soft Water (RO/Distilled)</option>
+              <option value="hard">🪨 Hard Water (Tap)</option>
+            </select>
           </div>
         </div>
       </div>
@@ -753,7 +747,6 @@ const NutrientCalculator = () => {
           {/* Recipe Card */}
           <div className="card">
             <h2 className="section-title">📋 Your Nutrient Recipe</h2>
-            
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
               <div className="flex items-center gap-2 mb-2">
                 <Beaker className="w-5 h-5 text-green-600" />
@@ -761,29 +754,44 @@ const NutrientCalculator = () => {
                   {calculations.brand} - {calculations.stage} stage
                 </h3>
               </div>
-              <p className="text-green-700">
-                For {calculations.tankSize}L tank at {calculations.strength} strength
-                {wateringMethod !== 'hand-watering' && (
-                  <span className="block text-sm mt-1">
-                    📊 Adjusted for {wateringMethod.replace('-', ' ')} system
-                  </span>
-                )}
-              </p>
+              {/* Tank Size input - now inline and compact */}
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm text-gray-700">Tank Size (Liters):</span>
+                <input
+                  type="number"
+                  className="input"
+                  style={{ maxWidth: '120px', minWidth: '80px' }}
+                  value={tankSize}
+                  onChange={e => setTankSize(parseFloat(e.target.value) || 50)}
+                  min="1"
+                  max="1000"
+                  step="1"
+                  placeholder="Liters"
+                  aria-label="Tank Size (Liters)"
+                />
+                <span className="text-sm text-gray-500">L</span>
+                <span className="ml-4 text-green-700">
+                  at {calculations.strength} strength
+                </span>
+              </div>
+              {wateringMethod !== 'hand-watering' && (
+                <span className="block text-sm mt-1">
+                  📊 Adjusted for {wateringMethod.replace('-', ' ')} system
+                </span>
+              )}
             </div>
 
             {/* Base Nutrients */}
-            <div className="mb-6">
+            <div className="mb-7">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-blue-500" />
                 Base Nutrients (Required)
               </h3>
-              <div className="space-y-2">
+              <div className="nutrient-list">
                 {calculations.baseNutrients.map((nutrient, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                    <span className="font-medium text-blue-800">{nutrient.name}</span>
-                    <span className="text-blue-600 font-bold">
-                      {nutrient.amount} {nutrient.unit}
-                    </span>
+                  <div key={index} className="nutrient-list-row">
+                    <span className="nutrient-list-name">{nutrient.name}</span>
+                    <span className="nutrient-list-amount">{nutrient.amount} {nutrient.unit}</span>
                   </div>
                 ))}
               </div>
@@ -791,41 +799,31 @@ const NutrientCalculator = () => {
 
             {/* Supplements */}
             {calculations.supplements.length > 0 && (
-              <div className="mb-6">
+              <div className="mb-7">
                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                   <Droplets className="w-5 h-5 text-purple-500" />
                   Supplements {calculations.supplements.some(s => s.optional) && '(Optional)'}
                 </h3>
-                <div className="space-y-2">
-                                     {calculations.supplements.map((supplement, index) => (
-                     <div key={index} className={`p-3 rounded-lg ${
-                       supplement.optional ? 'bg-purple-50' : 'bg-orange-50'
-                     }`}>
-                       <div className="flex justify-between items-center">
-                         <span className={`font-medium ${
-                           supplement.optional ? 'text-purple-800' : 'text-orange-800'
-                         }`}>
-                           {supplement.name} {supplement.optional && '(Optional)'}
-                         </span>
-                         <span className={`font-bold ${
-                           supplement.optional ? 'text-purple-600' : 'text-orange-600'
-                         }`}>
-                           {supplement.amount} {supplement.unit}
-                         </span>
-                       </div>
-                       {supplement.waterTypeNote && (
-                         <div className="text-xs text-gray-600 mt-1">
-                           💧 {supplement.waterTypeNote}
-                         </div>
-                       )}
-                     </div>
-                   ))}
+                <div className="nutrient-list">
+                  {calculations.supplements.map((supplement, index) => (
+                    <div key={index} className="nutrient-list-row">
+                      <span className={`nutrient-list-name ${supplement.optional ? 'text-purple-700' : 'text-orange-700'}`}>{supplement.name} {supplement.optional && '(Optional)'}</span>
+                      <span className={`nutrient-list-amount ${supplement.optional ? 'text-purple-600' : 'text-orange-600'}`}>{supplement.amount} {supplement.unit}</span>
+                    </div>
+                  ))}
                 </div>
+                {calculations.supplements.some(s => s.waterTypeNote) && (
+                  <div className="text-xs text-gray-600 mt-2 ml-1">
+                    {calculations.supplements.filter(s => s.waterTypeNote).map((s, i) => (
+                      <div key={i}>💧 {s.name}: {s.waterTypeNote}</div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
             {/* Instructions */}
-            <div>
+            <div className="mb-7">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <Info className="w-5 h-5 text-amber-500" />
                 Mixing Instructions
@@ -834,14 +832,14 @@ const NutrientCalculator = () => {
                 {calculations.instructions.map((instruction, index) => (
                   <div key={index} className="flex items-start gap-3 p-2">
                     <span className="text-amber-600 font-bold text-sm">{index + 1}</span>
-                    <span className="text-gray-700">{instruction.replace(/^\d+\.\s*/, '')}</span>
+                    <span className="text-gray-700">{instruction.replace(/^[0-9]+\.\s*/, '')}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Important Notes */}
-            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <h4 className="font-semibold text-yellow-800 mb-2">⚠️ Important Notes:</h4>
               <ul className="text-yellow-700 text-sm space-y-1">
                 <li>• Always start with lower concentrations and increase gradually</li>
