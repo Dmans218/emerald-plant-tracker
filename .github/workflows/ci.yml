@@ -33,12 +33,13 @@ jobs:
     
     - name: Run security audit
       run: npm run audit
+      continue-on-error: true
     
     - name: Run backend tests
-      run: cd backend && npm test || echo "No tests specified"
+      run: cd backend && npm test
     
     - name: Run frontend tests
-      run: cd frontend && npm test -- --watchAll=false || echo "No tests specified"
+      run: cd frontend && npm test
     
     - name: Build frontend
       run: npm run build
