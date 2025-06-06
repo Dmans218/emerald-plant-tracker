@@ -14,7 +14,7 @@
     "docker:down": "docker-compose down"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^9.1.2"
   },
   "keywords": ["cannabis", "grow", "tracker", "plants"],
   "author": "",
