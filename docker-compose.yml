@@ -9,7 +9,9 @@ services:
       - emerald_uploads:/app/backend/uploads
     environment:
       - NODE_ENV=production
+      - DATABASE_URL=/app/backend/data/emerald-plant-tracker.db
     restart: unless-stopped
+    user: "1000:1000"  # Run as user with proper permissions
 volumes:
   emerald_data:
   emerald_uploads:

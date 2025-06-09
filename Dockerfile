@@ -29,6 +29,11 @@ RUN cd backend && npm ci --only=production
 RUN mkdir -p backend/data backend/uploads && \
     chown -R node:node backend/data backend/uploads
 
+# Copy and set permissions for initialization script
+COPY backend/init-and-start.sh backend/
+RUN chmod +x backend/init-and-start.sh && \
+    chown node:node backend/init-and-start.sh
+
 # Set environment variable for port 420
 ENV PORT=420
 ENV NODE_ENV=production
@@ -43,5 +48,5 @@ EXPOSE 420
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:420/ || exit 1
 
-# Start the backend server (which serves both API and frontend)
-CMD ["node", "backend/server.js"] 
+# Start the backend server with initialization script
+CMD ["./backend/init-and-start.sh"] 
