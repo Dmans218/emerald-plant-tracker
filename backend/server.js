@@ -15,21 +15,9 @@ const environmentRouter = require('./routes/environment');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware - Security-optimized configuration for self-hosting
+// Middleware - Security configuration optimized for HTTP self-hosting
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "blob:"],
-      connectSrc: ["'self'"],
-      fontSrc: ["'self'"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'self'"],
-      frameSrc: ["'none'"],
-    },
-  },
+  contentSecurityPolicy: false, // Disable Helmet's CSP - we'll add our own
   crossOriginOpenerPolicy: false, // Disable COOP for better compatibility
   crossOriginEmbedderPolicy: false, // Disable COEP for better compatibility
   originAgentCluster: false, // Disable Origin-Agent-Cluster header
@@ -37,6 +25,26 @@ app.use(helmet({
   hidePoweredBy: true, // Hide Express header for security
   crossOriginResourcePolicy: false, // Better compatibility for self-hosting
 }));
+
+// Custom CSP header optimized for HTTP serving (no upgrade-insecure-requests)
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', 
+    "default-src 'self'; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "script-src 'self'; " +
+    "img-src 'self' data: blob:; " +
+    "connect-src 'self'; " +
+    "font-src 'self'; " +
+    "object-src 'none'; " +
+    "media-src 'self'; " +
+    "frame-src 'none'; " +
+    "base-uri 'self'; " +
+    "form-action 'self'; " +
+    "frame-ancestors 'self'"
+    // NOTE: upgrade-insecure-requests is deliberately EXCLUDED for HTTP serving
+  );
+  next();
+});
 
 // CORS configuration - secure but allows both HTTP and HTTPS
 const corsOptions = {
@@ -125,7 +133,7 @@ if (!fs.existsSync(uploadsDir)) {
 app.use('/uploads', express.static(uploadsDir));
 
 // Serve static files from React build
-const clientBuildPath = path.join(__dirname, 'public');
+const clientBuildPath = path.join(__dirname, '..', 'frontend', 'build');
 if (fs.existsSync(clientBuildPath)) {
   // Serve static assets with proper headers for HTTP
   app.use(express.static(clientBuildPath, {
