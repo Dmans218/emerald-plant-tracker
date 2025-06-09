@@ -82,7 +82,7 @@ You can use the pre-configured docker-compose.yml file:
 
 ```bash
 # Download the docker-compose.yml file
-curl -O https://raw.githubusercontent.com/Dmans218/growlogger/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/Dmans218/emerald-plant-tracker/main/docker-compose.yml
 
 # Start the container
 sudo docker-compose up -d
@@ -132,7 +132,7 @@ The image will be automatically pulled from Docker Hub on first run.
 
 ```bash
 # Create and run with docker-compose
-curl -o docker-compose.yml https://raw.githubusercontent.com/Dmans218/growlogger/main/docker-compose.yml
+curl -o docker-compose.yml https://raw.githubusercontent.com/Dmans218/emerald-plant-tracker/main/docker-compose.yml
 docker-compose up -d
 ```
 
@@ -142,8 +142,8 @@ docker-compose up -d
 
 ```bash
 # Clone and build from source
-git clone https://github.com/Dmans218/growlogger.git
-cd growlogger
+git clone https://github.com/Dmans218/emerald-plant-tracker.git
+cd emerald-plant-tracker
 docker-compose up -d --build
 ```
 
@@ -152,9 +152,9 @@ docker-compose up -d --build
 **Fastest setup with Docker run:**
 
 ```bash
-docker run -d --name growlogger -p 420:420 \
-  -v growlogger_data:/app/backend/data \
-  -v growlogger_uploads:/app/backend/uploads \
+docker run -d --name emerald-plant-tracker -p 420:420 \
+  -v emerald_data:/app/backend/data \
+  -v emerald_uploads:/app/backend/uploads \
   dmans218/emerald-plant-tracker:latest
 ```
 
@@ -251,8 +251,8 @@ The built-in nutrient calculator is one of Emerald Plant Tracker's most powerful
 Emerald Plant Tracker/
 ├── backend/                 # Node.js API server
 │   ├── data/               # SQLite database files
-│   │   ├── growlogger.db   # Main application database
-│   │   └── emerald-plant-tracker.db  # Legacy database
+│   │   ├── emerald-plant-tracker.db  # Main application database
+│   │   └── growlogger.db   # Legacy database (if migrated)
 │   ├── routes/             # API route handlers
 │   │   ├── plants.js       # Plant CRUD operations
 │   │   ├── logs.js         # Activity logging
