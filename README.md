@@ -1,26 +1,9 @@
 # 🌿 Emerald Plant Tracker - Advanced Cannabis Cultivation Tracker
 
-[![MIT License](https://img.shields.io/badge/license-MIT-green.sv```yaml
-services:
-  emerald-plant-tracker:
-    image: dmans218/emerald-plant-tracker:latest
-    container_name: emerald-plant-tracker
-    ports:
-      - "420:420"
-    volumes:
-      - emerald_data:/app/backend/data
-      - emerald_uploads:/app/backend/uploads
-    environment:
-      - NODE_ENV=production
-      - PORT=420
-    restart: unless-stopped
-
-volumes:
-  emerald_data:
-  emerald_uploads:
-```kerized](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
+[![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Docker Ready](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 [![GitHub Sponsors](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-fc2967?logo=github)](https://github.com/sponsors/Dmans218)
-[![Buy Me a Gram](https://img.shields.io/badge/donate-Ko--fi-29abe0?logo=ko-fi)](https://ko-fi.com/emeraldplantmanager)
+[![Buy Me a Coffee](https://img.shields.io/badge/donate-Ko--fi-29abe0?logo=ko-fi)](https://ko-fi.com/emeraldplantmanager)
 
 A comprehensive, self-hosted web application for professional cannabis cultivation management. Built with React, Express, and SQLite, featuring an advanced nutrient calculator, environmental monitoring, and complete grow tracking. Fully Dockerized for easy deployment and perfect for privacy-focused growers.
 
@@ -139,26 +122,6 @@ volumes:
 
 The image will be automatically pulled from Docker Hub on first run.
 
-```yaml
-services:
-  emerald-plant-tracker:
-    image: dmans218/emerald-plant-tracker:v1.0.0  # Use stable v1.0.0 release
-    container_name: emerald-plant-tracker
-    ports:
-      - "420:420"
-    volumes:
-      - emerald_data:/app/backend/data
-      - emerald_uploads:/app/backend/uploads
-    environment:
-      - NODE_ENV=production
-      - PORT=420
-    restart: unless-stopped
-
-volumes:
-  emerald_data:
-  emerald_uploads:
-```
-
 ---
 
 ## 🐳 Docker Deployment Options
@@ -210,19 +173,29 @@ If you want to contribute or run the app in development mode:
    cd emerald-plant-tracker
    ```
 
-2. **Run the setup script:**
+2. **Install dependencies:**
 
    ```bash
-   ./setup-dev.sh
+   # Install backend dependencies
+   cd backend && npm install
+   
+   # Install frontend dependencies
+   cd ../frontend && npm install
+   cd ..
    ```
-
-   This will install all dependencies and create necessary directories.
 
 3. **Start development servers:**
 
    ```bash
-   # From project root:
-   npm run dev
+   # Option 1: Use Docker Compose for development
+   docker-compose -f docker-compose.dev.yml up
+   
+   # Option 2: Run manually
+   # Terminal 1 - Backend
+   cd backend && npm run dev
+   
+   # Terminal 2 - Frontend  
+   cd frontend && npm start
    ```
 
    This starts both frontend and backend. The app will be available at [http://localhost:420](http://localhost:420).
@@ -429,7 +402,6 @@ Minor and patch updates from Dependabot will be automatically merged if all test
 ---
 
 ## 💖 Support & Donations
-
 
 Emerald Plant Tracker is built and maintained by a Canadian developer. If you find this project useful, please consider supporting its development—your donations help pay my bills and keep this project alive!
 
