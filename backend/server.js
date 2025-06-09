@@ -29,20 +29,29 @@ app.use(helmet({
 // Custom CSP header optimized for HTTP serving (no upgrade-insecure-requests)
 app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', 
-    "default-src 'self'; " +
-    "style-src 'self' 'unsafe-inline'; " +
-    "script-src 'self'; " +
-    "img-src 'self' data: blob:; " +
-    "connect-src 'self'; " +
-    "font-src 'self'; " +
+    "default-src 'self' http: data:; " +
+    "style-src 'self' 'unsafe-inline' http:; " +
+    "script-src 'self' http:; " +
+    "img-src 'self' data: blob: http:; " +
+    "connect-src 'self' http:; " +
+    "font-src 'self' data: http:; " +
     "object-src 'none'; " +
-    "media-src 'self'; " +
+    "media-src 'self' http:; " +
     "frame-src 'none'; " +
     "base-uri 'self'; " +
     "form-action 'self'; " +
     "frame-ancestors 'self'"
     // NOTE: upgrade-insecure-requests is deliberately EXCLUDED for HTTP serving
   );
+  
+  // Explicitly remove any HTTPS enforcement headers that might be added elsewhere
+  res.removeHeader('Strict-Transport-Security');
+  res.removeHeader('upgrade-insecure-requests');
+  
+  // Add headers to help with HTTP serving
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  
   next();
 });
 
