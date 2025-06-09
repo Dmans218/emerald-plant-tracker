@@ -148,12 +148,6 @@ const clientBuildPath = process.env.NODE_ENV === 'production'
   ? path.join(__dirname, 'public')
   : path.join(__dirname, '..', 'frontend', 'build');
 
-console.log(`🎯 Looking for frontend build at: ${clientBuildPath}`);
-console.log(`📂 Directory exists: ${fs.existsSync(clientBuildPath)}`);
-if (fs.existsSync(clientBuildPath)) {
-  console.log(`📁 Files in build directory:`, fs.readdirSync(clientBuildPath));
-}
-
 if (fs.existsSync(clientBuildPath)) {
   // Serve static assets with proper headers for HTTP
   app.use(express.static(clientBuildPath, {
