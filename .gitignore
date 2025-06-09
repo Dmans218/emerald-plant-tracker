@@ -41,4 +41,5 @@ docker-build.log
 .vscode/
 *.swp
 *.swo
-.DS_Store
+.DS_Storefrontend/node_modules/
+backend/node_modules/

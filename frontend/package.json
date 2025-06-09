@@ -48,7 +48,7 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:420",
+  "proxy": "http://localhost:5000",
   "devDependencies": {
     "@craco/craco": "^5.9.0",
     "eslint": "^8.57.1",

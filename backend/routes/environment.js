@@ -17,30 +17,44 @@ const environmentSchema = Joi.object({
   logged_at: Joi.date().iso().allow(null, '')
 });
 
+// Test route
+router.get('/test', (req, res) => {
+  res.json({ message: 'Test route working' });
+});
+
 // GET /api/environment - Get environment logs
 router.get('/', (req, res) => {
   const database = db.getDb();
   const { limit = 50, offset = 0, from_date, to_date, grow_tent } = req.query;
   
-  let sql = 'SELECT * FROM environment_logs WHERE 1=1';
+  // Enhanced query to include plant growth stages from the tent at the time of reading
+  let sql = `
+    SELECT 
+      e.*,
+      GROUP_CONCAT(DISTINCT p.stage) as plant_stages,
+      COUNT(DISTINCT p.id) as plant_count
+    FROM environment_logs e
+    LEFT JOIN plants p ON (p.grow_tent = e.grow_tent AND p.archived_at IS NULL)
+    WHERE 1=1
+  `;
   const params = [];
   
   if (from_date) {
-    sql += ' AND logged_at >= ?';
+    sql += ' AND e.logged_at >= ?';
     params.push(from_date);
   }
   
   if (to_date) {
-    sql += ' AND logged_at <= ?';
+    sql += ' AND e.logged_at <= ?';
     params.push(to_date);
   }
   
   if (grow_tent) {
-    sql += ' AND grow_tent = ?';
+    sql += ' AND e.grow_tent = ?';
     params.push(grow_tent);
   }
   
-  sql += ' ORDER BY logged_at DESC LIMIT ? OFFSET ?';
+  sql += ' GROUP BY e.id ORDER BY e.logged_at DESC LIMIT ? OFFSET ?';
   params.push(parseInt(limit), parseInt(offset));
   
   database.all(sql, params, (err, rows) => {
@@ -48,7 +62,36 @@ router.get('/', (req, res) => {
       console.error('Error fetching environment logs:', err);
       return res.status(500).json({ error: 'Failed to fetch environment logs' });
     }
-    res.json(rows);
+    
+    // Process the results to format the stage information
+    const processedRows = rows.map(row => {
+      let dominantStage = 'N/A';
+      
+      if (row.plant_stages) {
+        const stages = row.plant_stages.split(',');
+        // Count stage occurrences
+        const stageCounts = {};
+        stages.forEach(stage => {
+          stageCounts[stage] = (stageCounts[stage] || 0) + 1;
+        });
+        
+        // Find most common stage
+        dominantStage = Object.keys(stageCounts).reduce((a, b) => 
+          stageCounts[a] > stageCounts[b] ? a : b
+        );
+        
+        // Capitalize the stage name
+        dominantStage = dominantStage.charAt(0).toUpperCase() + dominantStage.slice(1);
+      }
+      
+      return {
+        ...row,
+        stage: dominantStage,
+        plant_stages: undefined // Remove the raw data
+      };
+    });
+    
+    res.json(processedRows);
   });
 });
 
@@ -57,22 +100,107 @@ router.get('/latest', (req, res) => {
   const database = db.getDb();
   const { grow_tent } = req.query;
   
-  let sql = 'SELECT * FROM environment_logs';
+  let sql = `
+    SELECT 
+      e.*,
+      GROUP_CONCAT(DISTINCT p.stage) as plant_stages,
+      COUNT(DISTINCT p.id) as plant_count
+    FROM environment_logs e
+    LEFT JOIN plants p ON (p.grow_tent = e.grow_tent AND p.archived_at IS NULL)
+  `;
   const params = [];
   
   if (grow_tent) {
-    sql += ' WHERE grow_tent = ?';
+    sql += ' WHERE e.grow_tent = ?';
     params.push(grow_tent);
   }
   
-  sql += ' ORDER BY logged_at DESC LIMIT 1';
+  sql += ' GROUP BY e.id ORDER BY e.logged_at DESC LIMIT 1';
   
   database.get(sql, params, (err, row) => {
     if (err) {
       console.error('Error fetching latest environment log:', err);
       return res.status(500).json({ error: 'Failed to fetch latest environment log' });
     }
+    
+    if (row) {
+      let dominantStage = 'N/A';
+      
+      if (row.plant_stages) {
+        const stages = row.plant_stages.split(',');
+        const stageCounts = {};
+        stages.forEach(stage => {
+          stageCounts[stage] = (stageCounts[stage] || 0) + 1;
+        });
+        
+        dominantStage = Object.keys(stageCounts).reduce((a, b) => 
+          stageCounts[a] > stageCounts[b] ? a : b
+        );
+        
+        dominantStage = dominantStage.charAt(0).toUpperCase() + dominantStage.slice(1);
+      }
+      
+      row.stage = dominantStage;
+      delete row.plant_stages;
+    }
+    
     res.json(row || {});
+  });
+});
+
+// GET /api/environment/latest-per-tent - Get latest environment reading for each tent
+router.get('/latest-per-tent', (req, res) => {
+  const database = db.getDb();
+  
+  const sql = `
+    SELECT 
+      e1.*,
+      GROUP_CONCAT(DISTINCT p.stage) as plant_stages,
+      COUNT(DISTINCT p.id) as plant_count
+    FROM environment_logs e1
+    LEFT JOIN plants p ON (p.grow_tent = e1.grow_tent AND p.archived_at IS NULL)
+    INNER JOIN (
+      SELECT grow_tent, MAX(logged_at) as max_logged_at
+      FROM environment_logs 
+      WHERE grow_tent IS NOT NULL AND grow_tent != ''
+      GROUP BY grow_tent
+    ) e2 ON e1.grow_tent = e2.grow_tent AND e1.logged_at = e2.max_logged_at
+    GROUP BY e1.grow_tent, e1.logged_at
+    ORDER BY e1.grow_tent
+  `;
+  
+  database.all(sql, [], (err, rows) => {
+    if (err) {
+      console.error('Error fetching latest environment readings per tent:', err);
+      return res.status(500).json({ error: 'Failed to fetch latest environment readings per tent' });
+    }
+    
+    // Process the rows to add dominant stage
+    const processedRows = rows.map(row => {
+      let dominantStage = 'N/A';
+      
+      if (row.plant_stages) {
+        const stages = row.plant_stages.split(',');
+        const stageCounts = {};
+        stages.forEach(stage => {
+          stageCounts[stage] = (stageCounts[stage] || 0) + 1;
+        });
+        
+        dominantStage = Object.keys(stageCounts).reduce((a, b) => 
+          stageCounts[a] > stageCounts[b] ? a : b
+        );
+        
+        dominantStage = dominantStage.charAt(0).toUpperCase() + dominantStage.slice(1);
+      }
+      
+      return {
+        ...row,
+        stage: dominantStage,
+        plant_stages: undefined // Remove this from response
+      };
+    });
+    
+    res.json(processedRows);
   });
 });
 
@@ -303,4 +431,4 @@ router.delete('/:id', (req, res) => {
   });
 });
 
-module.exports = router; 
+module.exports = router;

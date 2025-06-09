@@ -38,6 +38,30 @@ export const plantsApi = {
   update: (id, data) => api.put(`/plants/${id}`, data),
   delete: (id) => api.delete(`/plants/${id}`),
   getGrowTents: () => api.get('/plants/grow-tents'),
+  archive: (id, data) => api.post(`/plants/${id}/archive`, data),
+  unarchive: (archivedGrowId) => api.post(`/plants/archived/${archivedGrowId}/unarchive`),
+  getArchivedGrows: () => api.get('/plants/archived'),
+  getArchivedGrow: (id) => api.get(`/plants/archived/${id}`),
+  exportArchivedGrow: (id) => {
+    return api.get(`/plants/archived/${id}/export`, { 
+      responseType: 'blob',
+      headers: { 'Accept': 'text/csv' }
+    });
+  },
+  exportArchivedTent: (tentName) => {
+    return api.get(`/plants/archived/tent/${encodeURIComponent(tentName)}/export`, { 
+      responseType: 'blob',
+      headers: { 'Accept': 'text/csv' }
+    });
+  },
+  clearTentEnvironmentData: (tentName, confirm = true) => {
+    return api.delete(`/plants/tent/${encodeURIComponent(tentName)}/environment`, { 
+      data: { confirm } 
+    });
+  },
+  getTentSummary: (tentName) => {
+    return api.get(`/plants/tent/${encodeURIComponent(tentName)}/summary`);
+  },
 };
 
 // Logs API
@@ -45,6 +69,7 @@ export const logsApi = {
   getAll: (params) => api.get('/logs', { params }),
   getById: (id) => api.get(`/logs/${id}`),
   create: (data) => api.post('/logs', data),
+  update: (id, data) => api.put(`/logs/${id}`, data),
   delete: (id) => api.delete(`/logs/${id}`),
   uploadPhoto: (formData) => api.post('/logs/photo', formData, {
     headers: {

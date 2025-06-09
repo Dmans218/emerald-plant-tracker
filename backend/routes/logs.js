@@ -35,10 +35,23 @@ const upload = multer({
 // Validation schemas
 const logSchema = Joi.object({
   plant_id: Joi.number().integer().required(),
-  type: Joi.string().valid('watering', 'feeding', 'pruning', 'training', 'observation', 'photo', 'harvest', 'environment').required(),
+  type: Joi.string().valid(
+    'watering', 'feeding', 'environmental', 'observation', 'training', 
+    'transplant', 'pest_disease', 'deficiency', 'measurement', 'photo'
+  ).required(),
   description: Joi.string().max(1000).allow(null, ''),
   value: Joi.number().allow(null, ''),
   unit: Joi.string().max(20).allow(null, ''),
+  notes: Joi.string().max(2000).allow(null, ''),
+  ph_level: Joi.number().min(0).max(14).allow(null, ''),
+  ec_tds: Joi.number().min(0).allow(null, ''),
+  temperature: Joi.number().allow(null, ''),
+  humidity: Joi.number().min(0).max(100).allow(null, ''),
+  light_intensity: Joi.number().min(0).allow(null, ''),
+  co2_level: Joi.number().min(0).allow(null, ''),
+  water_amount: Joi.number().min(0).allow(null, ''),
+  nutrient_info: Joi.string().max(500).allow(null, ''),
+  height_cm: Joi.number().min(0).allow(null, ''),
   logged_at: Joi.date().iso().allow(null, '')
 });
 
@@ -116,7 +129,11 @@ router.post('/', (req, res) => {
   }
 
   const database = db.getDb();
-  const { plant_id, type, description, value: logValue, unit, logged_at } = value;
+  const { 
+    plant_id, type, description, value: logValue, unit, notes,
+    ph_level, ec_tds, temperature, humidity, light_intensity, 
+    co2_level, water_amount, nutrient_info, height_cm, logged_at 
+  } = value;
   
   // Verify plant exists
   database.get('SELECT id FROM plants WHERE id = ?', [plant_id], (err, plant) => {
@@ -130,11 +147,20 @@ router.post('/', (req, res) => {
     }
     
     const sql = `
-      INSERT INTO logs (plant_id, type, description, value, unit, logged_at)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO logs (
+        plant_id, type, description, value, unit, notes,
+        ph_level, ec_tds, temperature, humidity, light_intensity,
+        co2_level, water_amount, nutrient_info, height_cm, logged_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
-    database.run(sql, [plant_id, type, description, logValue, unit, logged_at || new Date().toISOString()], function(err) {
+    database.run(sql, [
+      plant_id, type, description, logValue, unit, notes,
+      ph_level, ec_tds, temperature, humidity, light_intensity,
+      co2_level, water_amount, nutrient_info, height_cm, 
+      logged_at || new Date().toISOString()
+    ], function(err) {
       if (err) {
         console.error('Error creating log:', err);
         return res.status(500).json({ error: 'Failed to create log' });
@@ -210,6 +236,80 @@ router.post('/photo', upload.single('photo'), (req, res) => {
           return res.status(500).json({ error: 'Photo log created but failed to fetch' });
         }
         res.status(201).json(row);
+      });
+    });
+  });
+});
+
+// PUT /api/logs/:id - Update log
+router.put('/:id', (req, res) => {
+  const logId = parseInt(req.params.id);
+  
+  if (isNaN(logId)) {
+    return res.status(400).json({ error: 'Invalid log ID' });
+  }
+
+  const { error, value } = logSchema.validate(req.body);
+  
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
+
+  const database = db.getDb();
+  const { 
+    plant_id, type, description, value: logValue, unit, notes,
+    ph_level, ec_tds, temperature, humidity, light_intensity, 
+    co2_level, water_amount, nutrient_info, height_cm, logged_at 
+  } = value;
+  
+  // Verify plant exists
+  database.get('SELECT id FROM plants WHERE id = ?', [plant_id], (err, plant) => {
+    if (err) {
+      console.error('Error checking plant:', err);
+      return res.status(500).json({ error: 'Failed to verify plant' });
+    }
+    
+    if (!plant) {
+      return res.status(404).json({ error: 'Plant not found' });
+    }
+    
+    const sql = `
+      UPDATE logs SET 
+        plant_id = ?, type = ?, description = ?, value = ?, unit = ?, notes = ?,
+        ph_level = ?, ec_tds = ?, temperature = ?, humidity = ?, light_intensity = ?,
+        co2_level = ?, water_amount = ?, nutrient_info = ?, height_cm = ?, logged_at = ?
+      WHERE id = ?
+    `;
+    
+    database.run(sql, [
+      plant_id, type, description, logValue, unit, notes,
+      ph_level, ec_tds, temperature, humidity, light_intensity,
+      co2_level, water_amount, nutrient_info, height_cm, 
+      logged_at || new Date().toISOString(), logId
+    ], function(err) {
+      if (err) {
+        console.error('Error updating log:', err);
+        return res.status(500).json({ error: 'Failed to update log' });
+      }
+      
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Log not found' });
+      }
+      
+      // Fetch the updated log
+      const fetchSql = `
+        SELECT l.*, p.name as plant_name 
+        FROM logs l 
+        LEFT JOIN plants p ON l.plant_id = p.id 
+        WHERE l.id = ?
+      `;
+      
+      database.get(fetchSql, [logId], (err, row) => {
+        if (err) {
+          console.error('Error fetching updated log:', err);
+          return res.status(500).json({ error: 'Log updated but failed to fetch' });
+        }
+        res.json(row);
       });
     });
   });

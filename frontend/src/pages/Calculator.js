@@ -1,78 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { Calculator, Beaker, Droplets, TrendingUp, Info, Copy, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Calculator, Info, Beaker, Copy, CheckCircle, FlaskConical } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const NutrientCalculator = () => {
-  const [selectedBrand, setSelectedBrand] = useState('general-hydroponics');
-  const [growthStage, setGrowthStage] = useState('vegetative');
-  const [tankSize, setTankSize] = useState(50);
-  const [waterType, setWaterType] = useState('soft');
-  const [growMedium, setGrowMedium] = useState('hydro');
-  const [feedingStrength, setFeedingStrength] = useState('medium');
-  const [wateringMethod, setWateringMethod] = useState('hand-watering');
-  const [calculations, setCalculations] = useState(null);
-  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
-
-  // Set smart defaults on component mount
-  useEffect(() => {
-    // Default to vegetative with medium strength (good starting point)
-    if (growthStage === 'vegetative' && feedingStrength === 'medium') {
-      // Already optimal, no change needed
-    }
-  }, []);
-
-  // Smart handlers for interconnected growth stage and feeding strength
-  const handleGrowthStageChange = (newStage) => {
-    setGrowthStage(newStage);
-    
-    // Auto-adjust feeding strength based on growth stage
-    if (newStage === 'vegetative') {
-      // Vegetative: prefer light to medium feeding
-      if (feedingStrength === 'aggressive') {
-        setFeedingStrength('medium');
-        toast.success('🌱 Adjusted to medium strength for vegetative stage');
-      }
-    } else if (newStage === 'flowering') {
-      // Flowering: prefer medium to aggressive feeding
-      if (feedingStrength === 'light') {
-        setFeedingStrength('medium');
-        toast.success('🌸 Adjusted to medium strength for flowering stage');
-      }
-    }
-  };
-
-  const handleFeedingStrengthChange = (newStrength) => {
-    setFeedingStrength(newStrength);
-    
-    // Suggest appropriate growth stage based on feeding strength
-    if (newStrength === 'light' && growthStage === 'flowering') {
-      toast('💡 Light feeding is typically used in vegetative stage', {
-        icon: '💡',
-        duration: 3000
-      });
-    } else if (newStrength === 'aggressive' && growthStage === 'vegetative') {
-      toast('💡 Aggressive feeding is typically used in flowering stage', {
-        icon: '💡',
-        duration: 3000
-      });
-    }
-  };
-
-  // Nutrient brand data based on research
-  const nutrientBrands = {
+// Nutrient brand database with verified ratios and feeding schedules
+// Updated based on research from GrowWeedEasy.com and official manufacturer guidelines
+// General Hydroponics ratios verified against expert cannabis growing recommendations
+const nutrientBrands = {
     'general-hydroponics': {
       name: 'General Hydroponics FloraSeries',
       description: 'The O.G. 3-Part Hydroponic-Based Nutrient System',
       products: {
+        seedling: [
+          { name: 'FloraMicro', ratio: 1.25, unit: 'ml/gal' },  // GrowWeedEasy.com: 1/4 tsp/gal = 1.25ml/gal
+          { name: 'FloraGro', ratio: 1.25, unit: 'ml/gal' },   // GrowWeedEasy.com: 1/4 tsp/gal = 1.25ml/gal
+          { name: 'FloraBloom', ratio: 1.25, unit: 'ml/gal' }  // GrowWeedEasy.com: 1/4 tsp/gal = 1.25ml/gal
+        ],
         vegetative: [
-          { name: 'FloraMicro', ratio: 5.0, unit: 'ml/gal' },  // Official GH: 1-2 tsp/gal = 5-10ml/gal, using medium
-          { name: 'FloraGro', ratio: 7.5, unit: 'ml/gal' },   // Official GH: 1-3 tsp/gal = 5-15ml/gal, using medium
-          { name: 'FloraBloom', ratio: 2.5, unit: 'ml/gal' }  // Official GH: 1 tsp/gal = 5ml/gal, reduced for veg
+          { name: 'FloraMicro', ratio: 2.5, unit: 'ml/gal' },  // GrowWeedEasy.com: 1/2 tsp/gal = 2.5ml/gal
+          { name: 'FloraGro', ratio: 2.5, unit: 'ml/gal' },   // GrowWeedEasy.com: 1/2 tsp/gal = 2.5ml/gal
+          { name: 'FloraBloom', ratio: 2.5, unit: 'ml/gal' }  // GrowWeedEasy.com: 1/2 tsp/gal = 2.5ml/gal
         ],
         flowering: [
-          { name: 'FloraMicro', ratio: 7.5, unit: 'ml/gal' }, // Official GH: 2 tsp/gal = 10ml/gal, adjusted
-          { name: 'FloraGro', ratio: 2.5, unit: 'ml/gal' },  // Official GH: 1-2 tsp/gal = 5-10ml/gal, using lower
-          { name: 'FloraBloom', ratio: 10.0, unit: 'ml/gal' } // Official GH: 2-3 tsp/gal = 10-15ml/gal, using medium
+          { name: 'FloraMicro', ratio: 5.0, unit: 'ml/gal' }, // GrowWeedEasy.com: 1 tsp/gal = 5ml/gal
+          { name: 'FloraGro', ratio: 2.5, unit: 'ml/gal' },  // GrowWeedEasy.com: 1/2 tsp/gal = 2.5ml/gal
+          { name: 'FloraBloom', ratio: 7.5, unit: 'ml/gal' } // GrowWeedEasy.com: 1.5 tsp/gal = 7.5ml/gal
         ],
         supplements: [
           { name: 'CaliMagic', ratio: 2.5, unit: 'ml/gal', optional: true },    // 0.5 tsp/gal = 2.5ml/gal
@@ -84,12 +35,35 @@ const NutrientCalculator = () => {
         light: 0.5,
         medium: 0.75,
         aggressive: 1.0
+      },
+      targetEC: {
+        seedling: { light: 0.4, medium: 0.6, aggressive: 0.8 },
+        vegetative: { light: 0.8, medium: 1.2, aggressive: 1.6 },
+        flowering: { light: 1.0, medium: 1.5, aggressive: 2.0 }
+      },
+      targetTDS: {
+        seedling: { light: 200, medium: 300, aggressive: 400 },
+        vegetative: { light: 400, medium: 600, aggressive: 800 },
+        flowering: { light: 500, medium: 750, aggressive: 1000 }
+      },
+      wateringMethodMultipliers: {
+        'hand-watering': 1.0,
+        'drip-system': 0.9,          // Slightly reduced for more frequent feeding
+        'bottom-wicking': 0.95,      // Slightly reduced for constant access
+        'aeroponics': 0.7,           // Significantly reduced due to constant misting
+        'deep-water-culture': 1.0,   // Same as hand watering - roots constantly in solution
+        'ebb-flow': 1.0              // Same as hand watering - periodic flooding
       }
     },
     'advanced-nutrients': {
       name: 'Advanced Nutrients pH Perfect GMB',
       description: 'pH Perfect Technology for Cannabis - Micro/Grow/Bloom',
       products: {
+        seedling: [
+          { name: 'pH Perfect Micro', ratio: 2.0, unit: 'ml/L' },  // Reduced for seedlings
+          { name: 'pH Perfect Grow', ratio: 2.0, unit: 'ml/L' },   // Reduced for seedlings
+          { name: 'pH Perfect Bloom', ratio: 2.0, unit: 'ml/L' }   // Reduced for seedlings
+        ],
         vegetative: [
           { name: 'pH Perfect Micro', ratio: 4.0, unit: 'ml/L' },  // Official AN: 4ml/L each component
           { name: 'pH Perfect Grow', ratio: 4.0, unit: 'ml/L' },   // Official AN: 4ml/L each component
@@ -112,12 +86,33 @@ const NutrientCalculator = () => {
         light: 0.5,
         medium: 0.75,
         aggressive: 1.0
+      },
+      targetEC: {
+        seedling: { light: 0.3, medium: 0.5, aggressive: 0.7 },
+        vegetative: { light: 0.9, medium: 1.3, aggressive: 1.7 },
+        flowering: { light: 1.1, medium: 1.6, aggressive: 2.1 }
+      },
+      targetTDS: {
+        seedling: { light: 150, medium: 250, aggressive: 350 },
+        vegetative: { light: 450, medium: 650, aggressive: 850 },
+        flowering: { light: 550, medium: 800, aggressive: 1050 }
+      },
+      wateringMethodMultipliers: {
+        'hand-watering': 1.0,
+        'drip-system': 0.9,
+        'bottom-wicking': 0.95,
+        'aeroponics': 0.7,
+        'deep-water-culture': 1.0,
+        'ebb-flow': 1.0
       }
     },
     'fox-farm': {
       name: 'Fox Farm Trio',
       description: 'Natural & Organic Based Plant Food',
       products: {
+        seedling: [
+          { name: 'Big Bloom', ratio: 1.0, unit: 'tsp/gal' }  // Just Big Bloom for young plants
+        ],
         vegetative: [
           { name: 'Grow Big', ratio: 1.0, unit: 'tsp/gal' },
           { name: 'Big Bloom', ratio: 2.0, unit: 'tsp/gal' }
@@ -134,6 +129,24 @@ const NutrientCalculator = () => {
         light: 0.5,
         medium: 0.75,
         aggressive: 1.0
+      },
+      targetEC: {
+        seedling: { light: 0.5, medium: 0.7, aggressive: 0.9 },
+        vegetative: { light: 0.9, medium: 1.4, aggressive: 1.8 },
+        flowering: { light: 1.2, medium: 1.7, aggressive: 2.2 }
+      },
+      targetTDS: {
+        seedling: { light: 250, medium: 350, aggressive: 450 },
+        vegetative: { light: 450, medium: 700, aggressive: 900 },
+        flowering: { light: 600, medium: 850, aggressive: 1100 }
+      },
+      wateringMethodMultipliers: {
+        'hand-watering': 1.0,
+        'drip-system': 0.9,
+        'bottom-wicking': 0.95,
+        'aeroponics': 0.7,
+        'deep-water-culture': 1.0,
+        'ebb-flow': 1.0
       }
     },
     'canna': {
@@ -159,6 +172,24 @@ const NutrientCalculator = () => {
         light: 0.6,
         medium: 0.8,
         aggressive: 1.0
+      },
+      targetEC: {
+        seedling: { light: 0.4, medium: 0.6, aggressive: 0.8 },
+        vegetative: { light: 1.0, medium: 1.4, aggressive: 1.8 },
+        flowering: { light: 1.2, medium: 1.6, aggressive: 2.0 }
+      },
+      targetTDS: {
+        seedling: { light: 200, medium: 300, aggressive: 400 },
+        vegetative: { light: 500, medium: 700, aggressive: 900 },
+        flowering: { light: 600, medium: 800, aggressive: 1000 }
+      },
+      wateringMethodMultipliers: {
+        'hand-watering': 1.0,
+        'drip-system': 0.9,
+        'bottom-wicking': 0.95,
+        'aeroponics': 0.7,
+        'deep-water-culture': 1.0,
+        'ebb-flow': 1.0
       }
     },
     'jack-nutrients': {
@@ -183,6 +214,24 @@ const NutrientCalculator = () => {
         light: 0.5,
         medium: 0.8,
         aggressive: 1.0
+      },
+      targetEC: {
+        seedling: { light: 0.4, medium: 0.6, aggressive: 0.8 },
+        vegetative: { light: 1.0, medium: 1.5, aggressive: 2.0 },
+        flowering: { light: 1.2, medium: 1.7, aggressive: 2.2 }
+      },
+      targetTDS: {
+        seedling: { light: 200, medium: 300, aggressive: 400 },
+        vegetative: { light: 500, medium: 750, aggressive: 1000 },
+        flowering: { light: 600, medium: 850, aggressive: 1100 }
+      },
+      wateringMethodMultipliers: {
+        'hand-watering': 1.0,
+        'drip-system': 0.9,
+        'bottom-wicking': 0.95,
+        'aeroponics': 0.7,
+        'deep-water-culture': 1.0,
+        'ebb-flow': 1.0
       }
     },
     'megacrop': {
@@ -205,6 +254,24 @@ const NutrientCalculator = () => {
         light: 0.7,
         medium: 0.85,
         aggressive: 1.0
+      },
+      targetEC: {
+        seedling: { light: 0.5, medium: 0.7, aggressive: 0.9 },
+        vegetative: { light: 1.0, medium: 1.4, aggressive: 1.8 },
+        flowering: { light: 1.2, medium: 1.6, aggressive: 2.0 }
+      },
+      targetTDS: {
+        seedling: { light: 250, medium: 350, aggressive: 450 },
+        vegetative: { light: 500, medium: 700, aggressive: 900 },
+        flowering: { light: 600, medium: 800, aggressive: 1000 }
+      },
+      wateringMethodMultipliers: {
+        'hand-watering': 1.0,
+        'drip-system': 0.9,
+        'bottom-wicking': 0.95,
+        'aeroponics': 0.7,
+        'deep-water-culture': 1.0,
+        'ebb-flow': 1.0
       }
     },
     'botanicare': {
@@ -226,6 +293,24 @@ const NutrientCalculator = () => {
         light: 0.5,
         medium: 0.75,
         aggressive: 1.0
+      },
+      targetEC: {
+        seedling: { light: 0.4, medium: 0.6, aggressive: 0.8 },
+        vegetative: { light: 0.8, medium: 1.2, aggressive: 1.6 },
+        flowering: { light: 1.0, medium: 1.4, aggressive: 1.8 }
+      },
+      targetTDS: {
+        seedling: { light: 200, medium: 300, aggressive: 400 },
+        vegetative: { light: 400, medium: 600, aggressive: 800 },
+        flowering: { light: 500, medium: 700, aggressive: 900 }
+      },
+      wateringMethodMultipliers: {
+        'hand-watering': 1.0,
+        'drip-system': 0.9,
+        'bottom-wicking': 0.95,
+        'aeroponics': 0.7,
+        'deep-water-culture': 1.0,
+        'ebb-flow': 1.0
       }
     },
     'dyna-gro': {
@@ -246,6 +331,24 @@ const NutrientCalculator = () => {
         light: 0.5,
         medium: 0.75,
         aggressive: 1.0
+      },
+      targetEC: {
+        seedling: { light: 0.3, medium: 0.5, aggressive: 0.7 },
+        vegetative: { light: 0.8, medium: 1.2, aggressive: 1.6 },
+        flowering: { light: 1.0, medium: 1.4, aggressive: 1.8 }
+      },
+      targetTDS: {
+        seedling: { light: 150, medium: 250, aggressive: 350 },
+        vegetative: { light: 400, medium: 600, aggressive: 800 },
+        flowering: { light: 500, medium: 700, aggressive: 900 }
+      },
+      wateringMethodMultipliers: {
+        'hand-watering': 1.0,
+        'drip-system': 0.9,
+        'bottom-wicking': 0.95,
+        'aeroponics': 0.7,
+        'deep-water-culture': 1.0,
+        'ebb-flow': 1.0
       }
     },
     'house-garden': {
@@ -270,6 +373,24 @@ const NutrientCalculator = () => {
         light: 0.6,
         medium: 0.8,
         aggressive: 1.0
+      },
+      targetEC: {
+        seedling: { light: 0.4, medium: 0.6, aggressive: 0.8 },
+        vegetative: { light: 1.0, medium: 1.4, aggressive: 1.8 },
+        flowering: { light: 1.2, medium: 1.6, aggressive: 2.0 }
+      },
+      targetTDS: {
+        seedling: { light: 200, medium: 300, aggressive: 400 },
+        vegetative: { light: 500, medium: 700, aggressive: 900 },
+        flowering: { light: 600, medium: 800, aggressive: 1000 }
+      },
+      wateringMethodMultipliers: {
+        'hand-watering': 1.0,
+        'drip-system': 0.9,
+        'bottom-wicking': 0.95,
+        'aeroponics': 0.7,
+        'deep-water-culture': 1.0,
+        'ebb-flow': 1.0
       }
     },
     'nectar-gods': {
@@ -292,27 +413,153 @@ const NutrientCalculator = () => {
         light: 0.5,
         medium: 0.75,
         aggressive: 1.0
+      },
+      targetEC: {
+        seedling: { light: 0.3, medium: 0.5, aggressive: 0.7 },
+        vegetative: { light: 0.8, medium: 1.2, aggressive: 1.6 },
+        flowering: { light: 1.0, medium: 1.4, aggressive: 1.8 }
+      },
+      targetTDS: {
+        seedling: { light: 150, medium: 250, aggressive: 350 },
+        vegetative: { light: 400, medium: 600, aggressive: 800 },
+        flowering: { light: 500, medium: 700, aggressive: 900 }
+      },
+      wateringMethodMultipliers: {
+        'hand-watering': 1.0,
+        'drip-system': 0.9,
+        'bottom-wicking': 0.95,
+        'aeroponics': 0.7,
+        'deep-water-culture': 1.0,
+        'ebb-flow': 1.0
       }
     }
   };
 
-  const calculateNutrients = () => {
+const NutrientCalculator = () => {
+  // Load saved preferences from localStorage or use defaults
+  const loadPreference = (key, defaultValue) => {
+    try {
+      const saved = localStorage.getItem(`nutrientCalculator_${key}`);
+      return saved ? JSON.parse(saved) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
+
+  const [selectedBrand, setSelectedBrand] = useState(() => loadPreference('selectedBrand', 'general-hydroponics'));
+  const [growthStage, setGrowthStage] = useState(() => loadPreference('growthStage', 'vegetative'));
+  const [tankSize, setTankSize] = useState(() => loadPreference('tankSize', 50));
+  const [waterType, setWaterType] = useState(() => loadPreference('waterType', 'soft'));
+  const [growMedium, setGrowMedium] = useState(() => loadPreference('growMedium', 'hydro'));
+  const [feedingStrength, setFeedingStrength] = useState(() => loadPreference('feedingStrength', 'medium'));
+  const [wateringMethod, setWateringMethod] = useState(() => loadPreference('wateringMethod', 'hand-watering'));
+  const [calculations, setCalculations] = useState(null);
+  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+
+  // Save preferences to localStorage
+  const savePreference = (key, value) => {
+    try {
+      localStorage.setItem(`nutrientCalculator_${key}`, JSON.stringify(value));
+    } catch (error) {
+      console.warn('Failed to save preference:', error);
+    }
+  };
+
+  // Set smart defaults on component mount
+  useEffect(() => {
+    // Default to vegetative with medium strength (good starting point)
+    if (growthStage === 'vegetative' && feedingStrength === 'medium') {
+      // Already optimal, no change needed
+    }
+  }, [growthStage, feedingStrength]);
+
+  // Smart handlers for interconnected growth stage and feeding strength
+  const handleGrowthStageChange = (newStage) => {
+    setGrowthStage(newStage);
+    savePreference('growthStage', newStage);
+    
+    // Auto-adjust feeding strength based on growth stage
+    if (newStage === 'seedling') {
+      // Seedlings: always use light feeding
+      if (feedingStrength !== 'light') {
+        setFeedingStrength('light');
+        savePreference('feedingStrength', 'light');
+        toast.success('🌱 Adjusted to light strength for seedling stage');
+      }
+    } else if (newStage === 'vegetative') {
+      // Vegetative: prefer light to medium feeding
+      if (feedingStrength === 'aggressive') {
+        setFeedingStrength('medium');
+        savePreference('feedingStrength', 'medium');
+        toast.success('🌿 Adjusted to medium strength for vegetative stage');
+      }
+    } else if (newStage === 'flowering') {
+      // Flowering: prefer medium to aggressive feeding
+      if (feedingStrength === 'light') {
+        setFeedingStrength('medium');
+        savePreference('feedingStrength', 'medium');
+        toast.success('🌸 Adjusted to medium strength for flowering stage');
+      }
+    }
+  };
+
+  const handleFeedingStrengthChange = (newStrength) => {
+    setFeedingStrength(newStrength);
+    savePreference('feedingStrength', newStrength);
+    
+    // Suggest appropriate growth stage based on feeding strength
+    if (newStrength === 'light' && growthStage === 'flowering') {
+      toast('💡 Light feeding is typically used for seedlings or young plants', {
+        icon: '💡',
+        duration: 3000
+      });
+    } else if (newStrength === 'aggressive' && (growthStage === 'vegetative' || growthStage === 'seedling')) {
+      toast('💡 Aggressive feeding is typically used in flowering stage', {
+        icon: '💡',
+        duration: 3000
+      });
+    } else if (newStrength === 'medium' && growthStage === 'seedling') {
+      toast('💡 Consider using light feeding for seedlings to prevent burn', {
+        icon: '💡',
+        duration: 3000
+      });
+    }
+  };
+
+  const handleBrandChange = (brand) => {
+    setSelectedBrand(brand);
+    savePreference('selectedBrand', brand);
+  };
+
+  const handleTankSizeChange = (size) => {
+    setTankSize(size);
+    savePreference('tankSize', size);
+  };
+
+  const handleWaterTypeChange = (type) => {
+    setWaterType(type);
+    savePreference('waterType', type);
+  };
+
+  const handleGrowMediumChange = (medium) => {
+    setGrowMedium(medium);
+    savePreference('growMedium', medium);
+  };
+
+  const handleWateringMethodChange = (method) => {
+    setWateringMethod(method);
+    savePreference('wateringMethod', method);
+  };
+
+  const calculateNutrients = useCallback(() => {
     const brand = nutrientBrands[selectedBrand];
     const products = brand.products[growthStage];
     const supplements = brand.products.supplements;
     let multiplier = brand.strengthMultipliers[feedingStrength];
     
-    // Apply watering method adjustments
-    const wateringAdjustments = {
-      'hand-watering': 1.0,      // Standard concentration
-      'drip-irrigation': 0.8,    // Reduce to prevent clogging and salt buildup
-      'bottom-wicking': 0.7,     // Lower concentration for passive uptake
-      'recirculating': 0.9,      // Slightly reduced for system stability
-      'flood-drain': 1.0,        // Standard concentration like hand watering
-      'aeroponic': 0.6          // Much lower for misting systems
-    };
-    
-    multiplier *= wateringAdjustments[wateringMethod] || 1.0;
+    // Apply watering method adjustments using brand-specific multipliers
+    const wateringMultiplier = brand.wateringMethodMultipliers?.[wateringMethod] || 1.0;
+    multiplier *= wateringMultiplier;
     
     // Convert tank size to appropriate units
     const tankVolume = tankSize; // Already in liters
@@ -326,7 +573,9 @@ const NutrientCalculator = () => {
       baseNutrients: [],
       supplements: [],
       totalCost: 0,
-      instructions: []
+      instructions: [],
+      targetEC: brand.targetEC?.[growthStage]?.[feedingStrength] || null,
+      targetTDS: brand.targetTDS?.[growthStage]?.[feedingStrength] || null
     };
 
     // Calculate base nutrients
@@ -378,53 +627,68 @@ const NutrientCalculator = () => {
       }
     });
 
-              // Calculate supplements
-     supplements.forEach(supplement => {
-       if (supplement.hydroOnly && growMedium !== 'hydro' && growMedium !== 'soilless') return;
-       if (supplement.floweringOnly && growthStage !== 'flowering') return;
-       
-       // Handle CalMag based on water type
-       let isCalMag = supplement.name.toLowerCase().includes('cal') || 
-                      supplement.name.toLowerCase().includes('mag') ||
-                      supplement.name.toLowerCase().includes('calimagic');
-       
-       let amount = supplement.ratio * multiplier;
-       let adjustedOptional = supplement.optional;
-       
-       // Adjust CalMag recommendations based on water type
-       if (isCalMag) {
-         if (waterType === 'hard') {
-           adjustedOptional = true; // Make it optional for hard water
-         } else if (waterType === 'soft') {
-           adjustedOptional = false; // Make it recommended for soft/RO water
-         }
-       }
-       
-       let unit = 'ml';
-       if (supplement.unit === 'tsp/gal') {
-         amount = (amount * 4.92892 * tankVolume) / 3.78541;
-         unit = 'ml';
-       } else if (supplement.unit === 'g/gal') {
-         amount = (amount * tankVolume) / 3.78541;
-         unit = 'g';
-       } else if (supplement.unit === 'mg/L') {
-         amount = amount * tankVolume;
-         unit = 'mg';
-       } else {
-         amount = amount * tankVolume;
-         unit = 'ml';
-       }
-       
-       calculations.supplements.push({
-         name: supplement.name,
-         amount: Math.round(amount * 10) / 10,
-         unit: unit,
-         optional: adjustedOptional,
-         originalRatio: supplement.ratio,
-         originalUnit: supplement.unit,
-         waterTypeNote: isCalMag ? (waterType === 'soft' ? 'Essential for RO/soft water' : 'May not be needed - test your tap water first') : null
-       });
-     });
+    // Calculate supplements
+    supplements.forEach(supplement => {
+      // Handle hydro-only supplements for simplified medium types
+      const isHydroMedium = growMedium === 'hydro' || growMedium === 'perlite';
+      if (supplement.hydroOnly && !isHydroMedium) return;
+      if (supplement.floweringOnly && growthStage !== 'flowering') return;
+      
+      // Handle CalMag based on water type
+      let isCalMag = supplement.name.toLowerCase().includes('cal') || 
+                     supplement.name.toLowerCase().includes('mag') ||
+                     supplement.name.toLowerCase().includes('calimagic');
+      
+      let amount = supplement.ratio * multiplier;
+      let adjustedOptional = supplement.optional;
+      
+      // Adjust CalMag recommendations based on water type
+      if (isCalMag) {
+        if (waterType === 'hard') {
+          adjustedOptional = true; // Make it optional for hard water
+        } else if (waterType === 'soft') {
+          adjustedOptional = false; // Make it recommended for soft/RO water
+        }
+      }
+      
+      let unit = 'ml';
+      if (supplement.unit === 'tsp/gal') {
+        amount = (amount * 4.92892 * tankVolume) / 3.78541;
+        unit = 'ml';
+      } else if (supplement.unit === 'g/gal') {
+        amount = (amount * tankVolume) / 3.78541;
+        unit = 'g';
+      } else if (supplement.unit === 'mg/L') {
+        amount = amount * tankVolume;
+        unit = 'mg';
+      } else {
+        amount = amount * tankVolume;
+        unit = 'ml';
+      }
+      
+      calculations.supplements.push({
+        name: supplement.name,
+        amount: Math.round(amount * 10) / 10,
+        unit: unit,
+        optional: adjustedOptional,
+        originalRatio: supplement.ratio,
+        originalUnit: supplement.unit,
+        waterTypeNote: isCalMag ? (waterType === 'soft' ? 'Essential for RO/soft water' : 'May not be needed - test your tap water first') : null
+      });
+    });
+
+    // Sort supplements by proper mixing order - Silica first, then CalMag, then others
+    calculations.supplements.sort((a, b) => {
+      const getMixingPriority = (name) => {
+        const lowerName = name.toLowerCase();
+        if (lowerName.includes('armor') || lowerName.includes('silica') || lowerName.includes('si')) return 1; // Silica first
+        if (lowerName.includes('cal') || lowerName.includes('mag') || lowerName.includes('calimagic')) return 2; // CalMag second
+        if (lowerName.includes('hydro') || lowerName.includes('guard') || lowerName.includes('beneficial')) return 3; // Beneficials third
+        return 4; // Everything else last
+      };
+      
+      return getMixingPriority(a.name) - getMixingPriority(b.name);
+    });
 
     // Add mixing instructions
     calculations.instructions = [
@@ -442,7 +706,7 @@ const NutrientCalculator = () => {
         "7. Water slowly and evenly until runoff appears",
         "8. Allow proper wet/dry cycle between waterings"
       ],
-      'drip-irrigation': [
+      'drip-system': [
         "7. Check emitters regularly for clogs (use filtered solution)",
         "8. Run system for shorter, more frequent cycles",
         "9. Monitor EC buildup in medium over time"
@@ -452,17 +716,17 @@ const NutrientCalculator = () => {
         "8. Top-water occasionally to prevent salt accumulation",
         "9. Monitor water level and refill as needed"
       ],
-      'recirculating': [
+      'deep-water-culture': [
         "7. Monitor solution EC/pH daily, adjust as needed",
         "8. Change reservoir completely every 7-10 days",
         "9. Keep solution temperature 65-68°F (18-20°C)"
       ],
-      'flood-drain': [
+      'ebb-flow': [
         "7. Flood for 15-30 minutes, then drain completely",
         "8. Ensure good air gaps for root oxygenation",
         "9. Run 2-4 cycles per day depending on medium"
       ],
-      'aeroponic': [
+      'aeroponics': [
         "7. Use fine spray nozzles (avoid clogging)",
         "8. Run misting cycles every 15-30 minutes",
         "9. Keep solution temperature cool and well-oxygenated"
@@ -497,7 +761,7 @@ const NutrientCalculator = () => {
     }
 
     setCalculations(calculations);
-  };
+  }, [selectedBrand, growthStage, tankSize, waterType, growMedium, feedingStrength, wateringMethod]);
 
   const copyToClipboard = () => {
     if (!calculations) return;
@@ -533,332 +797,763 @@ const NutrientCalculator = () => {
 
   useEffect(() => {
     calculateNutrients();
-  }, [selectedBrand, growthStage, tankSize, waterType, growMedium, feedingStrength, wateringMethod]);
+  }, [calculateNutrients]);
+
+  // Add CSS for dark dropdown options
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      select option {
+        background-color: #2d3748 !important;
+        color: #e2e8f0 !important;
+      }
+      select option:hover {
+        background-color: #4a5568 !important;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">🧪 Cannabis Nutrient Calculator</h1>
-          <p className="text-gray-600 mt-1">Calculate precise nutrient mixing ratios for your grow</p>
-        </div>
-        {calculations && (
-          <button
-            onClick={copyToClipboard}
-            className="btn btn-secondary"
-            title="Copy recipe to clipboard"
-          >
-            {copiedToClipboard ? (
-              <CheckCircle className="w-4 h-4 text-green-500" />
-            ) : (
-              <Copy className="w-4 h-4" />
+    <div className="dashboard-page">
+      {/* Ultra-Modern Header */}
+      <header className="dashboard-header" style={{ animation: 'fadeInUp 0.6s ease-out' }}>
+        <div className="header-content">
+          <div className="header-text">
+            <h1 className="dashboard-title">
+              <Calculator className="w-8 h-8" style={{ display: 'inline-block', marginRight: '0.75rem', verticalAlign: 'middle' }} />
+              Nutrient Calculator
+            </h1>
+            <p className="dashboard-subtitle">
+              Calculate precise nutrient mixing ratios for your grow
+            </p>
+          </div>
+          
+          <div className="header-actions">
+            {calculations && (
+              <button
+                onClick={copyToClipboard}
+                className="btn btn-outline flex items-center gap-2 py-2 px-4"
+                style={{borderRadius: '8px'}}
+              >
+                {copiedToClipboard ? (
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                ) : (
+                  <Copy className="w-5 h-5" />
+                )}
+                Copy Recipe
+              </button>
             )}
-            Copy Recipe
-          </button>
-        )}
-      </div>
+          </div>
+        </div>
+      </header>
 
-      {/* Quick Reference - Moved to Top */}
-      <div className="card">
-        <h2 className="section-title">📚 Quick Reference</h2>
+      {/* Quick Reference - Horizontal Card */}
+      <section style={{
+        background: 'rgba(255,255,255,0.02)',
+        borderRadius: '16px',
+        border: '1px solid var(--border)',
+        padding: '1.5rem',
+        marginBottom: '2rem',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        animation: 'fadeInUp 0.8s ease-out 0.2s both'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          <Info className="w-6 h-6" style={{ color: 'var(--primary-color)' }} />
+          <h2 style={{
+            color: 'var(--text-primary)',
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            margin: 0
+          }}>
+            Quick Reference
+          </h2>
+        </div>
         
-        <div className="grid grid-4 gap-4">
-          <div>
-            <h3 className="font-semibold mb-2 text-green-700">🌱 Growth Stages</h3>
-            <div className="space-y-1 text-sm">
-              <div>🌿 <strong>Vegetative:</strong> Higher N, Light-Medium strength</div>
-              <div>🌸 <strong>Flowering:</strong> Higher P&K, Medium-Aggressive strength</div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: '1.5rem'
+        }}>
+          <div style={{
+            background: 'rgba(16, 185, 129, 0.1)',
+            border: '1px solid rgba(16, 185, 129, 0.2)',
+            borderRadius: '12px',
+            padding: '1rem',
+            transition: 'all 0.3s ease',
+            cursor: 'pointer'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-4px)';
+            e.target.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
+            e.target.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = 'none';
+            e.target.style.borderColor = 'rgba(16, 185, 129, 0.2)';
+          }}>
+            <h3 style={{ color: '#10b981', fontWeight: '600', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+              🌱 Growth Stages
+            </h3>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+              <div><strong>Vegetative:</strong> Higher N, Light-Medium strength</div>
+              <div><strong>Flowering:</strong> Higher P&K, Medium-Aggressive strength</div>
             </div>
           </div>
           
-          <div>
-            <h3 className="font-semibold mb-2 text-blue-700">💧 PPM Guidelines</h3>
-            <div className="space-y-1 text-sm">
-              <div>🌿 Light: 300-600 PPM</div>
-              <div>🌱 Medium: 600-1200 PPM</div>
-              <div>💪 Aggressive: 1200-1600 PPM</div>
+          <div style={{
+            background: 'rgba(59, 130, 246, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            borderRadius: '12px',
+            padding: '1rem',
+            transition: 'all 0.3s ease',
+            cursor: 'pointer'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-4px)';
+            e.target.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
+            e.target.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = 'none';
+            e.target.style.borderColor = 'rgba(59, 130, 246, 0.2)';
+          }}>
+            <h3 style={{ color: '#3b82f6', fontWeight: '600', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+              💧 PPM Guidelines
+            </h3>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+              <div><strong>Light:</strong> 300-600 PPM</div>
+              <div><strong>Medium:</strong> 600-1200 PPM</div>
+              <div><strong>Aggressive:</strong> 1200-1600 PPM</div>
             </div>
           </div>
 
-          <div>
-            <h3 className="font-semibold mb-2 text-purple-700">🧪 pH Ranges</h3>
-            <div className="space-y-1 text-sm">
-              <div>💧 Hydro/Coco: 5.5-6.5</div>
-              <div>🌾 Soilless: 5.5-6.5</div>
-              <div>🌍 Soil: 6.0-7.0</div>
+          <div style={{
+            background: 'rgba(245, 158, 11, 0.1)',
+            border: '1px solid rgba(245, 158, 11, 0.2)',
+            borderRadius: '12px',
+            padding: '1rem',
+            transition: 'all 0.3s ease',
+            cursor: 'pointer'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-4px)';
+            e.target.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
+            e.target.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = 'none';
+            e.target.style.borderColor = 'rgba(245, 158, 11, 0.2)';
+          }}>
+            <h3 style={{ color: '#f59e0b', fontWeight: '600', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+              🧪 pH Ranges
+            </h3>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+              <div><strong>Hydro/Coco:</strong> 5.5-6.5</div>
+              <div><strong>Soil:</strong> 6.0-7.0</div>
             </div>
           </div>
 
-          <div>
-            <h3 className="font-semibold mb-2 text-orange-700">🚿 Watering Method Adjustments</h3>
-            <div className="space-y-1 text-sm">
-              <div>🪣 Hand: Standard (100%)</div>
-              <div>💧 Drip: Reduced (80%)</div>
-              <div>⬆️ Wicking: Lower (70%)</div>
-              <div>💨 Aero: Very Low (60%)</div>
+          <div style={{
+            background: 'rgba(139, 92, 246, 0.1)',
+            border: '1px solid rgba(139, 92, 246, 0.2)',
+            borderRadius: '12px',
+            padding: '1rem',
+            transition: 'all 0.3s ease',
+            cursor: 'pointer'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-4px)';
+            e.target.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
+            e.target.style.borderColor = 'rgba(139, 92, 246, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = 'none';
+            e.target.style.borderColor = 'rgba(139, 92, 246, 0.2)';
+          }}>
+            <h3 style={{ color: '#8b5cf6', fontWeight: '600', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+              🚿 Water Methods
+            </h3>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+              <div><strong>Hand:</strong> Standard (100%)</div>
+              <div><strong>Drip:</strong> Reduced (80%)</div>
+              <div><strong>Aero:</strong> Very Low (60%)</div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Calculator Form */}
-      <div className="card">
-        <h2 className="section-title">⚙️ Calculator Settings</h2>
-        
-        {/* Smart Feeding Guide */}
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-semibold text-blue-800 mb-1">💡 Smart Feeding Guide</h4>
-          <p className="text-blue-700 text-sm">
-            Growth stage and feeding strength work together. The calculator automatically adjusts recommendations:
-            <br />
-            🌱 <strong>Vegetative:</strong> Light to Medium strength (avoid aggressive feeding)
-            <br />
-            🌸 <strong>Flowering:</strong> Medium to Aggressive strength (avoid light feeding for optimal yields)
-          </p>
+      {/* Calculator Settings - 2x3 Grid */}
+      <section style={{
+        background: 'rgba(255,255,255,0.02)',
+        borderRadius: '16px',
+        border: '1px solid var(--border)',
+        padding: '1.5rem',
+        marginBottom: '2rem',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        animation: 'fadeInUp 0.8s ease-out 0.4s both'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          <Beaker className="w-6 h-6" style={{ color: 'var(--primary-color)' }} />
+          <h2 style={{
+            color: 'var(--text-primary)',
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            margin: 0
+          }}>
+            Calculator Settings
+          </h2>
         </div>
-        
-        <div className="grid grid-3 gap-4">
-          <div className="form-group">
-            <label className="label">Nutrient Brand</label>
-            <select 
-              className="select"
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '1.5rem'
+        }}>
+          <div className="stat-card" style={{ animation: 'fadeInUp 0.8s ease-out 0.1s both' }}>
+            <label style={{ 
+              display: 'block', 
+              fontSize: '0.875rem', 
+              fontWeight: '600', 
+              color: 'var(--text-primary)', 
+              marginBottom: '0.5rem' 
+            }}>
+              Nutrient Brand
+            </label>
+            <select
               value={selectedBrand}
-              onChange={(e) => setSelectedBrand(e.target.value)}
+              onChange={(e) => handleBrandChange(e.target.value)}
+              style={{
+                width: '100%',
+                background: '#2d3748',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '0.75rem',
+                color: 'var(--text-primary)',
+                fontSize: '0.875rem'
+              }}
             >
-              {Object.entries(nutrientBrands).map(([key, brand]) => (
-                <option key={key} value={key}>{brand.name}</option>
-              ))}
+              <option value="general-hydroponics">General Hydroponics FloraSeries</option>
+              <option value="advanced-nutrients">Advanced Nutrients pH Perfect GMB</option>
+              <option value="fox-farm">Fox Farm Trio</option>
+              <option value="canna">Canna Coco</option>
+              <option value="jack-nutrients">Jack's Nutrients 321</option>
+              <option value="megacrop">MegaCrop by Greenleaf</option>
+              <option value="botanicare">Botanicare Pure Blend Pro</option>
+              <option value="dyna-gro">Dyna-Gro Foliage Pro + Bloom</option>
+              <option value="house-garden">House & Garden Aqua Flakes</option>
+              <option value="nectar-gods">Nectar for the Gods</option>
             </select>
-            <p className="text-sm text-gray-500 mt-1">
-              {nutrientBrands[selectedBrand].description}
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: '0.25rem 0 0 0' }}>
+              {nutrientBrands[selectedBrand]?.description || 'Professional nutrient system'}
             </p>
           </div>
 
-          <div className="form-group">
-            <label className="label">Growth Stage</label>
-            <select 
-              className="select"
+          <div className="stat-card" style={{ animation: 'fadeInUp 0.8s ease-out 0.2s both' }}>
+            <label style={{ 
+              display: 'block', 
+              fontSize: '0.875rem', 
+              fontWeight: '600', 
+              color: 'var(--text-primary)', 
+              marginBottom: '0.5rem' 
+            }}>
+              Growth Stage
+            </label>
+            <select
               value={growthStage}
               onChange={(e) => handleGrowthStageChange(e.target.value)}
+              style={{
+                width: '100%',
+                background: '#2d3748',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '0.75rem',
+                color: 'var(--text-primary)',
+                fontSize: '0.875rem'
+              }}
             >
-              <option value="vegetative">🌱 Vegetative</option>
+              <option value="seedling">🌱 Seedling</option>
+              <option value="vegetative">🌿 Vegetative</option>
               <option value="flowering">🌸 Flowering</option>
             </select>
-            <p className="text-sm text-gray-500 mt-1">
-              {growthStage === 'vegetative' 
-                ? 'Typically uses light to medium feeding strength' 
-                : 'Typically uses medium to aggressive feeding strength'}
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: '0.25rem 0 0 0' }}>
+              {growthStage === 'seedling' ? 'Very young plants - use minimal nutrients to prevent burn' :
+               growthStage === 'vegetative' ? 'Focusing on leaf and stem growth - moderate feeding' :
+               growthStage === 'flowering' ? 'Bud development stage - increased nutrient demand' :
+               'Select growth stage for optimal feeding'}
             </p>
           </div>
 
-          <div className="form-group">
-            <label className="label">Tank Size (Liters)</label>
-            <input
-              type="number"
-              className="input"
-              value={tankSize}
-              onChange={(e) => setTankSize(parseFloat(e.target.value) || 50)}
-              min="1"
-              max="1000"
-              step="1"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="label">Feeding Strength</label>
-            <select 
-              className={`select ${
-                (feedingStrength === 'light' && growthStage === 'flowering') ||
-                (feedingStrength === 'aggressive' && growthStage === 'vegetative')
-                  ? 'border-amber-300 bg-amber-50' 
-                  : ''
-              }`}
+          <div className="stat-card" style={{ animation: 'fadeInUp 0.8s ease-out 0.3s both' }}>
+            <label style={{ 
+              display: 'block', 
+              fontSize: '0.875rem', 
+              fontWeight: '600', 
+              color: 'var(--text-primary)', 
+              marginBottom: '0.5rem' 
+            }}>
+              Feeding Strength
+            </label>
+            <select
               value={feedingStrength}
               onChange={(e) => handleFeedingStrengthChange(e.target.value)}
+              style={{
+                width: '100%',
+                background: '#2d3748',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '0.75rem',
+                color: 'var(--text-primary)',
+                fontSize: '0.875rem'
+              }}
             >
-              <option value="light">🌿 Light (50% strength)</option>
-              <option value="medium">🌱 Medium (75% strength)</option>
-              <option value="aggressive">💪 Aggressive (100% strength)</option>
+              <option value="light">🟢 Light (50% strength)</option>
+              <option value="medium">🟡 Medium (75% strength)</option>
+              <option value="aggressive">🔴 Aggressive (100% strength)</option>
             </select>
-            <p className={`text-sm mt-1 ${
-              (feedingStrength === 'light' && growthStage === 'flowering') ||
-              (feedingStrength === 'aggressive' && growthStage === 'vegetative')
-                ? 'text-amber-600' 
-                : 'text-gray-500'
-            }`}>
-              {feedingStrength === 'light' && growthStage === 'vegetative' && '🌿 Perfect for early vegetative growth'}
-              {feedingStrength === 'light' && growthStage === 'flowering' && '⚠️ Light feeding might limit flowering potential'}
-              {feedingStrength === 'medium' && '🌱 Balanced strength - good for most plants'}
-              {feedingStrength === 'aggressive' && growthStage === 'flowering' && '💪 Maximum strength for heavy feeding flowering plants'}
-              {feedingStrength === 'aggressive' && growthStage === 'vegetative' && '⚠️ High strength - monitor for nutrient burn'}
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: '0.25rem 0 0 0' }}>
+              Balanced strength - good for most plants
             </p>
           </div>
 
-          <div className="form-group">
-            <label className="label">Grow Medium</label>
-            <select 
-              className="select"
+          <div className="stat-card" style={{ animation: 'fadeInUp 0.8s ease-out 0.4s both' }}>
+            <label style={{ 
+              display: 'block', 
+              fontSize: '0.875rem', 
+              fontWeight: '600', 
+              color: 'var(--text-primary)', 
+              marginBottom: '0.5rem' 
+            }}>
+              Grow Medium
+            </label>
+            <select
               value={growMedium}
-              onChange={(e) => setGrowMedium(e.target.value)}
+              onChange={(e) => handleGrowMediumChange(e.target.value)}
+              style={{
+                width: '100%',
+                background: '#2d3748',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '0.75rem',
+                color: 'var(--text-primary)',
+                fontSize: '0.875rem'
+              }}
             >
-              <option value="hydro">💧 Hydroponic/DWC</option>
-              <option value="soilless">🌾 Soilless/Peat (ASB WP420, Pro-Mix, etc.)</option>
-              <option value="coco">🥥 Coco Coir</option>
-              <option value="soil">🌍 Soil</option>
+              <option value="hydro">💧 Hydroponic (DWC, Clay Pebbles, Rockwool)</option>
+              <option value="coco">🥥 Coco/Soilless (Coco Coir, Peat Mixes)</option>
+              <option value="soil">🌱 Soil (Organic, Living Soil)</option>
+              <option value="perlite">⚪ Inert Media (Perlite, Vermiculite)</option>
             </select>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: '0.25rem 0 0 0' }}>
+              Consolidated mediums with similar nutrient requirements
+            </p>
           </div>
 
-          <div className="form-group">
-            <label className="label">Water Type</label>
-            <select 
-              className="select"
+          <div className="stat-card" style={{ animation: 'fadeInUp 0.8s ease-out 0.5s both' }}>
+            <label style={{ 
+              display: 'block', 
+              fontSize: '0.875rem', 
+              fontWeight: '600', 
+              color: 'var(--text-primary)', 
+              marginBottom: '0.5rem' 
+            }}>
+              Water Type
+            </label>
+            <select
               value={waterType}
-              onChange={(e) => setWaterType(e.target.value)}
+              onChange={(e) => handleWaterTypeChange(e.target.value)}
+              style={{
+                width: '100%',
+                background: '#2d3748',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '0.75rem',
+                color: 'var(--text-primary)',
+                fontSize: '0.875rem'
+              }}
             >
               <option value="soft">💧 Soft Water (RO/Distilled)</option>
               <option value="hard">🪨 Hard Water (Tap)</option>
             </select>
           </div>
 
-          <div className="form-group">
-            <label className="label">Watering Method</label>
-            <select 
-              className="select"
+          <div className="stat-card" style={{ animation: 'fadeInUp 0.8s ease-out 0.6s both' }}>
+            <label style={{ 
+              display: 'block', 
+              fontSize: '0.875rem', 
+              fontWeight: '600', 
+              color: 'var(--text-primary)', 
+              marginBottom: '0.5rem' 
+            }}>
+              Watering Method
+            </label>
+            <select
               value={wateringMethod}
-              onChange={(e) => setWateringMethod(e.target.value)}
+              onChange={(e) => handleWateringMethodChange(e.target.value)}
+              style={{
+                width: '100%',
+                background: '#2d3748',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '0.75rem',
+                color: 'var(--text-primary)',
+                fontSize: '0.875rem'
+              }}
             >
-              <option value="hand-watering">🪣 Hand Watering</option>
-              <option value="drip-irrigation">💧 Drip Irrigation</option>
-              <option value="bottom-wicking">⬆️ Bottom Wicking</option>
-              <option value="recirculating">🔄 Recirculating DWC/RDWC</option>
-              <option value="flood-drain">🌊 Flood & Drain (Ebb & Flow)</option>
-              <option value="aeroponic">💨 Aeroponic</option>
+              <option value="hand-watering">🚿 Hand Watering (100%)</option>
+              <option value="drip-system">💧 Drip System (80%)</option>
+              <option value="bottom-wicking">⬆️ Bottom Wicking (90%)</option>
+              <option value="aeroponics">🌪️ Aeroponics (60%)</option>
+              <option value="deep-water-culture">🌊 Deep Water Culture (100%)</option>
+              <option value="ebb-flow">🔄 Ebb & Flow (85%)</option>
             </select>
-            <p className="text-sm text-gray-500 mt-1">
-              {wateringMethod === 'hand-watering' && '🪣 Standard watering with can or hose'}
-              {wateringMethod === 'drip-irrigation' && '💧 Automated drip lines - lower concentration'}
-              {wateringMethod === 'bottom-wicking' && '⬆️ Passive uptake - reduced strength'}
-              {wateringMethod === 'recirculating' && '🔄 Continuous circulation - stable concentration'}
-              {wateringMethod === 'flood-drain' && '🌊 Periodic flooding - standard strength'}
-              {wateringMethod === 'aeroponic' && '💨 Misting system - very low concentration'}
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: '0.25rem 0 0 0' }}>
+              Adjusts nutrient concentration for delivery method
             </p>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Results */}
-      {calculations && (
-        <div className="space-y-6">
-          {/* Recipe Card */}
-          <div className="card">
-            <h2 className="section-title">📋 Your Nutrient Recipe</h2>
-            
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <div className="flex items-center gap-2 mb-2">
-                <Beaker className="w-5 h-5 text-green-600" />
-                <h3 className="font-semibold text-green-800">
-                  {calculations.brand} - {calculations.stage} stage
-                </h3>
-              </div>
-              <p className="text-green-700">
+      {/* Your Nutrient Recipe - Stylish and Modern */}
+      <section style={{
+        background: 'rgba(255,255,255,0.02)',
+        borderRadius: '16px',
+        border: '1px solid var(--border)',
+        padding: '1.5rem',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        animation: 'fadeInUp 0.8s ease-out 0.6s both'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <FlaskConical className="w-6 h-6" style={{ color: 'var(--primary-color)' }} />
+            <h2 style={{
+              color: 'var(--text-primary)',
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              margin: 0
+            }}>
+              Your Nutrient Recipe
+            </h2>
+          </div>
+          
+          {/* Tank Size Input in Recipe Card */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: '500' }}>
+              Tank Size (L)
+            </label>
+            <input
+              type="number"
+              value={tankSize}
+              onChange={(e) => handleTankSizeChange(Number(e.target.value))}
+              style={{
+                width: '80px',
+                background: '#2d3748',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '0.5rem',
+                color: 'var(--text-primary)',
+                fontSize: '0.875rem',
+                textAlign: 'center'
+              }}
+              min="1"
+              max="1000"
+            />
+          </div>
+        </div>
+
+        {calculations && (
+          <div style={{ display: 'grid', gap: '1.5rem' }}>
+            {/* Recipe Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1))',
+              border: '1px solid rgba(16, 185, 129, 0.2)',
+              borderRadius: '12px',
+              padding: '1rem',
+              animation: 'fadeInUp 0.8s ease-out 0.1s both',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-4px)';
+              e.target.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
+              e.target.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
+              e.target.style.borderColor = 'rgba(16, 185, 129, 0.2)';
+            }}>
+              <h3 style={{ 
+                color: 'var(--primary-color)', 
+                fontWeight: '600', 
+                marginBottom: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <CheckCircle className="w-4 h-4" />
+                {calculations.brand} - {calculations.stage} stage
+              </h3>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
                 For {calculations.tankSize}L tank at {calculations.strength} strength
-                {wateringMethod !== 'hand-watering' && (
-                  <span className="block text-sm mt-1">
-                    📊 Adjusted for {wateringMethod.replace('-', ' ')} system
+                {calculations.targetEC && (
+                  <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                    • Target: {calculations.targetEC} EC / {calculations.targetTDS} TDS (ppm)
                   </span>
                 )}
               </p>
             </div>
 
-            {/* Base Nutrients */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-blue-500" />
-                Base Nutrients (Required)
-              </h3>
-              <div className="space-y-2">
-                {calculations.baseNutrients.map((nutrient, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                    <span className="font-medium text-blue-800">{nutrient.name}</span>
-                    <span className="text-blue-600 font-bold">
-                      {nutrient.amount} {nutrient.unit}
-                    </span>
+            {/* Vertical Recipe Layout for Clear Mixing Order */}
+            <div style={{ display: 'grid', gap: '1.5rem' }}>
+              {/* Supplements First - They go in the water first */}
+              {calculations.supplements.length > 0 && (
+                <div className="stat-card" style={{ animation: 'fadeInUp 0.8s ease-out 0.2s both' }}>
+                  <h4 style={{
+                    color: '#f59e0b',
+                    fontWeight: '600',
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    ⚡ Step 1: Supplements (Add first - before base nutrients)
+                  </h4>
+                  <div style={{ display: 'grid', gap: '0.75rem' }}>
+                    {calculations.supplements.map((supplement, index) => (
+                      <div key={index} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '1rem',
+                        background: 'rgba(245, 158, 11, 0.1)',
+                        border: '1px solid rgba(245, 158, 11, 0.2)',
+                        borderRadius: '8px',
+                        transition: 'all 0.3s ease',
+                        cursor: 'pointer'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.15)';
+                        e.target.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = 'none';
+                        e.target.style.borderColor = 'rgba(245, 158, 11, 0.2)';
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: '#f59e0b',
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold'
+                          }}>
+                            {index + 1}
+                          </div>
+                          <span style={{ fontWeight: '500', color: 'var(--text-primary)', fontSize: '1rem' }}>
+                            {supplement.name}
+                          </span>
+                        </div>
+                        <span style={{ 
+                          color: '#f59e0b', 
+                          fontWeight: '600',
+                          fontFamily: 'monospace',
+                          fontSize: '1rem'
+                        }}>
+                          {supplement.amount} {supplement.unit}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Supplements */}
-            {calculations.supplements.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <Droplets className="w-5 h-5 text-purple-500" />
-                  Supplements {calculations.supplements.some(s => s.optional) && '(Optional)'}
-                </h3>
-                <div className="space-y-2">
-                                     {calculations.supplements.map((supplement, index) => (
-                     <div key={index} className={`p-3 rounded-lg ${
-                       supplement.optional ? 'bg-purple-50' : 'bg-orange-50'
-                     }`}>
-                       <div className="flex justify-between items-center">
-                         <span className={`font-medium ${
-                           supplement.optional ? 'text-purple-800' : 'text-orange-800'
-                         }`}>
-                           {supplement.name} {supplement.optional && '(Optional)'}
-                         </span>
-                         <span className={`font-bold ${
-                           supplement.optional ? 'text-purple-600' : 'text-orange-600'
-                         }`}>
-                           {supplement.amount} {supplement.unit}
-                         </span>
-                       </div>
-                       {supplement.waterTypeNote && (
-                         <div className="text-xs text-gray-600 mt-1">
-                           💧 {supplement.waterTypeNote}
-                         </div>
-                       )}
-                     </div>
-                   ))}
+                  <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.75rem', margin: '0.75rem 0 0 0' }}>
+                    💡 Add in exact order shown. 
+                    {(() => {
+                      const hasSilica = calculations.supplements.some(s => 
+                        s.name.toLowerCase().includes('armor') || 
+                        s.name.toLowerCase().includes('silica') || 
+                        s.name.toLowerCase().includes('si')
+                      );
+                      const hasCalMag = calculations.supplements.some(s => 
+                        s.name.toLowerCase().includes('cal') || 
+                        s.name.toLowerCase().includes('mag') || 
+                        s.name.toLowerCase().includes('calimagic')
+                      );
+                      
+                      if (hasSilica && hasCalMag) {
+                        return ' Silica dissolves poorly if added after CalMag.';
+                      } else if (hasCalMag) {
+                        return ' CalMag may not be needed with hard water - test first.';
+                      } else {
+                        return ' Follow manufacturer recommendations for dosing.';
+                      }
+                    })()}
+                  </p>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Instructions */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Info className="w-5 h-5 text-amber-500" />
-                Mixing Instructions
-              </h3>
-              <div className="space-y-2">
-                {calculations.instructions.map((instruction, index) => (
-                  <div key={index} className="flex items-start gap-3 p-2">
-                    <span className="text-amber-600 font-bold text-sm">{index + 1}</span>
-                    <span className="text-gray-700">{instruction.replace(/^\d+\.\s*/, '')}</span>
-                  </div>
-                ))}
+              {/* Base Nutrients Second */}
+              <div className="stat-card" style={{ animation: 'fadeInUp 0.8s ease-out 0.3s both' }}>
+                <h4 style={{
+                  color: '#3b82f6',
+                  fontWeight: '600',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  ⚗️ Step {calculations.supplements.length > 0 ? '2' : '1'}: Base Nutrients (Add in this order)
+                </h4>
+                <div style={{ display: 'grid', gap: '0.75rem' }}>
+                  {calculations.baseNutrients.map((nutrient, index) => (
+                    <div key={index} style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '1rem',
+                      background: 'rgba(59, 130, 246, 0.1)',
+                      border: '1px solid rgba(59, 130, 246, 0.2)',
+                      borderRadius: '8px',
+                      transition: 'all 0.3s ease',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.15)';
+                      e.target.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = 'none';
+                      e.target.style.borderColor = 'rgba(59, 130, 246, 0.2)';
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          background: '#3b82f6',
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold'
+                        }}>
+                          {index + 1}
+                        </div>
+                        <span style={{ fontWeight: '500', color: 'var(--text-primary)', fontSize: '1rem' }}>
+                          {nutrient.name}
+                        </span>
+                      </div>
+                      <span style={{ 
+                        color: '#3b82f6', 
+                        fontWeight: '600',
+                        fontFamily: 'monospace',
+                        fontSize: '1rem'
+                      }}>
+                        {nutrient.amount} {nutrient.unit}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.75rem', margin: '0.75rem 0 0 0' }}>
+                  💡 Mix thoroughly between each addition
+                </p>
               </div>
             </div>
 
-            {/* Important Notes */}
-            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h4 className="font-semibold text-yellow-800 mb-2">⚠️ Important Notes:</h4>
-              <ul className="text-yellow-700 text-sm space-y-1">
-                <li>• Always start with lower concentrations and increase gradually</li>
-                <li>• Monitor plants for signs of nutrient burn or deficiency</li>
-                <li>• Hard tap water: CalMag may not be needed - test your water first</li>
-                <li>• Soft/RO water: CalMag often essential to replace missing minerals</li>
-                <li>• Dry nutrients: Mix slowly to prevent clumping</li>
-                <li>• Change nutrient solution every 7-14 days</li>
-              </ul>
+            {/* Mixing Instructions */}
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              borderRadius: '12px',
+              padding: '1rem',
+              animation: 'fadeInUp 0.8s ease-out 0.4s both',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-4px)';
+              e.target.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
+              e.target.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
+              e.target.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+            }}>
+              <h4 style={{
+                color: '#ef4444',
+                fontWeight: '600',
+                marginBottom: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                🥼 Step {calculations.supplements.length > 0 ? '3' : '2'}: Final Mixing Instructions
+              </h4>
+              <ol style={{ 
+                fontSize: '0.875rem', 
+                color: 'var(--text-secondary)', 
+                lineHeight: '1.6',
+                paddingLeft: '1.25rem',
+                margin: 0
+              }}>
+                <li><strong>Start with clean water</strong> - Use RO or distilled water if possible</li>
+                {calculations.supplements.length > 0 && (
+                  <li><strong>Add supplements in order</strong> - {(() => {
+                    const hasSilica = calculations.supplements.some(s => 
+                      s.name.toLowerCase().includes('armor') || 
+                      s.name.toLowerCase().includes('silica') || 
+                      s.name.toLowerCase().includes('si')
+                    );
+                    const hasCalMag = calculations.supplements.some(s => 
+                      s.name.toLowerCase().includes('cal') || 
+                      s.name.toLowerCase().includes('mag') || 
+                      s.name.toLowerCase().includes('calimagic')
+                    );
+                    
+                    if (hasSilica && hasCalMag) {
+                      return 'Silica first (if using), then CalMag, then others';
+                    } else if (hasSilica) {
+                      return 'Silica first, then other supplements';
+                    } else if (hasCalMag) {
+                      return 'CalMag first, then other supplements';
+                    } else {
+                      return 'Follow the order shown above';
+                    }
+                  })()}</li>
+                )}
+                <li><strong>Add base nutrients in order</strong> - Follow the numbered steps above</li>
+                <li><strong>Mix thoroughly</strong> - Stir for 30 seconds between each addition</li>
+                <li><strong>Check pH</strong> - Adjust to 5.5-6.5 for hydro/coco, 6.0-7.0 for soil</li>
+                <li><strong>Check TDS/PPM</strong> - Should match your feeding strength guidelines{calculations.targetTDS ? ` (target: ${calculations.targetTDS} ppm)` : ''}</li>
+                <li><strong>Use fresh</strong> - Mix fresh every 7-10 days for best results</li>
+              </ol>
             </div>
           </div>
-
-
-        </div>
-      )}
+        )}
+      </section>
     </div>
   );
 };
 
-export default NutrientCalculator; 
+export default NutrientCalculator;

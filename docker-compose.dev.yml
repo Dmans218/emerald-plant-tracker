@@ -1,0 +1,38 @@
+services:
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: growlogger_backend_dev
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - growlogger_data:/app/data
+      - ./backend/uploads:/app/uploads
+    environment:
+      - NODE_ENV=development
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: growlogger_frontend_dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - REACT_APP_API_URL=http://localhost:5000
+    restart: unless-stopped
+    depends_on:
+      - backend
+    stdin_open: true
+    tty: true
+
+volumes:
+  growlogger_data:
