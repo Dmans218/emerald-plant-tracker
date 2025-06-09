@@ -9,8 +9,8 @@
       name="description"
       content="Cannabis grow tracking application for personal cultivation"
     />
-    <!-- Security: Secure CSP that works with both HTTP and HTTPS -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; object-src 'none'; media-src 'self'; frame-src 'none'; base-uri 'self'; form-action 'self';">
+    <!-- Security: Secure CSP that works with both HTTP and HTTPS and allows Tesseract.js workers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; worker-src 'self' blob:; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; object-src 'none'; media-src 'self'; frame-src 'none'; base-uri 'self'; form-action 'self';">
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <title>🌿 Emerald Plant Tracker - Cannabis Cultivation</title>
