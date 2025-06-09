@@ -51,7 +51,7 @@
   "proxy": "http://localhost:5000",
   "devDependencies": {
     "@craco/craco": "^5.9.0",
-    "eslint": "^8.57.1",
+    "eslint": "^9.28.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-webpack-plugin": "^5.0.1",
     "react-scripts": "^5.1.0-next.26"
