@@ -29,14 +29,16 @@ app.use(helmet({
 // Custom CSP header optimized for HTTP serving (no upgrade-insecure-requests)
 app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', 
-    "default-src 'self' http: data:; " +
-    "style-src 'self' 'unsafe-inline' http:; " +
-    "script-src 'self' http:; " +
-    "img-src 'self' data: blob: http:; " +
-    "connect-src 'self' http:; " +
-    "font-src 'self' data: http:; " +
+    "default-src 'self' http: https:; " +
+    "style-src 'self' 'unsafe-inline' http: https:; " +
+    "script-src 'self' http: https: 'unsafe-eval'; " +
+    "script-src-elem 'self' http: https: cdn.jsdelivr.net; " +
+    "worker-src 'self' blob: data: https: cdn.jsdelivr.net; " +
+    "img-src 'self' data: blob: http: https:; " +
+    "connect-src 'self' http: https:; " +
+    "font-src 'self' data: http: https:; " +
     "object-src 'none'; " +
-    "media-src 'self' http:; " +
+    "media-src 'self' http: https:; " +
     "frame-src 'none'; " +
     "base-uri 'self'; " +
     "form-action 'self'; " +
