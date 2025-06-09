@@ -19,6 +19,7 @@
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^7.6.2",
     "recharts": "^2.13.3",
+    "tesseract.js": "^5.1.1",
     "web-vitals": "^5.0.2"
   },
   "scripts": {
