@@ -316,11 +316,20 @@ router.post('/', (req, res) => {
   const { error, value } = plantSchema.validate(req.body);
   
   if (error) {
+    console.error('❌ Plant validation error:', error.details[0].message);
     return res.status(400).json({ error: error.details[0].message });
   }
 
   const database = db.getDb();
+  
+  if (!database) {
+    console.error('❌ Database not available when creating plant');
+    return res.status(500).json({ error: 'Database not available' });
+  }
+  
   const { name, strain, stage, planted_date, expected_harvest, notes, grow_tent } = value;
+  
+  console.log('🌱 Creating new plant:', { name, strain, stage, grow_tent });
   
   const sql = `
     INSERT INTO plants (name, strain, stage, planted_date, expected_harvest, notes, grow_tent)
@@ -330,18 +339,24 @@ router.post('/', (req, res) => {
   database.run(sql, [name, strain, stage, planted_date, expected_harvest, notes, grow_tent], function(err) {
     if (err) {
       if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+        console.error('❌ Plant name already exists:', name);
         return res.status(409).json({ error: 'Plant name already exists' });
       }
-      console.error('Error creating plant:', err);
-      return res.status(500).json({ error: 'Failed to create plant' });
+      console.error('❌ Error creating plant:', err);
+      console.error('❌ SQL Query:', sql);
+      console.error('❌ Values:', [name, strain, stage, planted_date, expected_harvest, notes, grow_tent]);
+      return res.status(500).json({ error: 'Failed to create plant', details: err.message });
     }
+    
+    console.log('✅ Plant created successfully with ID:', this.lastID);
     
     // Fetch the created plant
     database.get('SELECT * FROM plants WHERE id = ?', [this.lastID], (err, row) => {
       if (err) {
-        console.error('Error fetching created plant:', err);
-        return res.status(500).json({ error: 'Plant created but failed to fetch' });
+        console.error('❌ Error fetching created plant:', err);
+        return res.status(500).json({ error: 'Plant created but failed to fetch', details: err.message });
       }
+      console.log('✅ Returning created plant:', row);
       res.status(201).json(row);
     });
   });

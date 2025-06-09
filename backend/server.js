@@ -171,9 +171,89 @@ app.use('/api/plants', plantsRouter);
 app.use('/api/logs', logsRouter);
 app.use('/api/environment', environmentRouter);
 
-// Health check
+// Health check with database connectivity
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  const database = db.getDb();
+  
+  if (!database) {
+    return res.status(503).json({ 
+      status: 'ERROR', 
+      database: 'disconnected',
+      timestamp: new Date().toISOString() 
+    });
+  }
+  
+  // Test database connectivity
+  database.get('SELECT 1 as test', (err, row) => {
+    if (err) {
+      console.error('❌ Database health check failed:', err);
+      return res.status(503).json({ 
+        status: 'ERROR', 
+        database: 'error',
+        error: err.message,
+        timestamp: new Date().toISOString() 
+      });
+    }
+    
+    // Also check if plants table exists
+    database.get("SELECT name FROM sqlite_master WHERE type='table' AND name='plants'", (err, table) => {
+      if (err) {
+        return res.status(503).json({ 
+          status: 'ERROR', 
+          database: 'connected',
+          tables: 'error',
+          error: err.message,
+          timestamp: new Date().toISOString() 
+        });
+      }
+      
+      res.json({ 
+        status: 'OK', 
+        database: 'connected',
+        tables: table ? 'initialized' : 'missing',
+        timestamp: new Date().toISOString() 
+      });
+    });
+  });
+});
+
+// Debug endpoint for database info
+app.get('/api/debug/database', (req, res) => {
+  const dbPath = process.env.DATABASE_URL || path.join(__dirname, 'data', 'emerald-plant-tracker.db');
+  const dataDir = path.dirname(dbPath);
+  
+  const debugInfo = {
+    database_path: dbPath,
+    data_directory: dataDir,
+    data_dir_exists: fs.existsSync(dataDir),
+    database_file_exists: fs.existsSync(dbPath),
+    working_directory: __dirname,
+    process_user: process.getuid ? process.getuid() : 'unknown',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString()
+  };
+  
+  // Try to get file stats if database exists
+  if (debugInfo.database_file_exists) {
+    try {
+      const stats = fs.statSync(dbPath);
+      debugInfo.database_size = stats.size;
+      debugInfo.database_modified = stats.mtime;
+    } catch (err) {
+      debugInfo.database_stats_error = err.message;
+    }
+  }
+  
+  // Try to list data directory contents
+  if (debugInfo.data_dir_exists) {
+    try {
+      debugInfo.data_dir_contents = fs.readdirSync(dataDir);
+    } catch (err) {
+      debugInfo.data_dir_list_error = err.message;
+    }
+  }
+  
+  res.json(debugInfo);
 });
 
 // 404 handler

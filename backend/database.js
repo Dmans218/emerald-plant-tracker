@@ -6,21 +6,42 @@ const DB_PATH = process.env.DATABASE_URL || path.join(__dirname, 'data', 'emeral
 
 // Ensure data directory exists
 const dataDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+try {
+  if (!fs.existsSync(dataDir)) {
+    console.log(`📁 Creating data directory: ${dataDir}`);
+    fs.mkdirSync(dataDir, { recursive: true });
+    console.log(`✅ Data directory created successfully`);
+  } else {
+    console.log(`📁 Data directory already exists: ${dataDir}`);
+  }
+} catch (err) {
+  console.error(`❌ Error creating data directory: ${err.message}`);
 }
 
 let db;
 
 const init = () => {
   return new Promise((resolve, reject) => {
+    console.log(`🔍 Attempting to connect to database at: ${DB_PATH}`);
+    console.log(`📂 Data directory: ${dataDir}`);
+    console.log(`📊 Data directory exists: ${fs.existsSync(dataDir)}`);
+    
     db = new sqlite3.Database(DB_PATH, (err) => {
       if (err) {
+        console.error('❌ Database connection error:', err);
         reject(err);
         return;
       }
-      console.log('📁 Connected to SQLite database');
-      createTables().then(resolve).catch(reject);
+      console.log('📁 Connected to SQLite database successfully');
+      console.log(`📍 Database file exists: ${fs.existsSync(DB_PATH)}`);
+      
+      createTables().then(() => {
+        console.log('✅ Database tables created/verified successfully');
+        resolve();
+      }).catch((tableErr) => {
+        console.error('❌ Error creating tables:', tableErr);
+        reject(tableErr);
+      });
     });
   });
 };
