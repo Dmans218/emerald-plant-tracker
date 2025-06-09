@@ -20,7 +20,7 @@ A comprehensive, self-hosted web application for professional cannabis cultivati
 - **localStorage Persistence**: Remembers your preferred settings between sessions
 - **Copy-to-Clipboard Recipes**: Export complete mixing instructions with one click
 - **Real-time PPM/EC Targets**: Brand-specific target ranges for optimal plant health
-- **pH Guidelines**: Medium-specific pH recommendations (5.5-6.5 hydro, 6.0-7.0 soil)
+- **pH Guidelinegots**: Medium-specific pH recommendations (5.5-6.5 hydro, 6.0-7.0 soil)
 
 ### 🌿 **Plant Management System**
 - **Complete Growth Tracking**: Monitor plants from seed to harvest across all growth stages
@@ -289,10 +289,6 @@ Emerald Plant Tracker/
 ├── docs/                   # Documentation files
 ├── docker-compose.yml      # Docker orchestration
 ├── docker-compose.dev.yml  # Development Docker config
-├── setup-dev.sh            # Development setup script
-├── setup-prod.sh           # Production setup script
-├── dev-start.sh            # Development start script
-├── dev-stop.sh             # Development stop script
 ├── .dockerignore           # Docker build context exclusions
 ├── .gitignore              # Git exclusions
 ├── package.json            # Root project configuration
