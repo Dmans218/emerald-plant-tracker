@@ -1,69 +1,92 @@
-# 🌿 Emerald Plant Tracker - Cannabis Cultivation Tracker
+# 🌿 Growlogger - Advanced Cannabis Cultivation Tracker
 
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Dockerized](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 [![GitHub Sponsors](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-fc2967?logo=github)](https://github.com/sponsors/Dmans218)
 [![Donate with PayPal](https://img.shields.io/badge/donate-PayPal-00457C?logo=paypal)](https://paypal.me/Emeraldplanttracker?country.x=CA&locale.x=en_US)
 
-A modern, self-hosted web application for tracking cannabis plant growth, activities, and progress. Built with React, Express, and SQLite, and fully Dockerized for easy deployment. Perfect for personal cultivation management and privacy-focused growers.
+A comprehensive, self-hosted web application for professional cannabis cultivation management. Built with React, Express, and SQLite, featuring an advanced nutrient calculator, environmental monitoring, and complete grow tracking. Fully Dockerized for easy deployment and perfect for privacy-focused growers.
 
 ---
 
-## Features
+## ✨ Key Features
 
-### 🌿 Plant Management
-- Add and manage multiple cannabis plants
-- Track growth stages (seedling → vegetative → flowering → harvest → cured)
-- Store strain information and cultivation notes
-- Monitor planted dates and expected harvest times
+### 🧪 **Advanced Nutrient Calculator**
+- **10+ Professional Nutrient Brands**: General Hydroponics, Advanced Nutrients, Fox Farm, Canna, Jack's 321, MegaCrop, and more
+- **Smart Growth Stage Management**: Automatic feeding strength adjustments for seedling, vegetative, and flowering stages
+- **Multi-Medium Support**: Hydroponic, Coco/Soilless, Soil, and Inert media configurations
+- **Precise Mixing Ratios**: Calculate exact amounts for any tank size with watering method adjustments
+- **localStorage Persistence**: Remembers your preferred settings between sessions
+- **Copy-to-Clipboard Recipes**: Export complete mixing instructions with one click
+- **Real-time PPM/EC Targets**: Brand-specific target ranges for optimal plant health
+- **pH Guidelines**: Medium-specific pH recommendations (5.5-6.5 hydro, 6.0-7.0 soil)
 
-### 📊 Activity & Environment Logging
-- Log activities: watering, feeding, pruning, training, observations
-- Record environmental data: temperature, humidity, VPD, CO₂, PPFD, pH, light hours, growth stage, grow tent, notes
-- Upload photos to track visual progress
-- Maintain a detailed cultivation timeline
+### 🌿 **Plant Management System**
+- **Complete Growth Tracking**: Monitor plants from seed to harvest across all growth stages
+- **Strain Information**: Store genetics, breeder info, and cultivation notes
+- **Visual Progress**: Upload photos to track plant development over time
+- **Growth Timeline**: Detailed chronological view of each plant's journey
+- **Harvest Management**: Track yield, quality, and curing progress
 
-### 📈 Dashboard Overview
-- View all plants at a glance
-- Track cultivation and environment statistics
-- Quick access to plant and environment details
-- Export environment data to CSV
+### 📊 **Environmental Monitoring**
+- **Comprehensive Data Logging**: Temperature, humidity, VPD, CO₂, PPFD, pH, and light hours
+- **Multi-Tent Support**: Manage multiple grow spaces with independent environmental tracking
+- **Statistical Analysis**: Weekly averages and trends for environmental optimization
+- **CSV Export**: Download environmental data for external analysis
+- **Real-time Dashboard**: At-a-glance view of all critical environmental parameters
 
-### 🐳 Self-Hosted & Docker Ready
-- Single-container Docker setup for easy deployment
-- SQLite database for simplicity and persistence
-- No external dependencies required
-- Runs entirely on your own hardware
+### 📈 **Activity & Logging System**
+- **Detailed Activity Logs**: Watering, feeding, pruning, training, and general observations
+- **Photo Documentation**: Visual progress tracking with timestamp and notes
+- **Plant Statistics**: Automated tracking of feeding schedules and growth metrics
+- **Historical Timeline**: Complete cultivation history for each plant
+
+### 🎨 **Modern User Interface**
+- **Dark Theme Design**: Cannabis-themed aesthetic with smooth animations
+- **Responsive Layout**: Works perfectly on desktop, tablet, and mobile devices
+- **Interactive Cards**: Hover effects and smooth transitions throughout the interface
+- **Smart Notifications**: Real-time feedback with toast notifications
+- **Intuitive Navigation**: Clean, organized layout with easy access to all features
+
+### 🐳 **Self-Hosted & Privacy-Focused**
+- **Single Docker Container**: Complete setup with one command
+- **SQLite Database**: No external dependencies, simple and reliable
+- **Local Data Storage**: All your cultivation data stays on your hardware
+- **No Internet Required**: Runs completely offline once deployed
+- **Automated Backups**: Built-in data persistence with Docker volumes
 
 ---
 
 ## 🚀 Quick Start (Docker Hub)
 
-You can run Emerald Plant Tracker directly from Docker Hub—no need to clone the repo!
+You can run Growlogger directly from Docker Hub—no need to clone the repo!
 
 ### **Option 1: Docker Run**
 
 ```bash
 sudo docker run -d \
-  --name emerald-plant-tracker \
+  --name growlogger \
   -p 420:420 \
-  -v emerald_data:/app/backend/data \
+  -v growlogger_data:/app/backend/data \
   -v $(pwd)/backend/uploads:/app/backend/uploads \
   dmans218/emerald-plant-tracker:latest
 ```
+
 - App will be available at [http://localhost:420](http://localhost:420)
-- Data is persisted in the `emerald_data` Docker volume
+- Data is persisted in the `growlogger_data` Docker volume
 
 ### **Option 2: Docker Compose**
 
 The repository comes with a pre-configured docker-compose.yml file.
 
 Run the setup script:
+
 ```bash
 ./setup-prod.sh
 ```
 
 Then start the container:
+
 ```bash
 sudo docker-compose up -d
 ```
@@ -77,23 +100,63 @@ Access the application at [http://localhost:420](http://localhost:420)
 If you want to contribute or run the app in development mode:
 
 1. **Clone the repository:**
+
    ```bash
-   git clone https://github.com/Dmans218/emerald-plant-tracker.git
-   cd emerald-plant-tracker
+   git clone https://github.com/Dmans218/growlogger.git
+   cd growlogger
    ```
 
 2. **Run the setup script:**
+
    ```bash
    ./setup-dev.sh
    ```
+
    This will install all dependencies and create necessary directories.
 
 3. **Start development servers:**
+
    ```bash
    # From project root:
    npm run dev
    ```
+
    This starts both frontend and backend. The app will be available at [http://localhost:420](http://localhost:420).
+
+---
+
+## 🧪 Using the Nutrient Calculator
+
+The built-in nutrient calculator is one of Growlogger's most powerful features:
+
+### **Supported Nutrient Brands**
+
+- **General Hydroponics FloraSeries** - The classic 3-part system
+- **Advanced Nutrients pH Perfect GMB** - Grow, Micro, Bloom with pH buffering
+- **Fox Farm Trio** - Grow Big, Big Bloom, Tiger Bloom
+- **Canna Coco A&B** - Specialized for coco growing
+- **Jack's Nutrients 321** - Professional 3-part system
+- **MegaCrop** - One-part nutrient solution
+- **Botanicare Pure Blend Pro** - Organic-based nutrients
+- **Dyna-Gro** - Complete nutrition system
+- **House & Garden** - Premium Dutch nutrients
+- **Nectar for the Gods** - Organic mineral nutrients
+
+### **How to Use**
+
+1. **Select Your Setup**: Choose nutrient brand, growth stage, grow medium, and watering method
+2. **Set Tank Size**: Enter your reservoir or mixing container size in liters
+3. **Choose Feeding Strength**: Light (50%), Medium (75%), or Aggressive (100%)
+4. **Get Your Recipe**: Precise mixing ratios with step-by-step instructions
+5. **Save & Reuse**: Your preferences are automatically saved for next time
+
+### **Smart Features**
+
+- **Auto-adjustments**: Feeding strength automatically adjusts based on growth stage
+- **Water type optimization**: CalMag recommendations based on soft vs hard water
+- **Method-specific ratios**: Concentrations adjust for drip, aero, hand watering, etc.
+- **Mixing order**: Proper supplement and nutrient addition sequence
+- **Target ranges**: EC/TDS and pH targets for each brand and growth stage
 
 ---
 
@@ -105,58 +168,97 @@ If you want to contribute or run the app in development mode:
 
 ---
 
-## File Structure
+## 📁 Project Structure
 
-```
+```text
 Growlogger/
 ├── backend/                 # Node.js API server
 │   ├── data/               # SQLite database files
-│   ├── routes/             # API routes
-│   ├── services/           # Business logic and services
-│   ├── uploads/            # Uploaded images
+│   │   ├── growlogger.db   # Main application database
+│   │   └── emerald-plant-tracker.db  # Legacy database
+│   ├── routes/             # API route handlers
+│   │   ├── plants.js       # Plant CRUD operations
+│   │   ├── logs.js         # Activity logging
+│   │   ├── environment.js  # Environmental data
+│   │   └── tents.js        # Grow tent management
+│   ├── uploads/            # User-uploaded images
 │   ├── database.js         # SQLite database setup
 │   ├── server.js           # Express server
-│   └── Dockerfile
+│   └── Dockerfile          # Backend container config
 ├── frontend/               # React web application
 │   ├── public/             # Static files
-│   ├── src/                # Source code (components, pages, utils)
-│   └── Dockerfile
+│   ├── src/                # Source code
+│   │   ├── components/     # Reusable React components
+│   │   │   ├── Header.js   # Navigation header
+│   │   │   ├── ImageUpload.js  # Image upload component
+│   │   │   └── LogModal.js # Activity logging modal
+│   │   ├── pages/          # Main application pages
+│   │   │   ├── Dashboard.js    # Overview dashboard
+│   │   │   ├── Plants.js       # Plant management
+│   │   │   ├── PlantDetail.js  # Individual plant view
+│   │   │   ├── Calculator.js   # Nutrient calculator
+│   │   │   ├── Environment.js  # Environmental monitoring
+│   │   │   ├── Logs.js         # Activity logs
+│   │   │   └── ArchivedTents.js # Archived tent data
+│   │   ├── utils/          # Utility functions
+│   │   │   ├── api.js      # API communication
+│   │   │   ├── ocrParser.js # OCR text parsing
+│   │   │   └── stageColors.js # Growth stage styling
+│   │   ├── App.js          # Main application component
+│   │   ├── index.js        # React entry point
+│   │   └── index.css       # Global styles
+│   ├── package.json        # Frontend dependencies
+│   └── Dockerfile          # Frontend container config
 ├── docs/                   # Documentation files
 ├── docker-compose.yml      # Docker orchestration
+├── docker-compose.dev.yml  # Development Docker config
 ├── setup-dev.sh            # Development setup script
 ├── setup-prod.sh           # Production setup script
+├── dev-start.sh            # Development start script
+├── dev-stop.sh             # Development stop script
 ├── .dockerignore           # Docker build context exclusions
 ├── .gitignore              # Git exclusions
-└── README.md
+├── package.json            # Root project configuration
+└── README.md               # This file
 ```
 
 ---
 
-## API Endpoints
+## 🔌 API Endpoints
 
 ### Plants
+
 - `GET /api/plants` - List all plants
 - `POST /api/plants` - Create new plant
 - `GET /api/plants/:id` - Get plant details
 - `PUT /api/plants/:id` - Update plant
 - `DELETE /api/plants/:id` - Delete plant
 
-### Logs
+### Activity Logs
+
 - `GET /api/logs` - List activity logs
-- `POST /api/logs` - Create new log
+- `POST /api/logs` - Create new log entry
 - `POST /api/logs/photo` - Upload photo log
-- `DELETE /api/logs/:id` - Delete log
+- `DELETE /api/logs/:id` - Delete log entry
 - `GET /api/logs/stats/:plantId` - Get plant statistics
 
 ### Environment
+
 - `GET /api/environment` - List environment logs
 - `POST /api/environment` - Create new environment log
 - `GET /api/environment/weekly` - Get weekly environment averages
-- `GET /api/environment/grow-tents` - List available grow tents
+- `GET /api/environment/export` - Export environment data as CSV
+
+### Tents
+
+- `GET /api/tents` - List available grow tents
+- `POST /api/tents` - Create new tent
+- `PUT /api/tents/:id` - Update tent configuration
+- `DELETE /api/tents/:id` - Delete tent
 
 ---
 
-## Security Notes
+## 🔐 Security Notes
 
 - This application is designed for **personal/private use only**
 - **Do not expose to the public internet** without proper security measures (VPN, firewall, etc.)
@@ -167,7 +269,7 @@ Growlogger/
 
 ---
 
-## Production & Build Context
+## 🏗️ Production & Build Context
 
 - The `.dockerignore` file ensures that development files, local node_modules, logs, test images, and other non-production files are **not** included in your Docker images.
 - The `.gitignore` file keeps your repository clean by ignoring dependencies, build output, logs, and local environment files.
@@ -175,21 +277,34 @@ Growlogger/
 
 ---
 
-## Troubleshooting
+## 🚨 Troubleshooting
 
 **Cannot connect to backend:**
+
 - Ensure the container is running: `docker ps`
-- Check logs: `docker logs emerald_plant_tracker`
+- Check logs: `docker logs growlogger`
 
 **Database persistence:**
-- The SQLite database is stored in a Docker volume (`emerald_data`) and will persist across container rebuilds.
+
+- The SQLite database is stored in a Docker volume (`growlogger_data`) and will persist across container rebuilds.
 
 **Port conflicts:**
+
 - Make sure port 420 is not in use by another application.
+
+**Calculator not saving preferences:**
+
+- Ensure your browser allows localStorage for the application domain
+- Check browser developer tools for any JavaScript errors
+
+**Environmental data not appearing:**
+
+- Verify that your grow tent is properly configured in the system
+- Check that all required fields are filled when logging environmental data
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
 Pull requests and suggestions are welcome! Please open an issue or PR on GitHub.
 
@@ -209,9 +324,9 @@ Minor and patch updates from Dependabot will be automatically merged if all test
 
 ---
 
-## Support & Donations
+## 💖 Support & Donations
 
-Emerald Plant Tracker is built and maintained by a Canadian developer. If you find this project useful, please consider supporting its development—your donations help pay my bills and keep this project alive!
+Growlogger is built and maintained by a Canadian developer. If you find this project useful, please consider supporting its development—your donations help pay my bills and keep this project alive!
 
 - [![GitHub Sponsors](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-fc2967?logo=github)](https://github.com/sponsors/Dmans218)
 - [![Donate with PayPal](https://img.shields.io/badge/donate-PayPal-00457C?logo=paypal)](https://paypal.me/Emeraldplanttracker?country.x=CA&locale.x=en_US)
@@ -220,10 +335,10 @@ Emerald Plant Tracker is built and maintained by a Canadian developer. If you fi
 
 ---
 
-## License
+## 📄 License
 
 This project is licensed under the [MIT License](LICENSE). You are free to use, modify, and distribute it, including for commercial purposes. Donations are welcome but not required.
 
 ---
 
-**Happy Growing! 🌱** 
+Happy Growing! 🌱
