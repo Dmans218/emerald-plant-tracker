@@ -43,46 +43,18 @@ app.use((req, res, next) => {
   next();
 });
 
-// Middleware - Security configuration optimized for self-hosted environments
+// Middleware - Minimal security configuration for self-hosted environments
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for React
-      scriptSrc: [
-        "'self'", 
-        "https://cdn.jsdelivr.net", // Tesseract.js CDN
-        "http://cdn.jsdelivr.net",  // Allow HTTP fallback for CDN
-        "'unsafe-eval'" // Required for WebAssembly in Tesseract.js
-      ],
-      workerSrc: ["'self'", "blob:"], // Allow web workers for Tesseract.js
-      imgSrc: ["'self'", "data:", "blob:"], // Allow data URLs and blob URLs for images
-      connectSrc: [
-        "'self'", 
-        "https://cdn.jsdelivr.net", // Allow fetching from Tesseract.js CDN
-        "http://cdn.jsdelivr.net",  // Allow HTTP fallback for CDN
-        "ws:", "wss:" // Allow WebSocket connections for development
-      ],
-      fontSrc: ["'self'", "data:"], // Allow data URLs for fonts
-      objectSrc: ["'none'"], // Prevent object/embed/applet
-      mediaSrc: ["'self'"],
-      frameSrc: ["'self'"], // Allow self-framing for self-hosted apps
-      baseUri: ["'self'"],
-      formAction: ["'self'"],
-      frameAncestors: ["'self'"] // Allow self-framing for embedded views
-    },
-    useDefaults: false, // Don't use helmet's defaults
-    upgradeInsecureRequests: false // Don't force HTTPS upgrades for self-hosted
-  },
+  contentSecurityPolicy: false, // Disable CSP entirely for now
   crossOriginOpenerPolicy: false, // Disable COOP for better compatibility
   crossOriginEmbedderPolicy: false, // Disable COEP for better compatibility
   originAgentCluster: false, // Disable Origin-Agent-Cluster header
-  hsts: false, // Explicitly disable automatic HSTS - we handle it manually
+  hsts: false, // Explicitly disable automatic HSTS for self-hosted
   hidePoweredBy: true, // Hide Express header for security
   crossOriginResourcePolicy: false, // Better compatibility for self-hosting
-  noSniff: false, // We handle this manually
-  xssFilter: false, // We handle this manually
-  frameguard: false, // We handle this manually
+  noSniff: true, // Keep basic security
+  xssFilter: true, // Keep basic XSS protection
+  frameguard: { action: 'sameorigin' }, // Allow same-origin framing
 }));
 
 // CORS configuration - secure but allows both HTTP and HTTPS
