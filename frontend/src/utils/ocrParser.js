@@ -99,7 +99,6 @@ export const parseSpiderFarmerScreenshot = async (imageFile) => {
       if (!result.humidity && num.value >= 20 && num.value <= 100) {
         const context = num.fullContext;
         const beforeText = num.contextBefore;
-        const afterText = num.contextAfter;
         
         // Check if this number appears after humidity keywords
         const afterHumidityLabel = beforeText.includes('humi') || beforeText.includes('humid');

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Thermometer, Droplets, TestTube, Sun, Trash2, TrendingUp, Camera, Wind, Beaker, Edit, Sprout, X } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Thermometer, Droplets, TestTube, Sun, Trash2, TrendingUp, Camera, Wind, Beaker, Edit, Sprout } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import toast from 'react-hot-toast';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 import { environmentApi, plantsApi } from '../utils/api';
 import ImageUpload from '../components/ImageUpload';
@@ -211,10 +211,8 @@ if (typeof document !== 'undefined') {
 const Environment = () => {
   const [environmentLogs, setEnvironmentLogs] = useState([]);
   const [weeklyData, setWeeklyData] = useState([]);
-  const [latestReading, setLatestReading] = useState({});
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
   const [showWeekly, setShowWeekly] = useState(false);
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [growTents, setGrowTents] = useState([]);
@@ -224,30 +222,7 @@ const Environment = () => {
 
   const { register, handleSubmit, reset, formState: { isSubmitting, errors } } = useForm();
 
-  useEffect(() => {
-    fetchEnvironmentData();
-    fetchLatestReading();
-    fetchWeeklyData();
-    fetchGrowTents();
-  }, []);
-
-  // Refresh grow tents when window gains focus (user might have added tents in another tab/page)
-  useEffect(() => {
-    const handleFocus = () => {
-      fetchGrowTents();
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, []);
-
-  useEffect(() => {
-    fetchEnvironmentData();
-    fetchLatestReading();
-    fetchWeeklyData();
-  }, [selectedTent]);
-
-  const fetchEnvironmentData = async () => {
+  const fetchEnvironmentData = useCallback(async () => {
     try {
       setLoading(true);
       const params = { limit: 50 };
@@ -262,22 +237,22 @@ const Environment = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedTent]);
 
-  const fetchLatestReading = async () => {
+  const fetchLatestReading = useCallback(async () => {
     try {
       const params = {};
       if (selectedTent) {
         params.grow_tent = selectedTent;
       }
-      const data = await environmentApi.getLatest(params);
-      setLatestReading(data);
+      await environmentApi.getLatest(params);
+      // Latest reading data could be used for dashboard stats if needed
     } catch (error) {
       console.error('Latest reading fetch error:', error);
     }
-  };
+  }, [selectedTent]);
 
-  const fetchWeeklyData = async () => {
+  const fetchWeeklyData = useCallback(async () => {
     try {
       const params = { weeks: 8 };
       if (selectedTent) {
@@ -288,9 +263,9 @@ const Environment = () => {
     } catch (error) {
       console.error('Weekly data fetch error:', error);
     }
-  };
+  }, [selectedTent]);
 
-  const fetchGrowTents = async () => {
+  const fetchGrowTents = useCallback(async () => {
     try {
       const data = await plantsApi.getGrowTents();
       setGrowTents(data);
@@ -302,7 +277,7 @@ const Environment = () => {
     } catch (error) {
       console.error('Grow tents fetch error:', error);
     }
-  };
+  }, [selectedTent]);
 
   const onSubmit = async (data) => {
     try {
@@ -468,6 +443,31 @@ const Environment = () => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [selectedChart]);
+
+  // Initial data load
+  useEffect(() => {
+    fetchEnvironmentData();
+    fetchLatestReading();
+    fetchWeeklyData();
+    fetchGrowTents();
+  }, [fetchEnvironmentData, fetchLatestReading, fetchWeeklyData, fetchGrowTents]);
+
+  // Refresh grow tents when window gains focus (user might have added tents in another tab/page)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchGrowTents();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [fetchGrowTents]);
+
+  // Refresh data when tent selection changes
+  useEffect(() => {
+    fetchEnvironmentData();
+    fetchLatestReading();
+    fetchWeeklyData();
+  }, [selectedTent, fetchEnvironmentData, fetchLatestReading, fetchWeeklyData]);
 
   if (loading) {
     return (
@@ -2024,7 +2024,7 @@ const Environment = () => {
       )}
       
       {/* Loading Animation */}
-      {(loading || isUploading) && (
+      {loading && (
         <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="loading-container">
             <div className="quantum-loader">
@@ -2040,7 +2040,7 @@ const Environment = () => {
               </div>
             </div>
             <div className="loading-text">
-              {isUploading ? 'Analyzing image...' : 'Loading environment data...'}
+              Loading environment data...
             </div>
           </div>
         </div>

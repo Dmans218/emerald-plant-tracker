@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Sprout, TrendingUp, Plus, Calendar, Thermometer, Droplets, Gauge, Activity, BarChart3, Zap, Home, Edit, Trash2 } from 'lucide-react';
+import { Sprout, Plus, Calendar, Activity, Home } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { getStageColor } from '../utils/stageColors';
@@ -91,14 +91,6 @@ const Dashboard = () => {
 
   const getStageConfig = (stage) => {
     return STAGE_CONFIG[stage] || STAGE_CONFIG.seedling;
-  };
-
-  const stats = {
-    totalPlants: plants.length,
-    activeStages: plants.reduce((acc, plant) => {
-      acc[plant.stage] = (acc[plant.stage] || 0) + 1;
-      return acc;
-    }, {})
   };
 
   if (loading) {
