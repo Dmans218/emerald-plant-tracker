@@ -3,21 +3,14 @@ services:
     image: dmans218/emerald-plant-tracker:latest
     container_name: emerald-plant-tracker
     ports:
-      - "420:420"
+      - 420:420
     volumes:
       - emerald_data:/app/backend/data
       - emerald_uploads:/app/backend/uploads
     environment:
       - NODE_ENV=production
-      - PORT=420
-      - HTTPS=false
-      - GENERATE_SOURCEMAP=false
-      - FORCE_COLOR=0
-      - CI=true
-      - DISABLE_ESLINT_PLUGIN=true
-      - SKIP_PREFLIGHT_CHECK=true
     restart: unless-stopped
-
 volumes:
   emerald_data:
-  emerald_uploads: 
+  emerald_uploads:
+networks: {} 

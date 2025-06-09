@@ -98,18 +98,17 @@ services:
     image: dmans218/emerald-plant-tracker:latest
     container_name: emerald-plant-tracker
     ports:
-      - "420:420"
+      - 420:420
     volumes:
       - emerald_data:/app/backend/data
       - emerald_uploads:/app/backend/uploads
     environment:
       - NODE_ENV=production
-      - PORT=420
     restart: unless-stopped
-
 volumes:
-  emerald_data:
-  emerald_uploads:
+  emerald_data: null
+  emerald_uploads: null
+networks: {}
 ```
 
 **To use this:**
@@ -239,9 +238,14 @@ The built-in nutrient calculator is one of Emerald Plant Tracker's most powerful
 
 ## ⚙️ Configuration & Environment Variables
 
-- **PORT**: The backend and frontend both use port `420` by default. You can override this by setting the `PORT` environment variable, but all examples and Docker configs assume 420.
-- **NODE_ENV**: Set to `production` or `development` as needed (default is `production` in Docker).
-- No other required environment variables by default.
+The Emerald Plant Tracker uses minimal configuration for easy deployment:
+
+- **Default Port**: 420 (configured in the Docker container)
+- **NODE_ENV**: Only environment variable needed - automatically set to `production` in Docker
+- **Data Persistence**: All data automatically persisted via Docker volumes
+- **No external dependencies**: Works completely offline once deployed
+
+The simplified docker-compose.yml requires only the essential `NODE_ENV=production` setting. All other configuration is handled automatically by the container.
 
 ---
 
