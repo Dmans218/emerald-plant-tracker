@@ -22,10 +22,10 @@ const modalStyles = `
   }
 `;
 
-// Inject styles
+// Inject styles safely
 if (typeof document !== 'undefined') {
   const styleElement = document.createElement('style');
-  styleElement.innerHTML = modalStyles;
+  styleElement.textContent = modalStyles; // Use textContent instead of innerHTML for security
   if (!document.head.querySelector('style[data-image-upload-styles]')) {
     styleElement.setAttribute('data-image-upload-styles', 'true');
     document.head.appendChild(styleElement);

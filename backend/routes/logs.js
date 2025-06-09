@@ -3,31 +3,64 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const Joi = require('joi');
+const fs = require('fs');
+const crypto = require('crypto');
 const db = require('../database');
 
-// Configure multer for photo uploads
+// File type validation using magic numbers (file signatures)
+const allowedMimeTypes = new Map([
+  ['image/jpeg', [0xFF, 0xD8, 0xFF]],
+  ['image/png', [0x89, 0x50, 0x4E, 0x47]],
+  ['image/gif', [0x47, 0x49, 0x46]]
+]);
+
+// Secure filename generation
+const generateSecureFilename = (originalName) => {
+  const ext = path.extname(originalName).toLowerCase();
+  const secureId = crypto.randomUUID();
+  return `plant-${secureId}${ext}`;
+};
+
+// Validate file content by checking magic numbers
+const validateFileContent = (buffer, mimetype) => {
+  const signature = allowedMimeTypes.get(mimetype);
+  if (!signature) return false;
+  
+  return signature.every((byte, index) => buffer[index] === byte);
+};
+
+// Configure multer for photo uploads with enhanced security
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../uploads'));
+    const uploadPath = path.join(__dirname, '../uploads');
+    // Ensure the path doesn't escape the uploads directory
+    const normalizedPath = path.normalize(uploadPath);
+    if (!normalizedPath.startsWith(path.join(__dirname, '../uploads'))) {
+      return cb(new Error('Invalid upload path'), null);
+    }
+    cb(null, normalizedPath);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'plant-' + uniqueSuffix + path.extname(file.originalname));
+    const secureFilename = generateSecureFilename(file.originalname);
+    cb(null, secureFilename);
   }
 });
 
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { 
+    fileSize: 5 * 1024 * 1024, // Reduced to 5MB limit for security
+    files: 1 // Only allow 1 file per request
+  },
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    const mimetype = allowedMimeTypes.has(file.mimetype);
     
     if (mimetype && extname) {
       return cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed'));
+      cb(new Error('Only JPEG, PNG, and GIF image files are allowed'));
     }
   }
 });
@@ -185,15 +218,27 @@ router.post('/', (req, res) => {
   });
 });
 
-// POST /api/logs/photo - Upload photo log
+// POST /api/logs/photo - Upload photo log with content validation
 router.post('/photo', upload.single('photo'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No photo uploaded' });
   }
 
+  // Validate file content by checking magic numbers
+  const filePath = req.file.path;
+  const buffer = fs.readFileSync(filePath);
+  
+  if (!validateFileContent(buffer, req.file.mimetype)) {
+    // Remove the invalid file
+    fs.unlinkSync(filePath);
+    return res.status(400).json({ error: 'Invalid file content. File does not match expected image format.' });
+  }
+
   const { plant_id, description } = req.body;
   
   if (!plant_id) {
+    // Clean up uploaded file if validation fails
+    fs.unlinkSync(filePath);
     return res.status(400).json({ error: 'Plant ID is required' });
   }
 

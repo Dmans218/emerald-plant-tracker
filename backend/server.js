@@ -26,14 +26,14 @@ app.use(helmet({
   crossOriginResourcePolicy: false, // Better compatibility for self-hosting
 }));
 
-// Add custom CSP header without upgrade-insecure-requests
+// Add custom CSP header without upgrade-insecure-requests (supports both HTTP and HTTPS)
 app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', 
     "default-src 'self'; " +
     "style-src 'self' 'unsafe-inline'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+    "script-src 'self'; " + // Removed 'unsafe-inline' and 'unsafe-eval' for security
     "style-src-elem 'self' 'unsafe-inline'; " +
-    "script-src-elem 'self' 'unsafe-inline'; " +
+    "script-src-elem 'self'; " + // Removed 'unsafe-inline' for security  
     "worker-src 'self' blob:; " +
     "child-src 'self' blob:; " +
     "img-src 'self' data: blob:; " +
@@ -46,11 +46,37 @@ app.use((req, res, next) => {
     "form-action 'self'; " +
     "frame-ancestors 'self'; " +
     "script-src-attr 'none'"
-    // NOTE: upgrade-insecure-requests is deliberately EXCLUDED for HTTP serving
+    // NOTE: upgrade-insecure-requests is deliberately EXCLUDED for HTTP/HTTPS dual serving
   );
   next();
 });
-app.use(cors());
+// CORS configuration - secure but allows both HTTP and HTTPS
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests from localhost on common ports for both HTTP and HTTPS
+    const allowedOrigins = [
+      'http://localhost:420',
+      'https://localhost:420',
+      'http://localhost:3000',
+      'https://localhost:3000',
+      'http://127.0.0.1:420',
+      'https://127.0.0.1:420'
+    ];
+    
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    } else {
+      console.warn(`CORS blocked origin: ${origin}`);
+      return callback(new Error('Not allowed by CORS'), false);
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
 app.use(morgan('combined'));
 
 // Middleware to ensure HTTP serving works properly
