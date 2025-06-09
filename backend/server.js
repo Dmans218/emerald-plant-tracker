@@ -15,7 +15,35 @@ const environmentRouter = require('./routes/environment');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware - Security configuration with proper Helmet CSP
+// Self-hosted HTTP/HTTPS compatibility middleware
+app.use((req, res, next) => {
+  // Security headers that work for both HTTP and HTTPS
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN'); // Allow self-framing for self-hosted apps
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Handle protocol detection for self-hosted environments
+  const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  const protocol = isSecure ? 'https' : 'http';
+  
+  // Set appropriate HSTS based on protocol
+  if (isSecure) {
+    // Only set HSTS if actually using HTTPS
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  } else {
+    // For HTTP, ensure HSTS is not set
+    res.removeHeader('Strict-Transport-Security');
+  }
+  
+  // Add protocol info to request for debugging
+  req.protocol = protocol;
+  req.isSecure = isSecure;
+  
+  next();
+});
+
+// Middleware - Security configuration optimized for self-hosted environments
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -24,29 +52,36 @@ app.use(helmet({
       scriptSrc: [
         "'self'", 
         "https://cdn.jsdelivr.net", // Tesseract.js CDN
+        "http://cdn.jsdelivr.net",  // Allow HTTP fallback for CDN
         "'unsafe-eval'" // Required for WebAssembly in Tesseract.js
       ],
       workerSrc: ["'self'", "blob:"], // Allow web workers for Tesseract.js
       imgSrc: ["'self'", "data:", "blob:"], // Allow data URLs and blob URLs for images
       connectSrc: [
         "'self'", 
-        "https://cdn.jsdelivr.net" // Allow fetching from Tesseract.js CDN
+        "https://cdn.jsdelivr.net", // Allow fetching from Tesseract.js CDN
+        "http://cdn.jsdelivr.net",  // Allow HTTP fallback for CDN
+        "ws:", "wss:" // Allow WebSocket connections for development
       ],
       fontSrc: ["'self'", "data:"], // Allow data URLs for fonts
       objectSrc: ["'none'"], // Prevent object/embed/applet
       mediaSrc: ["'self'"],
-      frameSrc: ["'none'"], // Prevent framing (clickjacking protection)
+      frameSrc: ["'self'"], // Allow self-framing for self-hosted apps
       baseUri: ["'self'"],
       formAction: ["'self'"],
-      frameAncestors: ["'none'"] // Prevent being framed by others
+      frameAncestors: ["'self'"], // Allow self-framing for embedded views
+      upgradeInsecureRequests: false // Don't force HTTPS upgrades for self-hosted
     },
   },
   crossOriginOpenerPolicy: false, // Disable COOP for better compatibility
   crossOriginEmbedderPolicy: false, // Disable COEP for better compatibility
   originAgentCluster: false, // Disable Origin-Agent-Cluster header
-  hsts: false, // Disable HSTS for HTTP serving
+  hsts: false, // Explicitly disable automatic HSTS - we handle it manually
   hidePoweredBy: true, // Hide Express header for security
   crossOriginResourcePolicy: false, // Better compatibility for self-hosting
+  noSniff: false, // We handle this manually
+  xssFilter: false, // We handle this manually
+  frameguard: false, // We handle this manually
 }));
 
 // CORS configuration - secure but allows both HTTP and HTTPS
@@ -254,6 +289,30 @@ app.get('/api/debug/database', (req, res) => {
   }
   
   res.json(debugInfo);
+});
+
+// Debug endpoint for protocol and connection info
+app.get('/api/debug/connection', (req, res) => {
+  const connectionInfo = {
+    request_protocol: req.protocol,
+    is_secure: req.isSecure,
+    headers: {
+      host: req.headers.host,
+      'x-forwarded-proto': req.headers['x-forwarded-proto'],
+      'x-forwarded-for': req.headers['x-forwarded-for'],
+      'user-agent': req.headers['user-agent'],
+      origin: req.headers.origin,
+      referer: req.headers.referer
+    },
+    url: req.url,
+    method: req.method,
+    ip: req.ip,
+    server_port: PORT,
+    node_env: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
+  };
+  
+  res.json(connectionInfo);
 });
 
 // 404 handler
