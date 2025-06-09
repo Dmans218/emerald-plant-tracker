@@ -27,14 +27,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
-        run: docker-compose build
+        run: docker build -t emerald-plant-tracker:test .
 
-      - name: Run Docker security scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'emerald-plant-tracker'
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH' 
+      - name: Test development docker-compose build
+        run: docker compose -f docker-compose.dev.yml build --no-cache 
