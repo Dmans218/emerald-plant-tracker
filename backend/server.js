@@ -16,7 +16,24 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
+      scriptSrcElem: ["'self'", "https://cdn.jsdelivr.net"],
+      workerSrc: ["'self'", "blob:", "https://cdn.jsdelivr.net"],
+      childSrc: ["'self'", "blob:"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", "https://cdn.jsdelivr.net", "data:"],
+      fontSrc: ["'self'", "data:"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+}));
 app.use(cors());
 app.use(morgan('combined'));
 app.use(express.json());
@@ -80,4 +97,4 @@ db.init().then(() => {
 }).catch(err => {
   console.error('Failed to initialize database:', err);
   process.exit(1);
-}); 
+});
