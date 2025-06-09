@@ -31,8 +31,8 @@ app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', 
     "default-src 'self' http: https:; " +
     "style-src 'self' 'unsafe-inline' http: https:; " +
-    "script-src 'self' http: https: 'unsafe-eval'; " +
-    "script-src-elem 'self' http: https: cdn.jsdelivr.net; " +
+    "script-src 'self' http: https: blob: 'unsafe-eval'; " +
+    "script-src-elem 'self' http: https: blob: cdn.jsdelivr.net; " +
     "worker-src 'self' blob: data: https: cdn.jsdelivr.net; " +
     "img-src 'self' data: blob: http: https:; " +
     "connect-src 'self' http: https:; " +
