@@ -10,6 +10,12 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=420
+      - HTTPS=false
+      - GENERATE_SOURCEMAP=false
+      - FORCE_COLOR=0
+      - CI=true
+      - DISABLE_ESLINT_PLUGIN=true
+      - SKIP_PREFLIGHT_CHECK=true
     restart: unless-stopped
 
 volumes:

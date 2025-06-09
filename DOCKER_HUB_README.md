@@ -68,10 +68,19 @@ After container starts, visit: **http://localhost:420**
 
 ## 🏷️ Available Tags
 
-- `latest` - Current stable release (v1.0.0)
-- `v1.0.0` - Specific version
+- `latest` - Current stable release (v1.0.1) - **HTTP-optimized for self-hosting**
+- `v1.0.1` - **HTTP fixes** - Removes SSL/HTTPS enforcement for pure HTTP deployment
+- `v1.0.0` - Initial release
 - `v1.0` - Minor version updates
 - `v1` - Major version updates
+
+### Version 1.0.1 Updates
+
+- ✅ **Fixed SSL/HTTPS errors** for HTTP-only deployments
+- ✅ **Removed Origin-Agent-Cluster header** causing browser warnings  
+- ✅ **Disabled upgrade-insecure-requests** in Content Security Policy
+- ✅ **Optimized nginx configuration** for HTTP static file serving
+- ✅ **Enhanced cache-busting** to prevent SSL errors from cached resources
 
 ## 📁 Volume Mounts
 
