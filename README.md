@@ -95,17 +95,13 @@ sudo docker run -d \
 
 ### **Option 2: Docker Compose**
 
-The repository comes with a pre-configured docker-compose.yml file.
-
-Run the setup script:
+You can use the pre-configured docker-compose.yml file:
 
 ```bash
-./setup-prod.sh
-```
+# Download the docker-compose.yml file
+curl -O https://raw.githubusercontent.com/Dmans218/growlogger/main/docker-compose.yml
 
-Then start the container:
-
-```bash
+# Start the container
 sudo docker-compose up -d
 ```
 
@@ -136,17 +132,12 @@ volumes:
 **To use this:**
 
 1. **Save as `docker-compose.yml`** in your desired directory
-2. **Clone the repository** (for the Dockerfile and source code):
+2. **Start the container**:
    ```bash
-   git clone https://github.com/Dmans218/growlogger.git
-   cd growlogger
-   ```
-3. **Build and start**:
-   ```bash
-   docker-compose up -d --build
+   docker-compose up -d
    ```
 
-**Or use the pre-built image** (modify the compose file):
+The image will be automatically pulled from Docker Hub on first run.
 
 ```yaml
 services:
@@ -166,7 +157,6 @@ services:
 volumes:
   emerald_data:
   emerald_uploads:
-```
 ```
 
 ---
