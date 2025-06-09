@@ -15,41 +15,29 @@ const environmentRouter = require('./routes/environment');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware - HTTP-optimized configuration for self-hosting
+// Middleware - Security-optimized configuration for self-hosting
 app.use(helmet({
-  contentSecurityPolicy: false, // Disable Helmet's CSP entirely to avoid upgrade-insecure-requests
-  crossOriginOpenerPolicy: false, // Disable COOP to avoid the header warning
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  crossOriginOpenerPolicy: false, // Disable COOP for better compatibility
   crossOriginEmbedderPolicy: false, // Disable COEP for better compatibility
   originAgentCluster: false, // Disable Origin-Agent-Cluster header
-  hsts: false, // Disable HSTS/Strict-Transport-Security for HTTP serving
-  hidePoweredBy: false, // Keep Express header for debugging
+  hsts: false, // Disable HSTS for HTTP serving
+  hidePoweredBy: true, // Hide Express header for security
   crossOriginResourcePolicy: false, // Better compatibility for self-hosting
 }));
 
-// Add custom CSP header without upgrade-insecure-requests (supports both HTTP and HTTPS)
-app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy', 
-    "default-src 'self'; " +
-    "style-src 'self' 'unsafe-inline'; " +
-    "script-src 'self'; " + // Removed 'unsafe-inline' and 'unsafe-eval' for security
-    "style-src-elem 'self' 'unsafe-inline'; " +
-    "script-src-elem 'self'; " + // Removed 'unsafe-inline' for security  
-    "worker-src 'self' blob:; " +
-    "child-src 'self' blob:; " +
-    "img-src 'self' data: blob:; " +
-    "connect-src 'self'; " +
-    "font-src 'self' data:; " +
-    "object-src 'none'; " +
-    "media-src 'self'; " +
-    "frame-src 'none'; " +
-    "base-uri 'self'; " +
-    "form-action 'self'; " +
-    "frame-ancestors 'self'; " +
-    "script-src-attr 'none'"
-    // NOTE: upgrade-insecure-requests is deliberately EXCLUDED for HTTP/HTTPS dual serving
-  );
-  next();
-});
 // CORS configuration - secure but allows both HTTP and HTTPS
 const corsOptions = {
   origin: function (origin, callback) {

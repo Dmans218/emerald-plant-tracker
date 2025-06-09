@@ -63,8 +63,13 @@ router.get('/', (req, res) => {
     whereClause = 'p.archived = 0';
   }
   
+  // Safely handle grow_tent parameter to prevent SQL injection
+  let growTentCondition = '';
+  let params = [];
+  
   if (grow_tent) {
-    whereClause += ` AND p.grow_tent = '${grow_tent}'`;
+    growTentCondition = ' AND p.grow_tent = ?';
+    params.push(grow_tent);
   }
   
   const sql = `
@@ -73,12 +78,12 @@ router.get('/', (req, res) => {
            MAX(l.logged_at) as last_log_date
     FROM plants p 
     LEFT JOIN logs l ON p.id = l.plant_id 
-    WHERE ${whereClause}
+    WHERE ${whereClause}${growTentCondition}
     GROUP BY p.id 
     ORDER BY p.created_at DESC
   `;
   
-  database.all(sql, [], (err, rows) => {
+  database.all(sql, params, (err, rows) => {
     if (err) {
       console.error('Error fetching plants:', err);
       return res.status(500).json({ error: 'Failed to fetch plants' });
@@ -360,8 +365,14 @@ router.put('/:id', (req, res) => {
   const updates = [];
   const values = [];
   
+  // Define allowed fields to prevent SQL injection
+  const allowedFields = [
+    'name', 'strain', 'planted_date', 'stage', 'grow_tent', 'notes', 
+    'archived', 'harvest_date', 'final_yield', 'archive_reason'
+  ];
+  
   Object.keys(value).forEach(key => {
-    if (value[key] !== undefined) {
+    if (value[key] !== undefined && allowedFields.includes(key)) {
       if (key === 'archived' && value[key] === true) {
         updates.push(`${key} = ?`);
         values.push(value[key]);

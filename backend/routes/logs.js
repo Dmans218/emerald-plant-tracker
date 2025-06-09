@@ -224,8 +224,15 @@ router.post('/photo', upload.single('photo'), (req, res) => {
     return res.status(400).json({ error: 'No photo uploaded' });
   }
 
-  // Validate file content by checking magic numbers
-  const filePath = req.file.path;
+  // Validate and sanitize file path to prevent path traversal attacks
+  const filePath = path.resolve(req.file.path);
+  const uploadDir = path.resolve('./uploads');
+  
+  // Ensure the file is within the uploads directory
+  if (!filePath.startsWith(uploadDir)) {
+    return res.status(400).json({ error: 'Invalid file path' });
+  }
+  
   const buffer = fs.readFileSync(filePath);
   
   if (!validateFileContent(buffer, req.file.mimetype)) {
