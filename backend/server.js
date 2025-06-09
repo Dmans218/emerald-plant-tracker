@@ -15,9 +15,32 @@ const environmentRouter = require('./routes/environment');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware - Security configuration optimized for HTTP self-hosting
+// Middleware - Security configuration with proper Helmet CSP
 app.use(helmet({
-  contentSecurityPolicy: false, // Disable Helmet's CSP - we'll add our own
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for React
+      scriptSrc: [
+        "'self'", 
+        "https://cdn.jsdelivr.net", // Tesseract.js CDN
+        "'unsafe-eval'" // Required for WebAssembly in Tesseract.js
+      ],
+      workerSrc: ["'self'", "blob:"], // Allow web workers for Tesseract.js
+      imgSrc: ["'self'", "data:", "blob:"], // Allow data URLs and blob URLs for images
+      connectSrc: [
+        "'self'", 
+        "https://cdn.jsdelivr.net" // Allow fetching from Tesseract.js CDN
+      ],
+      fontSrc: ["'self'", "data:"], // Allow data URLs for fonts
+      objectSrc: ["'none'"], // Prevent object/embed/applet
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"], // Prevent framing (clickjacking protection)
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"] // Prevent being framed by others
+    },
+  },
   crossOriginOpenerPolicy: false, // Disable COOP for better compatibility
   crossOriginEmbedderPolicy: false, // Disable COEP for better compatibility
   originAgentCluster: false, // Disable Origin-Agent-Cluster header
@@ -25,36 +48,6 @@ app.use(helmet({
   hidePoweredBy: true, // Hide Express header for security
   crossOriginResourcePolicy: false, // Better compatibility for self-hosting
 }));
-
-// Custom CSP header optimized for HTTP serving (no upgrade-insecure-requests)
-app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy', 
-    "default-src 'self' http: https: data: blob:; " +
-    "style-src 'self' 'unsafe-inline' http: https:; " +
-    "script-src 'self' http: https: blob: 'unsafe-eval' 'unsafe-inline' cdn.jsdelivr.net; " +
-    "worker-src 'self' blob: data: http: https: cdn.jsdelivr.net; " +
-    "img-src 'self' data: blob: http: https:; " +
-    "connect-src 'self' http: https:; " +
-    "font-src 'self' data: http: https:; " +
-    "object-src 'none'; " +
-    "media-src 'self' http: https:; " +
-    "frame-src 'none'; " +
-    "base-uri 'self'; " +
-    "form-action 'self'; " +
-    "frame-ancestors 'self'"
-    // NOTE: upgrade-insecure-requests is deliberately EXCLUDED for HTTP serving
-  );
-  
-  // Explicitly remove any HTTPS enforcement headers that might be added elsewhere
-  res.removeHeader('Strict-Transport-Security');
-  res.removeHeader('upgrade-insecure-requests');
-  
-  // Add headers to help with HTTP serving
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  
-  next();
-});
 
 // CORS configuration - secure but allows both HTTP and HTTPS
 const corsOptions = {
