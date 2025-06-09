@@ -20,7 +20,7 @@ volumes:
   emerald_uploads:
 ```kerized](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 [![GitHub Sponsors](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-fc2967?logo=github)](https://github.com/sponsors/Dmans218)
-[![Donate with PayPal](https://img.shields.io/badge/donate-PayPal-00457C?logo=paypal)](https://paypal.me/Emeraldplanttracker?country.x=CA&locale.x=en_US)
+[![Buy Me a Gram](https://img.shields.io/badge/donate-Ko--fi-29abe0?logo=ko-fi)](https://ko-fi.com/emeraldplantmanager)
 
 A comprehensive, self-hosted web application for professional cannabis cultivation management. Built with React, Express, and SQLite, featuring an advanced nutrient calculator, environmental monitoring, and complete grow tracking. Fully Dockerized for easy deployment and perfect for privacy-focused growers.
 
@@ -430,10 +430,11 @@ Minor and patch updates from Dependabot will be automatically merged if all test
 
 ## 💖 Support & Donations
 
+
 Emerald Plant Tracker is built and maintained by a Canadian developer. If you find this project useful, please consider supporting its development—your donations help pay my bills and keep this project alive!
 
 - [![GitHub Sponsors](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-fc2967?logo=github)](https://github.com/sponsors/Dmans218)
-- [![Donate with PayPal](https://img.shields.io/badge/donate-PayPal-00457C?logo=paypal)](https://paypal.me/Emeraldplanttracker?country.x=CA&locale.x=en_US)
+- [![Buy Me a Coffee](https://img.shields.io/badge/donate-Ko--fi-29abe0?logo=ko-fi)](https://ko-fi.com/emeraldplantmanager)
 
 *Your support means a lot and helps keep this project free and open source for everyone!*
 
