@@ -12,7 +12,7 @@ WORKDIR /app
 COPY backend/package*.json ./backend/
 RUN cd backend && npm ci --only=production
 
-# ---- Final image ----
+# ---- Final unified container ----
 FROM node:24
 WORKDIR /app
 
@@ -25,11 +25,23 @@ COPY --from=frontend-build /app/frontend/build ./backend/public
 # Install backend dependencies
 RUN cd backend && npm ci --only=production
 
-# Ensure data and uploads directories exist
-RUN mkdir -p backend/data backend/uploads
+# Ensure data and uploads directories exist with proper permissions
+RUN mkdir -p backend/data backend/uploads && \
+    chown -R node:node backend/data backend/uploads
 
-# Expose backend port
-EXPOSE 5000
+# Set environment variable for port 420
+ENV PORT=420
+ENV NODE_ENV=production
 
-# Start the backend server
+# Switch to non-root user for security
+USER node
+
+# Expose port 420
+EXPOSE 420
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:420/ || exit 1
+
+# Start the backend server (which serves both API and frontend)
 CMD ["node", "backend/server.js"] 

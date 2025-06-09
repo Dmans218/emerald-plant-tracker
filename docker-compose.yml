@@ -1,15 +1,17 @@
 services:
-  app:
-    build: .
-    container_name: emerald_plant_tracker
+  emerald-plant-tracker:
+    image: dmans218/emerald-plant-tracker:latest
+    container_name: emerald-plant-tracker
     ports:
-      - "420:5000"
+      - "420:420"
     volumes:
       - emerald_data:/app/backend/data
-      - ./backend/uploads:/app/backend/uploads
+      - emerald_uploads:/app/backend/uploads
     environment:
       - NODE_ENV=production
+      - PORT=420
     restart: unless-stopped
 
 volumes:
-  emerald_data: 
+  emerald_data:
+  emerald_uploads: 

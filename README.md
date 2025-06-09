@@ -1,7 +1,24 @@
-# 🌿 Growlogger - Advanced Cannabis Cultivation Tracker
+# 🌿 Emerald Plant Tracker - Advanced Cannabis Cultivation Tracker
 
-[![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Dockerized](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
+[![MIT License](https://img.shields.io/badge/license-MIT-green.sv```yaml
+services:
+  emerald-plant-tracker:
+    image: dmans218/emerald-plant-tracker:latest
+    container_name: emerald-plant-tracker
+    ports:
+      - "420:420"
+    volumes:
+      - emerald_data:/app/backend/data
+      - emerald_uploads:/app/backend/uploads
+    environment:
+      - NODE_ENV=production
+      - PORT=420
+    restart: unless-stopped
+
+volumes:
+  emerald_data:
+  emerald_uploads:
+```kerized](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 [![GitHub Sponsors](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-fc2967?logo=github)](https://github.com/sponsors/Dmans218)
 [![Donate with PayPal](https://img.shields.io/badge/donate-PayPal-00457C?logo=paypal)](https://paypal.me/Emeraldplanttracker?country.x=CA&locale.x=en_US)
 
@@ -12,6 +29,7 @@ A comprehensive, self-hosted web application for professional cannabis cultivati
 ## ✨ Key Features
 
 ### 🧪 **Advanced Nutrient Calculator**
+
 - **10+ Professional Nutrient Brands**: General Hydroponics, Advanced Nutrients, Fox Farm, Canna, Jack's 321, MegaCrop, and more
 - **Smart Growth Stage Management**: Automatic feeding strength adjustments for seedling, vegetative, and flowering stages
 - **Multi-Medium Support**: Hydroponic, Coco/Soilless, Soil, and Inert media configurations
@@ -59,21 +77,21 @@ A comprehensive, self-hosted web application for professional cannabis cultivati
 
 ## 🚀 Quick Start (Docker Hub)
 
-You can run Growlogger directly from Docker Hub—no need to clone the repo!
+You can run Emerald Plant Tracker directly from Docker Hub—no need to clone the repo!
 
 ### **Option 1: Docker Run**
 
 ```bash
 sudo docker run -d \
-  --name growlogger \
+  --name emerald-plant-tracker \
   -p 420:420 \
-  -v growlogger_data:/app/backend/data \
-  -v $(pwd)/backend/uploads:/app/backend/uploads \
+  -v emerald_data:/app/backend/data \
+  -v emerald_uploads:/app/backend/uploads \
   dmans218/emerald-plant-tracker:latest
 ```
 
 - App will be available at [http://localhost:420](http://localhost:420)
-- Data is persisted in the `growlogger_data` Docker volume
+- Data is persisted in the `emerald_data` Docker volume
 
 ### **Option 2: Docker Compose**
 
@@ -91,7 +109,103 @@ Then start the container:
 sudo docker-compose up -d
 ```
 
-Access the application at [http://localhost:420](http://localhost:420)
+### **Option 3: Copy & Paste Docker Compose**
+
+For easy integration into your existing Docker stack, here's the complete `docker-compose.yml`:
+
+```yaml
+services:
+  emerald-plant-tracker:
+    image: dmans218/emerald-plant-tracker:latest
+    container_name: emerald-plant-tracker
+    ports:
+      - "420:420"
+    volumes:
+      - emerald_data:/app/backend/data
+      - emerald_uploads:/app/backend/uploads
+    environment:
+      - NODE_ENV=production
+      - PORT=420
+    restart: unless-stopped
+
+volumes:
+  emerald_data:
+  emerald_uploads:
+```
+
+**To use this:**
+
+1. **Save as `docker-compose.yml`** in your desired directory
+2. **Clone the repository** (for the Dockerfile and source code):
+   ```bash
+   git clone https://github.com/Dmans218/growlogger.git
+   cd growlogger
+   ```
+3. **Build and start**:
+   ```bash
+   docker-compose up -d --build
+   ```
+
+**Or use the pre-built image** (modify the compose file):
+
+```yaml
+services:
+  emerald-plant-tracker:
+    image: dmans218/emerald-plant-tracker:v1.0.0  # Use stable v1.0.0 release
+    container_name: emerald-plant-tracker
+    ports:
+      - "420:420"
+    volumes:
+      - emerald_data:/app/backend/data
+      - emerald_uploads:/app/backend/uploads
+    environment:
+      - NODE_ENV=production
+      - PORT=420
+    restart: unless-stopped
+
+volumes:
+  emerald_data:
+  emerald_uploads:
+```
+```
+
+---
+
+## 🐳 Docker Deployment Options
+
+### **🎯 Quick Deploy (Recommended)**
+
+**For most users - use the pre-built image:**
+
+```bash
+# Create and run with docker-compose
+curl -o docker-compose.yml https://raw.githubusercontent.com/Dmans218/growlogger/main/docker-compose.yml
+docker-compose up -d
+```
+
+### **🔧 Custom Build**
+
+**For developers or custom modifications:**
+
+```bash
+# Clone and build from source
+git clone https://github.com/Dmans218/growlogger.git
+cd growlogger
+docker-compose up -d --build
+```
+
+### **⚡ One-Line Deploy**
+
+**Fastest setup with Docker run:**
+
+```bash
+docker run -d --name growlogger -p 420:420 \
+  -v growlogger_data:/app/backend/data \
+  -v growlogger_uploads:/app/backend/uploads \
+  dmans218/emerald-plant-tracker:latest
+```
+
+**🌐 Access your application at: [http://localhost:420](http://localhost:420)**
 
 ---
 
@@ -102,8 +216,8 @@ If you want to contribute or run the app in development mode:
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/Dmans218/growlogger.git
-   cd growlogger
+   git clone https://github.com/Dmans218/emerald-plant-tracker.git
+   cd emerald-plant-tracker
    ```
 
 2. **Run the setup script:**
@@ -127,7 +241,7 @@ If you want to contribute or run the app in development mode:
 
 ## 🧪 Using the Nutrient Calculator
 
-The built-in nutrient calculator is one of Growlogger's most powerful features:
+The built-in nutrient calculator is one of Emerald Plant Tracker's most powerful features:
 
 ### **Supported Nutrient Brands**
 
@@ -171,7 +285,7 @@ The built-in nutrient calculator is one of Growlogger's most powerful features:
 ## 📁 Project Structure
 
 ```text
-Growlogger/
+Emerald Plant Tracker/
 ├── backend/                 # Node.js API server
 │   ├── data/               # SQLite database files
 │   │   ├── growlogger.db   # Main application database
@@ -282,11 +396,11 @@ Growlogger/
 **Cannot connect to backend:**
 
 - Ensure the container is running: `docker ps`
-- Check logs: `docker logs growlogger`
+- Check logs: `docker logs emerald-plant-tracker`
 
 **Database persistence:**
 
-- The SQLite database is stored in a Docker volume (`growlogger_data`) and will persist across container rebuilds.
+- The SQLite database is stored in a Docker volume (`emerald_data`) and will persist across container rebuilds.
 
 **Port conflicts:**
 
@@ -326,7 +440,7 @@ Minor and patch updates from Dependabot will be automatically merged if all test
 
 ## 💖 Support & Donations
 
-Growlogger is built and maintained by a Canadian developer. If you find this project useful, please consider supporting its development—your donations help pay my bills and keep this project alive!
+Emerald Plant Tracker is built and maintained by a Canadian developer. If you find this project useful, please consider supporting its development—your donations help pay my bills and keep this project alive!
 
 - [![GitHub Sponsors](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-fc2967?logo=github)](https://github.com/sponsors/Dmans218)
 - [![Donate with PayPal](https://img.shields.io/badge/donate-PayPal-00457C?logo=paypal)](https://paypal.me/Emeraldplanttracker?country.x=CA&locale.x=en_US)

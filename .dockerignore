@@ -9,7 +9,8 @@ node_modules
 
 # Ignore documentation and dev resources
 docs
-SPIDER_FARMER_INTER*
+*.md
+!README.md
 
 # Ignore local environment and setup scripts
 setup-dev.sh
