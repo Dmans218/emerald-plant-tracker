@@ -69,9 +69,10 @@ app.use(helmet({
       frameSrc: ["'self'"], // Allow self-framing for self-hosted apps
       baseUri: ["'self'"],
       formAction: ["'self'"],
-      frameAncestors: ["'self'"], // Allow self-framing for embedded views
-      upgradeInsecureRequests: false // Don't force HTTPS upgrades for self-hosted
+      frameAncestors: ["'self'"] // Allow self-framing for embedded views
     },
+    useDefaults: false, // Don't use helmet's defaults
+    upgradeInsecureRequests: false // Don't force HTTPS upgrades for self-hosted
   },
   crossOriginOpenerPolicy: false, // Disable COOP for better compatibility
   crossOriginEmbedderPolicy: false, // Disable COEP for better compatibility
