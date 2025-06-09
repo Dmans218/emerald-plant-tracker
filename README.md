@@ -299,7 +299,7 @@ Emerald Plant Tracker/
 
 ## 🔌 API Endpoints
 
-### Plants
+### Plantsgo
 
 - `GET /api/plants` - List all plants
 - `POST /api/plants` - Create new plant
