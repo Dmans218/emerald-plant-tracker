@@ -14,7 +14,7 @@
     "lucide-react": "^0.513.0",
     "react": "^19.1.0",
     "react-chartjs-2": "^5.3.0",
-    "react-dom": "^18.3.1",
+    "react-dom": "^19.1.0",
     "react-hook-form": "^7.54.0",
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.30.1",
@@ -29,6 +29,9 @@
     "eject": "react-scripts eject",
     "audit": "npm audit || true",
     "audit-fix": "npm audit fix"
+  },
+  "npmConfig": {
+    "legacy-peer-deps": true
   },
   "eslintConfig": {
     "extends": [
@@ -51,7 +54,7 @@
   "proxy": "http://localhost:5000",
   "devDependencies": {
     "@craco/craco": "^5.9.0",
-    "eslint": "^9.28.0",
+    "eslint": "^8.57.1",
     "eslint-plugin-react": "^7.37.5",
     "eslint-webpack-plugin": "^5.0.2",
     "react-scripts": "^5.1.0-next.26"
@@ -65,7 +68,18 @@
     "postcss": "^8.4.31",
     "webpack-dev-server": "^5.2.1",
     "react-scripts": {
-      "webpack-dev-server": "^5.2.1"
+      "webpack-dev-server": "^5.2.1",
+      "eslint": "^8.57.1"
+    },
+    "eslint": "^8.57.1",
+    "@typescript-eslint/eslint-plugin": {
+      "eslint": "^8.57.1"
+    },
+    "@typescript-eslint/parser": {
+      "eslint": "^8.57.1"
+    },
+    "eslint-config-react-app": {
+      "eslint": "^8.57.1"
     }
   }
 }
