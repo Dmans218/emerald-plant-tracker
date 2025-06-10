@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const multer = require('multer');
@@ -13,140 +12,25 @@ const logsRouter = require('./routes/logs');
 const environmentRouter = require('./routes/environment');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 420;
 
-// Self-hosted HTTP/HTTPS compatibility middleware
-app.use((req, res, next) => {
-  // Security headers that work for both HTTP and HTTPS
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN'); // Allow self-framing for self-hosted apps
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
-  // Handle protocol detection for self-hosted environments
-  const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
-  const protocol = isSecure ? 'https' : 'http';
-  
-  // Set appropriate HSTS based on protocol
-  if (isSecure) {
-    // Only set HSTS if actually using HTTPS
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  } else {
-    // For HTTP, ensure HSTS is not set
-    res.removeHeader('Strict-Transport-Security');
-  }
-  
-  // Add protocol info to request for debugging
-  req.protocol = protocol;
-  req.isSecure = isSecure;
-  
-  next();
-});
-
-// Middleware - Security configuration optimized for self-hosted environments
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for React
-      scriptSrc: [
-        "'self'", 
-        "https://cdn.jsdelivr.net", // Tesseract.js CDN
-        "http://cdn.jsdelivr.net",  // Allow HTTP fallback for CDN
-        "'unsafe-eval'" // Required for WebAssembly in Tesseract.js
-      ],
-      workerSrc: ["'self'", "blob:"], // Allow web workers for Tesseract.js
-      imgSrc: ["'self'", "data:", "blob:"], // Allow data URLs and blob URLs for images
-      connectSrc: [
-        "'self'", 
-        "https://cdn.jsdelivr.net", // Allow fetching from Tesseract.js CDN
-        "http://cdn.jsdelivr.net",  // Allow HTTP fallback for CDN
-        "ws:", "wss:" // Allow WebSocket connections for development
-      ],
-      fontSrc: ["'self'", "data:"], // Allow data URLs for fonts
-      objectSrc: ["'none'"], // Prevent object/embed/applet
-      mediaSrc: ["'self'"],
-      frameSrc: ["'self'"], // Allow self-framing for self-hosted apps
-      baseUri: ["'self'"],
-      formAction: ["'self'"],
-      frameAncestors: ["'self'"], // Allow self-framing for embedded views
-      upgradeInsecureRequests: false // Don't force HTTPS upgrades for self-hosted
-    },
-  },
-  crossOriginOpenerPolicy: false, // Disable COOP for better compatibility
-  crossOriginEmbedderPolicy: false, // Disable COEP for better compatibility
-  originAgentCluster: false, // Disable Origin-Agent-Cluster header
-  hsts: false, // Explicitly disable automatic HSTS - we handle it manually
-  hidePoweredBy: true, // Hide Express header for security
-  crossOriginResourcePolicy: false, // Better compatibility for self-hosting
-  noSniff: false, // We handle this manually
-  xssFilter: false, // We handle this manually
-  frameguard: false, // We handle this manually
-}));
-
-// CORS configuration - secure but allows both HTTP and HTTPS
+// Enhanced CORS configuration for self-hosted Docker
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests from localhost on common ports for both HTTP and HTTPS
-    const allowedOrigins = [
-      'http://localhost:420',
-      'https://localhost:420',
-      'http://localhost:3000',
-      'https://localhost:3000',
-      'http://127.0.0.1:420',
-      'https://127.0.0.1:420'
-    ];
-    
-    // Allow requests with no origin (mobile apps, Postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      return callback(null, true);
-    } else {
-      console.warn(`CORS blocked origin: ${origin}`);
-      return callback(new Error('Not allowed by CORS'), false);
-    }
-  },
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:420', 
+    'http://192.168.1.221:420',
+    'http://192.168.1.221',
+    'http://127.0.0.1:420'
+  ],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };
+
 app.use(cors(corsOptions));
 app.use(morgan('combined'));
-
-// Middleware to ensure HTTP serving works properly
-app.use((req, res, next) => {
-  // Remove any headers that might force HTTPS
-  res.removeHeader('Strict-Transport-Security');
-  res.removeHeader('Origin-Agent-Cluster');
-  res.removeHeader('Cross-Origin-Resource-Policy');
-  
-  // Override any problematic headers set by Helmet
-  res.setHeader('Origin-Agent-Cluster', '?0');
-  
-  // Ensure proper protocol is used in responses
-  res.locals.protocol = req.protocol;
-  res.locals.host = req.get('host');
-  
-  // Add HTTP-only headers to prevent SSL errors
-  res.setHeader('Referrer-Policy', 'same-origin');
-  
-  // Add aggressive cache-busting headers 
-  if (req.path === '/' || req.path.endsWith('.html')) {
-    // For HTML files, use very aggressive caching headers
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
-    res.setHeader('Last-Modified', new Date().toUTCString());
-    res.setHeader('ETag', Math.random().toString(36).substring(7));
-  } else {
-    // For other assets, use standard cache-busting
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-  }
-  
-  next();
-});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -178,12 +62,10 @@ const clientBuildPath = process.env.NODE_ENV === 'production'
   : path.join(__dirname, '..', 'frontend', 'build');
 
 if (fs.existsSync(clientBuildPath)) {
-  // Serve static assets with proper headers for HTTP
+  // Serve static assets with cache-busting headers
   app.use(express.static(clientBuildPath, {
     setHeaders: (res, path) => {
-      // Remove any HTTPS enforcement headers
-      res.removeHeader('Strict-Transport-Security');
-      // Set aggressive cache-busting headers for all files
+      // Set cache-busting headers for all files
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
@@ -194,9 +76,8 @@ if (fs.existsSync(clientBuildPath)) {
     }
   }));
   
-  // Serve index.html for any non-API, non-static route with proper headers
+  // Serve index.html for any non-API, non-static route
   app.get(/^\/(?!api|static|uploads).*/, (req, res) => {
-    res.removeHeader('Strict-Transport-Security');
     res.sendFile(path.join(clientBuildPath, 'index.html'));
   });
 }
