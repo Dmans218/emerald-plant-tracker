@@ -1,16 +1,21 @@
-.github/
 # Dependencies
-node_modules
-npm-debug.log
-yarn-debug.log
-yarn-error.log
-package-lock.json
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
-# Build output
-/build
-/dist
-/frontend/build
-/frontend/dist
+# Package manager lock files (keep for production consistency)
+# Commenting out package-lock.json as it should be committed for reproducible builds
+# package-lock.json
+
+# Build output (frontend build should be committed for production Docker builds)
+/dist/
+# Commenting out frontend/build as it's needed for production Docker image
+# /frontend/build/
+/frontend/dist/
 
 # Environment variables
 .env
@@ -18,28 +23,91 @@ package-lock.json
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
 
-# Backend
+# Backend data and uploads
 /backend/uploads/*
 !/backend/uploads/.gitkeep
 /backend/data/*.db
 /backend/data/*.sqlite
 /backend/data/*.sqlite3
+!/backend/data/.gitkeep
 
 # Development resources
 /dev-resources/
 
 # Logs
-logs
+logs/
 *.log
 build.log
 build-output.log
 docker-build.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output/
 
 # IDE and editor folders
 .idea/
 .vscode/
 *.swp
 *.swo
-.DS_Storefrontend/node_modules/
-backend/node_modules/
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# OS generated files
+*.tmp
+*.temp
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Optional npm cache directory
+.npm/
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env.backup
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test/
+
+# Temporary folders
+tmp/
+temp/
