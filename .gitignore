@@ -111,3 +111,8 @@ docker-compose.override.yml
 # Temporary folders
 tmp/
 temp/
+
+# Shell scripts (to prevent accidental pushes to live)
+*.sh
+docker-push*.sh
+deploy*.sh
