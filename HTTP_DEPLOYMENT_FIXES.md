@@ -90,14 +90,6 @@ docker compose up -d
 - Pulls latest image from Docker Hub
 - Stops old container and starts new one
 - Maintains data persistence
-
-### `launch.sh`
-- Quick local development startup
-- Uses docker-compose for local testing
-
-### `docker-status.sh`
-- Check container status and health
-- View recent logs
 - Test HTTP headers
 
 ## Verification

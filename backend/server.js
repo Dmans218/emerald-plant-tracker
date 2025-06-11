@@ -19,8 +19,6 @@ const corsOptions = {
   origin: [
     'http://localhost:3000',
     'http://localhost:420', 
-    'http://192.168.1.221:420',
-    'http://192.168.1.221',
     'http://127.0.0.1:420'
   ],
   credentials: true,
