@@ -4,6 +4,11 @@ module.exports = {
       // Ensure assets are served with relative paths for HTTP compatibility
       webpackConfig.output.publicPath = './';
       
+      // Disable ESLint plugin to avoid compatibility issues with ESLint 9
+      webpackConfig.plugins = webpackConfig.plugins.filter(
+        plugin => !plugin.constructor.name.includes('ESLint')
+      );
+      
       // Disable any HTTPS-related optimizations
       if (webpackConfig.optimization) {
         webpackConfig.optimization.splitChunks = {
@@ -31,4 +36,4 @@ module.exports = {
       disableDotRule: true,
     },
   },
-}; 
+};
