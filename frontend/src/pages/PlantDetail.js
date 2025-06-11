@@ -82,7 +82,6 @@ const InlineLogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null 
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('Log save error:', error);
       toast.error('Failed to save log: ' + (error.message || 'Unknown error'));
     } finally {
       setIsSubmitting(false);
@@ -526,9 +525,8 @@ const PlantDetail = () => {
           notes: plantData.notes
         });
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to load plant data');
-      console.error('Plant detail error:', error);
     } finally {
       setLoading(false);
     }
@@ -538,8 +536,8 @@ const PlantDetail = () => {
     try {
       const data = await plantsApi.getGrowTents();
       setGrowTents(data);
-    } catch (error) {
-      console.error('Grow tents fetch error:', error);
+    } catch {
+      // Grow tents fetch failed
     }
   };
 
@@ -549,9 +547,8 @@ const PlantDetail = () => {
       toast.success('Plant updated successfully');
       setEditing(false);
       fetchPlantData();
-    } catch (error) {
+    } catch {
       toast.error('Failed to update plant');
-      console.error('Update error:', error);
     }
   };
 
@@ -589,9 +586,8 @@ const PlantDetail = () => {
         await logsApi.delete(logId);
         toast.success('Log deleted successfully');
         fetchPlantData(); // Refresh the data
-      } catch (error) {
+      } catch {
         toast.error('Failed to delete log');
-        console.error('Delete error:', error);
       }
     }
   };
@@ -1255,7 +1251,7 @@ const PlantDetail = () => {
                 fontSize: '0.95rem',
                 lineHeight: '1.5'
               }}>
-                Start tracking your plant's growth by adding your first log entry.
+                Start tracking your plant&apos;s growth by adding your first log entry.
               </p>
               <button 
                 onClick={handleAddLog}

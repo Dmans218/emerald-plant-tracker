@@ -231,9 +231,8 @@ const Environment = () => {
       }
       const data = await environmentApi.getAll(params);
       setEnvironmentLogs(data);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load environment data');
-      console.error('Environment fetch error:', error);
     } finally {
       setLoading(false);
     }
@@ -247,8 +246,8 @@ const Environment = () => {
       }
       await environmentApi.getLatest(params);
       // Latest reading data could be used for dashboard stats if needed
-    } catch (error) {
-      console.error('Latest reading fetch error:', error);
+    } catch {
+      // Latest reading fetch failed
     }
   }, [selectedTent]);
 
@@ -260,8 +259,8 @@ const Environment = () => {
       }
       const data = await environmentApi.getWeekly(params);
       setWeeklyData(data);
-    } catch (error) {
-      console.error('Weekly data fetch error:', error);
+    } catch {
+      // Weekly data fetch failed
     }
   }, [selectedTent]);
 
@@ -274,8 +273,8 @@ const Environment = () => {
       if (!selectedTent && data.length > 0) {
         setSelectedTent(data[0].grow_tent);
       }
-    } catch (error) {
-      console.error('Grow tents fetch error:', error);
+    } catch {
+      // Grow tents fetch failed
     }
   }, [selectedTent]);
 
@@ -338,32 +337,22 @@ const Environment = () => {
   };
 
   const handleDelete = async (logId) => {
-    console.log('🗑️ Delete function called with ID:', logId);
-    
     try {
       const confirmed = window.confirm('Are you sure you want to delete this environment log?');
-      console.log('User confirmation:', confirmed);
       
       if (confirmed) {
-        console.log('Sending delete request...');
-        const result = await environmentApi.delete(logId);
-        console.log('Delete result:', result);
+        await environmentApi.delete(logId);
         
         toast.success('Environment log deleted successfully');
         
         // Refresh the data
-        console.log('Refreshing data...');
         await Promise.all([
           fetchEnvironmentData(),
           fetchLatestReading(),
           fetchWeeklyData()
         ]);
-        console.log('Data refresh complete');
-      } else {
-        console.log('User cancelled deletion');
       }
     } catch (error) {
-      console.error('❌ Delete error:', error);
       toast.error(`Failed to delete environment log: ${error.message}`);
     }
   };
@@ -385,8 +374,7 @@ const Environment = () => {
       try {
         const imageDate = new Date(parsedData.timestamp);
         return format(imageDate, "yyyy-MM-dd'T'HH:mm");
-      } catch (error) {
-        console.error('Error parsing image timestamp:', error);
+      } catch {
         return getCurrentDateTime();
       }
     }
@@ -794,7 +782,7 @@ const Environment = () => {
             <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem 0' }}>No weekly data available</p>
           ) : (
             <div className="space-y-4">
-              {weeklyData.map((week, index) => (
+              {weeklyData.map((week, _index) => (
                 <div 
                   key={week.week} 
                   style={{
@@ -1961,8 +1949,8 @@ const Environment = () => {
                         fontSize: '0.875rem',
                         fontWeight: '500'
                       }}
-                      formatter={(value, name) => [
-                        <span style={{ 
+                      formatter={(value, _name) => [
+                        <span key="value" style={{ 
                           color: selectedChart === 'temperature' ? '#f87171' :
                                  selectedChart === 'humidity' ? '#60a5fa' :
                                  selectedChart === 'vpd' ? '#22d3ee' :

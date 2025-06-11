@@ -28,16 +28,14 @@
     "test": "craco test --watchAll=false --passWithNoTests",
     "eject": "react-scripts eject",
     "audit": "npm audit || true",
-    "audit-fix": "npm audit fix"
+    "audit-fix": "npm audit fix",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix"
   },
   "npmConfig": {
     "legacy-peer-deps": true
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app"
-    ]
-  },
+
   "browserslist": {
     "production": [
       ">0.2%",
@@ -53,8 +51,11 @@
   "proxy": "http://localhost:5000",
   "devDependencies": {
     "@craco/craco": "^5.9.0",
+    "@eslint/js": "^9.28.0",
     "eslint": "^9.28.0",
     "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
     "react-scripts": "^5.1.0-next.26"
   },
   "engines": {

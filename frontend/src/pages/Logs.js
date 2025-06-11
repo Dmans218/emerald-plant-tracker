@@ -63,8 +63,7 @@ const Logs = () => {
       ]);
       setPlants(plantsResponse.data);
       setLogs(logsResponse.data);
-    } catch (error) {
-      console.error('Error fetching data:', error);
+    } catch {
       toast.error('Failed to load data');
     } finally {
       setLoading(false);
@@ -187,8 +186,7 @@ const Logs = () => {
 
       await fetchData();
       handleCancel();
-    } catch (error) {
-      console.error('Error saving log:', error);
+    } catch {
       toast.error(editingLog ? 'Failed to update log' : 'Failed to add log');
     }
   };
@@ -206,8 +204,7 @@ const Logs = () => {
         await logsApi.delete(logId);
         toast.success('Log deleted successfully!');
         await fetchData();
-      } catch (error) {
-        console.error('Error deleting log:', error);
+      } catch {
         toast.error('Failed to delete log');
       }
     }

@@ -94,9 +94,8 @@ const Plants = () => {
         const plantsData = await plantsApi.getAll();
         setPlants(plantsData);
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to load plants');
-      console.error('Plants fetch error:', error);
     } finally {
       setLoading(false);
     }
@@ -119,7 +118,7 @@ const Plants = () => {
       }
       fetchPlants();
       resetForm();
-    } catch (error) {
+    } catch {
       toast.error('Failed to save plant');
     }
   };
@@ -156,7 +155,7 @@ const Plants = () => {
         await plantsApi.delete(plant.id);
         toast.success('Plant deleted successfully');
         fetchPlants();
-      } catch (error) {
+      } catch {
         toast.error('Failed to delete plant');
       }
     }
@@ -227,9 +226,8 @@ const Plants = () => {
       window.URL.revokeObjectURL(url);
       
       toast.success(`${tentName} data exported successfully`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to export tent data');
-      console.error('Export error:', error);
     }
   };
 
@@ -267,9 +265,8 @@ const Plants = () => {
       }
 
       toast.success(`${tentName} environment data cleared successfully`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to clear tent data');
-      console.error('Clear tent data error:', error);
     }
   };
 

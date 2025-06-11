@@ -83,8 +83,7 @@ const ImageUpload = ({ onDataParsed, onClose }) => {
       } else {
         toast.error(result.message || 'Could not extract data from image');
       }
-    } catch (error) {
-      console.error('Error processing image:', error);
+    } catch {
       toast.error('Error processing image');
     } finally {
       setIsProcessing(false);
@@ -194,7 +193,7 @@ const ImageUpload = ({ onDataParsed, onClose }) => {
             lineHeight: '1.5'
           }}>
             Take a screenshot of your Spider Farmer app showing environmental readings and upload it here. 
-            We'll automatically extract the temperature, humidity, VPD, and other values.
+            We&apos;ll automatically extract the temperature, humidity, VPD, and other values.
           </p>
 
           {!preview ? (

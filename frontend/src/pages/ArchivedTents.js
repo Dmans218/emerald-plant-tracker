@@ -13,8 +13,7 @@ import {
   Filter,
   ArrowUpDown,
   Search,
-  Trash2,
-  AlertTriangle
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { plantsApi } from '../utils/api';
@@ -39,9 +38,8 @@ const ArchivedTents = () => {
       setLoading(true);
       const response = await plantsApi.getArchivedGrows();
       setArchivedGrows(response.data);
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch archived grows');
-      console.error('Error fetching archived grows:', error);
     } finally {
       setLoading(false);
     }
@@ -53,10 +51,9 @@ const ArchivedTents = () => {
       await plantsApi.exportArchivedGrow(grow.id);
       toast.dismiss();
       toast.success('Export downloaded successfully');
-    } catch (error) {
+    } catch {
       toast.dismiss();
       toast.error('Failed to export grow data');
-      console.error('Export error:', error);
     }
   };
 
@@ -77,10 +74,9 @@ const ArchivedTents = () => {
       
       toast.dismiss();
       toast.success('Tent data exported successfully');
-    } catch (error) {
+    } catch {
       toast.dismiss();
       toast.error('Failed to export tent data');
-      console.error('Tent export error:', error);
     }
   };
 
@@ -105,7 +101,6 @@ const ArchivedTents = () => {
     } catch (error) {
       toast.dismiss();
       toast.error(error.message || 'Failed to clear tent data');
-      console.error('Clear tent data error:', error);
     }
   };
 
@@ -114,7 +109,7 @@ const ArchivedTents = () => {
       const response = await plantsApi.getArchivedGrow(grow.id);
       setSelectedGrow(response.data);
       setShowDetailModal(true);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load grow details');
     }
   };
@@ -294,8 +289,6 @@ const ArchivedTents = () => {
       {/* Tent Export Section */}
       {(() => {
         const uniqueTents = [...new Set(archivedGrows.map(grow => grow.grow_tent).filter(Boolean))];
-        console.log('Debug - archivedGrows:', archivedGrows); // Debug log
-        console.log('Debug - uniqueTents:', uniqueTents); // Debug log
         
         return (
           <div style={{

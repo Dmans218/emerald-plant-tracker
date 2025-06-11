@@ -460,8 +460,8 @@ const NutrientCalculator = () => {
   const savePreference = (key, value) => {
     try {
       localStorage.setItem(`nutrientCalculator_${key}`, JSON.stringify(value));
-    } catch (error) {
-      console.warn('Failed to save preference:', error);
+    } catch {
+      // Failed to save preference
     }
   };
 
@@ -1047,7 +1047,7 @@ const NutrientCalculator = () => {
               <option value="advanced-nutrients">Advanced Nutrients pH Perfect GMB</option>
               <option value="fox-farm">Fox Farm Trio</option>
               <option value="canna">Canna Coco</option>
-              <option value="jack-nutrients">Jack's Nutrients 321</option>
+              <option value="jack-nutrients">Jack&apos;s Nutrients 321</option>
               <option value="megacrop">MegaCrop by Greenleaf</option>
               <option value="botanicare">Botanicare Pure Blend Pro</option>
               <option value="dyna-gro">Dyna-Gro Foliage Pro + Bloom</option>

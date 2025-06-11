@@ -30,9 +30,8 @@ const Dashboard = () => {
       setLoading(true);
       const plantsData = await plantsApi.getAll();
       setPlants(plantsData);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load plants');
-      console.error('Dashboard error:', error);
     } finally {
       setLoading(false);
     }
@@ -40,8 +39,6 @@ const Dashboard = () => {
 
   const fetchLatestEnvironmentDataPerTent = async () => {
     try {
-      console.log('=== DASHBOARD: Fetching environment data per tent ===');
-      
       // Force no cache
       const response = await fetch('/api/environment/latest-per-tent', {
         method: 'GET',
@@ -51,40 +48,28 @@ const Dashboard = () => {
         }
       });
       
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-      
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Environment data per tent received:', data);
-        console.log('Number of tents:', data.length);
         setEnvironmentData(data || []);
         return;
-      } else {
-        console.error('❌ Response not ok:', response.status, response.statusText);
       }
       
       // Fallback: try direct URL
-      console.log('Trying direct backend URL...');
       const directResponse = await fetch('http://localhost:5000/api/environment/latest-per-tent');
       if (directResponse.ok) {
         const directData = await directResponse.json();
-        console.log('✅ Direct backend data:', directData);
         setEnvironmentData(directData || []);
         return;
       }
       
       // Last resort fallback
-      console.log('Trying fallback endpoint...');
       const fallbackResponse = await fetch('/api/environment/latest');
       if (fallbackResponse.ok) {
         const fallbackData = await fallbackResponse.json();
-        console.log('⚠️ Fallback data:', fallbackData);
         setEnvironmentData(fallbackData && Object.keys(fallbackData).length > 0 ? [fallbackData] : []);
       }
       
-    } catch (error) {
-      console.error('❌ Failed to fetch environment data per tent:', error);
+    } catch {
       setEnvironmentData([]);
     }
   };

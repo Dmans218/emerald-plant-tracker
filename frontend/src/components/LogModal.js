@@ -88,7 +88,6 @@ const LogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null }) => 
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('Log save error:', error);
       alert('Failed to save log: ' + (error.message || 'Unknown error'));
     } finally {
       setIsSubmitting(false);

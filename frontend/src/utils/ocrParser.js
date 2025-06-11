@@ -35,11 +35,10 @@ const getImageMetadata = (file) => {
 export const parseSpiderFarmerScreenshot = async (imageFile) => {
   try {
     const { data: { text } } = await Tesseract.recognize(imageFile, 'eng', {
-      logger: m => console.log(m),
       tessedit_char_whitelist: '0123456789.°C%kPa ppm μmol/s-+:VPDCOTemperatureHumidityAir ',
     });
 
-    console.log('OCR Raw Text:', text);
+
 
     // Initialize result object
     const result = {
@@ -54,8 +53,8 @@ export const parseSpiderFarmerScreenshot = async (imageFile) => {
     };
 
     // Clean text for better analysis
-    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-    console.log('Text lines:', lines);
+
+
 
     // Extract all numbers with context for smarter parsing
     const numberPattern = /(\d+\.?\d*)/g;
@@ -76,7 +75,7 @@ export const parseSpiderFarmerScreenshot = async (imageFile) => {
       });
     }
     
-    console.log('Numbers with context:', allNumbers);
+
 
     // Parse Temperature - look for temperature in proper range with °C
     for (const num of allNumbers) {
@@ -88,7 +87,7 @@ export const parseSpiderFarmerScreenshot = async (imageFile) => {
             !context.includes('vpd') && !context.includes('%')) {
           result.temperature = num.value;
           result.parsedValues.temperature = `${num.value}°C`;
-          console.log('Found temperature:', num.value, 'Context:', context);
+
           break;
         }
       }
@@ -110,7 +109,7 @@ export const parseSpiderFarmerScreenshot = async (imageFile) => {
         if (afterHumidityLabel && notTemperature && notVPD && notInHeader) {
           result.humidity = num.value;
           result.parsedValues.humidity = `${num.value}%`;
-          console.log('Found humidity after label:', num.value, 'Context:', context);
+
           break;
         }
       }
@@ -132,7 +131,7 @@ export const parseSpiderFarmerScreenshot = async (imageFile) => {
           if (inDataRow && notInHeader) {
             result.humidity = num.value;
             result.parsedValues.humidity = `${num.value}%`;
-            console.log('Found humidity in data row:', num.value, 'Context:', context);
+
             break;
           }
         }
@@ -149,7 +148,7 @@ export const parseSpiderFarmerScreenshot = async (imageFile) => {
             (num.value < 2.0 && context.includes('kpa'))) {
           result.vpd = num.value;
           result.parsedValues.vpd = `${num.value} kPa`;
-          console.log('Found VPD:', num.value, 'Context:', context);
+
           break;
         }
       }
@@ -157,11 +156,11 @@ export const parseSpiderFarmerScreenshot = async (imageFile) => {
 
     // Fallback parsing if direct context matching fails
     if (!result.temperature || !result.humidity || !result.vpd) {
-      console.log('Using fallback parsing...');
+
       
       // Sort numbers by value to help identify them
       const sortedNumbers = [...allNumbers].sort((a, b) => a.value - b.value);
-      console.log('Sorted numbers:', sortedNumbers.map(n => n.value));
+
       
       // If we don't have temperature, look for number around 20-25 (room temp)
       if (!result.temperature) {
@@ -169,7 +168,7 @@ export const parseSpiderFarmerScreenshot = async (imageFile) => {
         if (tempCandidate && !tempCandidate.fullContext.includes('%')) {
           result.temperature = tempCandidate.value;
           result.parsedValues.temperature = `${tempCandidate.value}°C`;
-          console.log('Fallback temperature:', tempCandidate.value);
+
         }
       }
       
@@ -195,7 +194,7 @@ export const parseSpiderFarmerScreenshot = async (imageFile) => {
            const candidate = humidCandidate || humidCandidate2;
            result.humidity = candidate.value;
            result.parsedValues.humidity = `${candidate.value}%`;
-           console.log('Fallback humidity:', candidate.value, 'Context:', candidate.fullContext);
+
          }
        }
       
@@ -208,7 +207,7 @@ export const parseSpiderFarmerScreenshot = async (imageFile) => {
         if (vpdCandidate) {
           result.vpd = vpdCandidate.value;
           result.parsedValues.vpd = `${vpdCandidate.value} kPa`;
-          console.log('Fallback VPD:', vpdCandidate.value);
+
         }
       }
     }
@@ -285,10 +284,9 @@ export const parseSpiderFarmerScreenshot = async (imageFile) => {
     // Check if we found at least one value
     result.success = Object.values(result).some(val => val !== null && typeof val === 'number');
 
-    console.log('Parsed result:', result);
+
     return result;
-  } catch (error) {
-    console.error('OCR Error:', error);
+  } catch {
     return {
       temperature: null,
       humidity: null,
@@ -297,7 +295,7 @@ export const parseSpiderFarmerScreenshot = async (imageFile) => {
       vpd: null,
       ppfd: null,
       success: false,
-      error: error.message,
+      error: 'OCR processing failed',
       parsedValues: {}
     };
   }
@@ -329,7 +327,7 @@ export const parseEnvironmentalData = async (imageFile) => {
   try {
     // Extract image metadata (including timestamp) first
     const metadata = await getImageMetadata(imageFile);
-    console.log('Image metadata:', metadata);
+
     
     // Try Spider Farmer format first
     const spiderFarmerResult = await parseSpiderFarmerScreenshot(imageFile);
@@ -351,8 +349,7 @@ export const parseEnvironmentalData = async (imageFile) => {
       timestamp: metadata.timestamp,
       message: 'Could not parse environmental data from image. Please ensure the image shows clear readings from a supported app.'
     };
-  } catch (error) {
-    console.error('Error parsing image:', error);
+  } catch {
     return {
       temperature: null,
       humidity: null,
@@ -361,7 +358,7 @@ export const parseEnvironmentalData = async (imageFile) => {
       vpd: null,
       ppfd: null,
       success: false,
-      error: error.message,
+      error: 'Image parsing failed',
       parsedValues: {},
       metadata: null,
       timestamp: null
