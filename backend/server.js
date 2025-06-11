@@ -17,9 +17,17 @@ const PORT = process.env.PORT || 420;
 // Enhanced CORS configuration for self-hosted Docker
 const corsOptions = {
   origin: [
+    // Development
     'http://localhost:3000',
-    'http://localhost:420', 
-    'http://127.0.0.1:420'
+    'http://localhost:420',
+    'http://127.0.0.1:420',
+    // Common home network ranges on port 420
+    /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:420$/,
+    /^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}:420$/,
+    /^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}:420$/,
+    // Docker internal networks
+    /^http:\/\/172\.1[7-9]\.\d{1,3}\.\d{1,3}:420$/,
+    /^http:\/\/172\.2[0-9]\.\d{1,3}\.\d{1,3}:420$/
   ],
   credentials: true,
   optionsSuccessStatus: 200,
