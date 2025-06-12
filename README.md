@@ -114,8 +114,8 @@ services:
       - NODE_ENV=production
     restart: unless-stopped
 volumes:
-  emerald_data: null
-  emerald_uploads: null
+  emerald_data:
+  emerald_uploads:
 networks: {}
 ```
 
