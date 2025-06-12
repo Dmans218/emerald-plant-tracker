@@ -56,6 +56,14 @@ A comprehensive, self-hosted web application for professional cannabis cultivati
 - **No Internet Required**: Runs completely offline once deployed
 - **Automated Backups**: Built-in data persistence with Docker volumes
 
+### ⚡ **Developer Experience & Code Quality**
+
+- **Modern ESLint Configuration**: Enforces consistent code style and catches potential issues
+- **React Best Practices**: Follows current React patterns and performance optimizations
+- **Clean Codebase**: Zero console statements in production, no unused variables or imports
+- **Type Safety**: Proper prop validation and error handling throughout the application
+- **Maintainable Architecture**: Well-organized file structure with clear separation of concerns
+
 ---
 
 ## 🚀 Quick Start (Docker Hub)
@@ -115,6 +123,7 @@ networks: {}
 
 1. **Save as `docker-compose.yml`** in your desired directory
 2. **Start the container**:
+
    ```bash
    docker-compose up -d
    ```
@@ -198,6 +207,18 @@ If you want to contribute or run the app in development mode:
    ```
 
    This starts both frontend and backend. The app will be available at [http://localhost:420](http://localhost:420).
+
+4. **Code Quality & Linting:**
+
+   ```bash
+   # Run ESLint to check code quality
+   cd frontend && npm run lint
+   
+   # Fix automatically fixable issues
+   cd frontend && npm run lint:fix
+   ```
+
+   The project uses modern ESLint configuration with React-specific rules to maintain high code quality and consistency.
 
 ---
 
