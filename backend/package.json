@@ -11,9 +11,9 @@
     "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
-    "axios": "^1.7.9",
+    "axios": "^1.10.0",
     "cors": "^2.8.5",
-    "express": "^4.19.2",
+    "express": "^5.1.0",
     "express-rate-limit": "^7.4.1",
     "jimp": "^1.6.0",
     "joi": "^17.13.3",
@@ -24,7 +24,7 @@
     "tesseract.js": "^6.0.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.7"
+    "nodemon": "^3.1.10"
   },
   "keywords": [
     "cannabis",
@@ -40,7 +40,7 @@
   "author": "Emerald Plant Tracker Team",
   "license": "MIT",
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=22.0.0",
     "npm": ">=10.0.0"
   }
 }

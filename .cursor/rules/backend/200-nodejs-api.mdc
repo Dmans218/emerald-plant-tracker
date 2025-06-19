@@ -1,0 +1,66 @@
+---
+description: Node.js Express API development standards for Emerald Plant Tracker backend
+globs: backend/**/*.js, backend/routes/**/*.js, backend/models/**/*.js
+alwaysApply: false
+---
+# Node.js Express API Standards
+
+## API Architecture
+- Use **Express.js 5.1** framework with RESTful design principles
+- Implement **SQLite3** database with proper connection pooling
+- Follow **MVC pattern** - Models, Routes, Controllers separation
+- Use **async/await** for all database operations
+
+## Route Structure
+- Organize routes by feature: `/api/plants`, `/api/logs`, `/api/environment`, `/api/tents`
+- Use proper HTTP methods: GET, POST, PUT, DELETE
+- Implement consistent response formats with status codes
+- Include proper error handling middleware
+
+## Database Patterns
+- Use **SQLite3** with prepared statements for security
+- Implement **database.js** for connection management
+- Create proper database schemas with relationships
+- Use transactions for multi-table operations
+
+## Cannabis Domain Models
+- **Plants**: Core cultivation entity with growth stages
+- **Logs**: Activity tracking with timestamps and photos
+- **Environment**: Environmental data logging (temp, humidity, VPD, etc.)
+- **Tents**: Grow space management and organization
+- **Nutrient Data**: Comprehensive feeding schedules and calculations
+
+## Error Handling
+- Use try-catch blocks for all async operations
+- Return consistent error response format
+- Log errors appropriately for debugging
+- Handle database connection failures gracefully
+
+## File Upload Management
+- Store uploaded images in `/backend/uploads/` directory
+- Implement proper file validation and security
+- Support common image formats (JPEG, PNG, WebP)
+- Include image optimization for storage efficiency
+
+## API Response Format
+```javascript
+// Success Response
+{
+  success: true,
+  data: {...},
+  message: "Operation completed successfully"
+}
+
+// Error Response  
+{
+  success: false,
+  error: "Error description",
+  code: "ERROR_CODE"
+}
+```
+
+## Security Considerations
+- Validate all input parameters
+- Use parameterized queries to prevent SQL injection
+- Implement proper CORS configuration
+- Sanitize file uploads and user input
