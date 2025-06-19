@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Script to ensure database initialization in production
 echo "🔧 Database initialization script starting..."
@@ -32,4 +32,5 @@ echo "📊 Data directory info:"
 ls -la "$DATA_DIR"
 
 echo "🚀 Starting Node.js application..."
-exec node backend/server.js
+cd /app/backend
+exec node server.js

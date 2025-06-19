@@ -10,6 +10,7 @@ const db = require('./database');
 const plantsRouter = require('./routes/plants');
 const logsRouter = require('./routes/logs');
 const environmentRouter = require('./routes/environment');
+const nutrientsRouter = require('./routes/nutrients');
 
 const app = express();
 const PORT = process.env.PORT || 420;
@@ -27,12 +28,12 @@ const corsOptions = {
     /^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}:420$/,
     // Docker internal networks
     /^http:\/\/172\.1[7-9]\.\d{1,3}\.\d{1,3}:420$/,
-    /^http:\/\/172\.2[0-9]\.\d{1,3}\.\d{1,3}:420$/
+    /^http:\/\/172\.2[0-9]\.\d{1,3}\.\d{1,3}:420$/,
   ],
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 };
 
 app.use(cors(corsOptions));
@@ -63,25 +64,28 @@ app.use('/uploads', express.static(uploadsDir));
 // Serve static files from React build
 // In Docker: frontend build is copied to ./public
 // In development: frontend build is at ../frontend/build
-const clientBuildPath = process.env.NODE_ENV === 'production' 
-  ? path.join(__dirname, 'public')
-  : path.join(__dirname, '..', 'frontend', 'build');
+const clientBuildPath =
+  process.env.NODE_ENV === 'production'
+    ? path.join(__dirname, 'public')
+    : path.join(__dirname, '..', 'frontend', 'build');
 
 if (fs.existsSync(clientBuildPath)) {
   // Serve static assets with cache-busting headers
-  app.use(express.static(clientBuildPath, {
-    setHeaders: (res, path) => {
-      // Set cache-busting headers for all files
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      if (path.endsWith('.html')) {
-        res.setHeader('Last-Modified', new Date().toUTCString());
-        res.setHeader('ETag', Math.random().toString(36).substring(7));
-      }
-    }
-  }));
-  
+  app.use(
+    express.static(clientBuildPath, {
+      setHeaders: (res, path) => {
+        // Set cache-busting headers for all files
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        if (path.endsWith('.html')) {
+          res.setHeader('Last-Modified', new Date().toUTCString());
+          res.setHeader('ETag', Math.random().toString(36).substring(7));
+        }
+      },
+    })
+  );
+
   // Serve index.html for any non-API, non-static route
   app.get(/^\/(?!api|static|uploads).*/, (req, res) => {
     res.sendFile(path.join(clientBuildPath, 'index.html'));
@@ -92,58 +96,64 @@ if (fs.existsSync(clientBuildPath)) {
 app.use('/api/plants', plantsRouter);
 app.use('/api/logs', logsRouter);
 app.use('/api/environment', environmentRouter);
+app.use('/api/nutrients', nutrientsRouter);
 
 // Health check with database connectivity
 app.get('/api/health', (req, res) => {
   const database = db.getDb();
-  
+
   if (!database) {
-    return res.status(503).json({ 
-      status: 'ERROR', 
+    return res.status(503).json({
+      status: 'ERROR',
       database: 'disconnected',
-      timestamp: new Date().toISOString() 
+      timestamp: new Date().toISOString(),
     });
   }
-  
+
   // Test database connectivity
   database.get('SELECT 1 as test', (err, row) => {
     if (err) {
       console.error('❌ Database health check failed:', err);
-      return res.status(503).json({ 
-        status: 'ERROR', 
+      return res.status(503).json({
+        status: 'ERROR',
         database: 'error',
         error: err.message,
-        timestamp: new Date().toISOString() 
+        timestamp: new Date().toISOString(),
       });
     }
-    
+
     // Also check if plants table exists
-    database.get("SELECT name FROM sqlite_master WHERE type='table' AND name='plants'", (err, table) => {
-      if (err) {
-        return res.status(503).json({ 
-          status: 'ERROR', 
+    database.get(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='plants'",
+      (err, table) => {
+        if (err) {
+          return res.status(503).json({
+            status: 'ERROR',
+            database: 'connected',
+            tables: 'error',
+            error: err.message,
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        res.json({
+          status: 'OK',
           database: 'connected',
-          tables: 'error',
-          error: err.message,
-          timestamp: new Date().toISOString() 
+          tables: table ? 'initialized' : 'missing',
+          timestamp: new Date().toISOString(),
         });
       }
-      
-      res.json({ 
-        status: 'OK', 
-        database: 'connected',
-        tables: table ? 'initialized' : 'missing',
-        timestamp: new Date().toISOString() 
-      });
-    });
+    );
   });
 });
 
 // Debug endpoint for database info
 app.get('/api/debug/database', (req, res) => {
-  const dbPath = process.env.DATABASE_URL || path.join(__dirname, 'data', 'emerald-plant-tracker.db');
+  const dbPath =
+    process.env.DATABASE_URL ||
+    path.join(__dirname, 'data', 'emerald-plant-tracker.db');
   const dataDir = path.dirname(dbPath);
-  
+
   const debugInfo = {
     database_path: dbPath,
     data_directory: dataDir,
@@ -152,9 +162,9 @@ app.get('/api/debug/database', (req, res) => {
     working_directory: __dirname,
     process_user: process.getuid ? process.getuid() : 'unknown',
     environment: process.env.NODE_ENV || 'development',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
-  
+
   // Try to get file stats if database exists
   if (debugInfo.database_file_exists) {
     try {
@@ -165,7 +175,7 @@ app.get('/api/debug/database', (req, res) => {
       debugInfo.database_stats_error = err.message;
     }
   }
-  
+
   // Try to list data directory contents
   if (debugInfo.data_dir_exists) {
     try {
@@ -174,7 +184,7 @@ app.get('/api/debug/database', (req, res) => {
       debugInfo.data_dir_list_error = err.message;
     }
   }
-  
+
   res.json(debugInfo);
 });
 
@@ -189,16 +199,16 @@ app.get('/api/debug/connection', (req, res) => {
       'x-forwarded-for': req.headers['x-forwarded-for'],
       'user-agent': req.headers['user-agent'],
       origin: req.headers.origin,
-      referer: req.headers.referer
+      referer: req.headers.referer,
     },
     url: req.url,
     method: req.method,
     ip: req.ip,
     server_port: PORT,
     node_env: process.env.NODE_ENV,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
-  
+
   res.json(connectionInfo);
 });
 
@@ -214,11 +224,13 @@ app.use((err, req, res, next) => {
 });
 
 // Initialize database and start server
-db.init().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🌿 Emerald Plant Tracker API running on port ${PORT}`);
+db.init()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`🌿 Emerald Plant Tracker API running on port ${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('Failed to initialize database:', err);
+    process.exit(1);
   });
-}).catch(err => {
-  console.error('Failed to initialize database:', err);
-  process.exit(1);
-});

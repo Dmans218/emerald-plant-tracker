@@ -725,4 +725,6 @@ const nutrientBrands = {
   },
 };
 
-module.exports = nutrientBrands;
+module.exports = {
+  nutrientBrands,
+};

@@ -49,4 +49,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:420/ || exit 1
 
 # Start the backend server with initialization script
-CMD ["./backend/init-and-start.sh"] 
+CMD ["/app/backend/init-and-start.sh"] 
