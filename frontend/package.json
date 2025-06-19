@@ -73,6 +73,7 @@
     "brace-expansion": "^2.0.1",
     "minimatch": "^9.0.0",
     "glob": "^10.0.0",
-    "tailwindcss": "^4.1.8"
+    "tailwindcss": "^4.1.8",
+    "webpack-dev-server": "^5.2.2"
   }
 }
