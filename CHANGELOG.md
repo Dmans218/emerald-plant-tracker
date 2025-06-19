@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Docker Images**: ~70% smaller due to Alpine Linux base images
 - **Performance**: Improved performance from Node.js 22 and Express 5 optimizations
 - **Security**: Latest security patches in all dependencies
+- **Build Compatibility**: Frontend builds use Node.js 20 in Docker due to react-scripts 5.0.1 limitations
 
 ### Migration Notes
 
@@ -63,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Docker**: All containers now use Alpine Linux for improved security
 - **Express 5**: Review any custom middleware for compatibility changes
 - **React Router 7**: Check routing configuration for breaking changes
+- **Build Issues**: If experiencing local build issues with Node.js 22, Docker builds will work correctly
 
 ### Breaking Changes
 
