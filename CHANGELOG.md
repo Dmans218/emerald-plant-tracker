@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.nvmrc` file specifying Node.js 22 for consistent local development
 - Alpine Linux base images for smaller, more secure Docker containers
 
+### Security
+
+- Fixed webpack-dev-server vulnerabilities (GHSA-9jgg-88mc-972h, GHSA-4v9v-hfq4-rm2v)
+- Upgraded webpack-dev-server from 4.15.2 to 5.2.2 via package override
+- All packages now report 0 security vulnerabilities
+
 ### Changed
 
 - **BREAKING**: Upgraded Node.js requirement from 18.x to 22.x across all environments
