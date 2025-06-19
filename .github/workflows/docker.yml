@@ -2,14 +2,14 @@ name: Docker
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, dev]
     paths:
       - 'Dockerfile'
       - 'docker-compose.yml'
       - 'backend/**'
       - 'frontend/**'
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, dev]
     paths:
       - 'Dockerfile'
       - 'docker-compose.yml'
@@ -30,4 +30,4 @@ jobs:
         run: docker build -t emerald-plant-tracker:test .
 
       - name: Test development docker-compose build
-        run: docker compose -f docker-compose.dev.yml build --no-cache 
+        run: docker compose -f docker-compose.dev.yml build --no-cache
