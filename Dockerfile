@@ -1,5 +1,5 @@
 # ---- Build frontend ----
-FROM node:22-alpine AS frontend-build
+FROM node:20-alpine AS frontend-build
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm install
@@ -27,12 +27,12 @@ RUN cd backend && npm ci --only=production
 
 # Ensure data and uploads directories exist with proper permissions
 RUN mkdir -p backend/data backend/uploads && \
-    chown -R node:node backend/data backend/uploads
+  chown -R node:node backend/data backend/uploads
 
 # Copy and set permissions for initialization script
 COPY backend/init-and-start.sh backend/
 RUN chmod +x backend/init-and-start.sh && \
-    chown node:node backend/init-and-start.sh
+  chown node:node backend/init-and-start.sh
 
 # Set environment variable for port 420
 ENV PORT=420
