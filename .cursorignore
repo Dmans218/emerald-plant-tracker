@@ -1,0 +1,77 @@
+# Cursor IDE Configuration and Secrets
+.cursor/
+
+# MCP Server configurations that may contain secrets
+.cursor/mcp_servers.json
+.cursor/mcp-config.json
+
+# Cursor AI chat history (may contain sensitive information)
+.cursor/chat/
+.cursor/history/
+
+# Cursor workspace settings (may contain API keys)
+.cursor/workspace.json
+.cursor/settings.json
+
+# Any Cursor cache or temporary files
+.cursor/cache/
+.cursor/tmp/
+.cursor/temp/
+
+# Environment files that may contain secrets
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# API keys and secrets
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+keys/
+
+# Database files (in case they contain sensitive data)
+*.db
+*.sqlite
+*.sqlite3
+
+# Log files that might contain sensitive information
+*.log
+logs/
+
+# Node modules (large and not needed for AI context)
+node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+.nuxt/
+
+# Cache directories
+.cache/
+.parcel-cache/
+.npm/
+.yarn/
+.pnpm-store/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor directories and files
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~ 

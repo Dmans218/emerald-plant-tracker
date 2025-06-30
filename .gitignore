@@ -59,6 +59,7 @@ coverage/
 # IDE and editor folders
 .idea/
 .vscode/
+.cursor/
 *.swp
 *.swo
 *~
