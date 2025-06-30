@@ -1,0 +1,102 @@
+# Emerald Plant Tracker - Warp Terminal Rules
+# Cannabis cultivation tracking application development guidelines
+
+## Project Overview
+This is a comprehensive cannabis plant tracking application with:
+- React frontend (port 3000 in dev, served from backend on port 420 in production)
+- Express.js backend with SQLite database (port 420)
+- OCR capabilities for environmental controller data parsing
+- Advanced nutrient calculator
+- Environmental monitoring and logging
+- Docker containerization support
+
+## Architecture
+- **Frontend**: React app with modern hooks, Chart.js visualizations, OCR text parsing
+- **Backend**: Express.js API with SQLite database, image upload handling, rate limiting
+- **Database**: SQLite with tables for plants, logs, environment, tents, nutrients
+- **File Structure**:
+  - `/frontend/` - React application
+  - `/backend/` - Express API server
+  - `/backend/data/` - SQLite database files
+  - `/backend/uploads/` - User uploaded images
+
+## Development Commands
+When working on this project, use these standard commands:
+
+### Development Mode (recommended for active development)
+- `npm run dev` - Starts both frontend and backend in development mode
+- `npm run server:dev` - Backend only (nodemon auto-restart)
+- `npm run client:dev` - Frontend only (React dev server)
+
+### Production/Docker Commands
+- `npm run build` - Build frontend for production
+- `npm start` - Start production server (backend only)
+- `docker-compose up -d` - Start with Docker
+- `docker-compose -f docker-compose.dev.yml up` - Docker development mode
+
+### Specific Component Development
+- **Backend development**: `cd backend && npm run dev`
+- **Frontend development**: `cd frontend && npm start`
+- **Database inspection**: Use SQLite CLI or browser tools on `/backend/data/*.db`
+
+## Key File Locations
+- **Main config**: `package.json`, `docker-compose.yml`
+- **Backend entry**: `backend/server.js`
+- **Frontend entry**: `frontend/src/App.js`
+- **API routes**: `backend/routes/` (plants.js, logs.js, environment.js, etc.)
+- **React components**: `frontend/src/components/` and `frontend/src/pages/`
+- **Database**: `backend/data/emerald-plant-tracker.db` or `backend/data/growlogger.db`
+
+## Development Workflow Guidelines
+1. **Always check current branch**: This project uses `dev` branch for development
+2. **Port awareness**: 
+   - Frontend dev server: http://localhost:3000 (proxies to backend)
+   - Backend API: http://localhost:420
+   - Production: http://localhost:420 (serves both frontend and API)
+3. **Database changes**: Check `backend/database.js` for schema
+4. **Image uploads**: Stored in `backend/uploads/`
+5. **Environment data**: Logged via OCR parsing or manual entry
+
+## Testing and Quality
+- **Frontend tests**: `cd frontend && npm test`
+- **Linting**: `cd frontend && npm run lint`
+- **Audit dependencies**: `npm run audit` (in any directory)
+- **Docker testing**: Use `docker-compose.dev.yml` for development containers
+
+## Common Tasks
+- **Add new API endpoint**: Create route in `backend/routes/`, add to `backend/server.js`
+- **Add new React page**: Create in `frontend/src/pages/`, add route in `App.js`
+- **Database schema changes**: Modify `backend/database.js`
+- **Add new nutrient brand**: Update calculator logic in frontend
+- **Environmental data parsing**: Modify OCR logic in `frontend/src/utils/ocrParser.js`
+
+## Security and Deployment Notes
+- **Local development only**: This app is designed for personal/private use
+- **Data persistence**: All data stored in SQLite database and Docker volumes
+- **Image handling**: EXIF data processing, Sharp for image optimization
+- **Rate limiting**: API endpoints have rate limiting configured
+- **No external APIs**: Runs completely offline
+
+## Debugging Tips
+- **Backend logs**: Check console output when running `npm run server:dev`
+- **Frontend issues**: Use browser DevTools, React DevTools extension
+- **Database issues**: Use SQLite browser or CLI tools
+- **Docker issues**: Check `docker logs emerald-plant-tracker`
+- **OCR problems**: Check browser console for Tesseract.js errors
+
+## Project-Specific Context
+- **Cannabis focused**: All terminology and features designed for cannabis cultivation
+- **Environmental controllers**: Supports AC Infinity, Spider Farmer, Mars Hydro, Vivosun
+- **Nutrient brands**: 10+ supported brands including General Hydroponics, Advanced Nutrients
+- **Growth stages**: Seedling, Vegetative, Flowering with specific nutrient adjustments
+- **Tent management**: Multi-tent support for tracking different grow spaces
+
+## Cursor Editor Integration Notes
+- **Workspace root**: Always open from project root directory
+- **React development**: Use React/JavaScript language extensions
+- **Database work**: Consider SQLite extensions for Cursor
+- **Docker files**: Dockerfile and docker-compose.yml syntax support
+- **API testing**: Consider REST Client extensions for testing endpoints
+
+## Current Branch: dev
+Remember to commit changes to the dev branch and create pull requests to main for releases.

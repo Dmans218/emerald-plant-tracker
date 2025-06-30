@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Thermometer, Droplets, TestTube, Sun, Trash2, TrendingUp, Camera, Wind, Beaker, Edit, Sprout } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, Thermometer, Droplets, TestTube, Sun, Trash2, TrendingUp, Camera, Wind, Beaker, Edit, Sprout, Upload } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -9,34 +9,7 @@ import { environmentApi, plantsApi } from '../utils/api';
 import ImageUpload from '../components/ImageUpload';
 import { getStageColor } from '../utils/stageColors';
 
-// CSV Export utility function
-function exportToCSV(logs) {
-  if (!logs || logs.length === 0) return;
-  const headers = [
-    'Date', 'Time', 'Tent', 'Stage', 'Temperature (°F)', 'Humidity (%)', 'pH', 'Light (h)', 'VPD (kPa)'
-  ];
-  const rows = logs.map(log => [
-    format(new Date(log.logged_at), 'MMM dd'),
-    format(new Date(log.logged_at), 'HH:mm'),
-    log.grow_tent || '',
-    log.stage || '',
-    log.temperature || '',
-    log.humidity || '',
-    log.ph_level || '',
-    log.light_hours || '',
-    log.vpd || ''
-  ]);
-  const csvContent = [headers, ...rows].map(r => r.join(',')).join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'environment_readings.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
+
 
 // Add CSS animations inline with ultra-modern enhancements
 const modalStyles = `
@@ -219,6 +192,9 @@ const Environment = () => {
   const [selectedTent, setSelectedTent] = useState('');
   const [editingLog, setEditingLog] = useState(null);
   const [selectedChart, setSelectedChart] = useState(null);
+  const [importing, setImporting] = useState(false);
+  
+  const fileInputRef = useRef(null);
 
   const { register, handleSubmit, reset, formState: { isSubmitting, errors } } = useForm();
 
@@ -363,6 +339,96 @@ const Environment = () => {
     reset();
   };
 
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.csv')) {
+      toast.error('Please select a CSV file');
+      return;
+    }
+
+    // Check if tent is selected
+    const targetTent = selectedTent || 'Main Tent';
+    const confirmed = window.confirm(
+      `Import SpiderFarmer GGS data to "${targetTent}" tent?\n\n` +
+      `File: ${file.name}\n` +
+      `This will add environment readings to the selected tent.`
+    );
+    
+    if (!confirmed) {
+      // Clear file input if user cancels
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    setImporting(true);
+    toast(`🔄 Importing ${file.name} to ${targetTent}...`, { icon: '📊' });
+    
+    try {
+      const formData = new FormData();
+      formData.append('csvFile', file);
+      formData.append('grow_tent', targetTent);
+
+      const response = await fetch('/api/environment/import-csv', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Import failed');
+      }
+
+      // Show detailed import success message
+      const deviceInfo = result.deviceInfo ? 
+        `\nDevice: ${result.deviceInfo.deviceSerial}\nData: ${result.deviceInfo.dateRange.start} to ${result.deviceInfo.dateRange.end}` : '';
+      
+      toast.success(
+        `🎉 SpiderFarmer GGS Import Complete!\n` +
+        `📊 ${result.stats.imported} records imported to "${targetTent}"\n` +
+        `⚠️ ${result.stats.duplicates} duplicates skipped${deviceInfo}`,
+        { duration: 8000 }
+      );
+
+      if (result.errors.length > 0) {
+        console.warn('Import warnings:', result.errors);
+        toast('Some rows had issues. Check console for details.', { 
+          icon: '⚠️',
+          duration: 4000 
+        });
+      }
+      
+      // Show which fields were imported
+      if (result.fieldsImported && result.fieldsImported.length > 0) {
+        toast(`📱 Fields imported: ${result.fieldsImported.join(', ')}`, { 
+          icon: '📈',
+          duration: 5000 
+        });
+      }
+
+      // Refresh data after successful import
+      await Promise.all([
+        fetchEnvironmentData(),
+        fetchLatestReading(),
+        fetchWeeklyData()
+      ]);
+
+    } catch (error) {
+      console.error('CSV import error:', error);
+      toast.error(`Import failed: ${error.message}`);
+    } finally {
+      setImporting(false);
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const getCurrentDateTime = () => {
     const now = new Date();
     return format(now, "yyyy-MM-dd'T'HH:mm");
@@ -497,6 +563,25 @@ const Environment = () => {
             >
               <TrendingUp className="w-5 h-5" />
               Weekly Stats
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".csv"
+              style={{ display: 'none' }}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="btn btn-outline"
+              disabled={importing}
+            >
+              {importing ? (
+                <div className="loading" style={{ width: '16px', height: '16px' }} />
+              ) : (
+                <Upload className="w-5 h-5" />
+              )}
+              Import CSV
             </button>
           </div>
         </div>
@@ -898,13 +983,16 @@ const Environment = () => {
               </button>
               <button
                 className="btn btn-outline"
-                onClick={() => exportToCSV(sortedLogsForGraphs)}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing}
                 style={{borderColor: '#ffffff', color: '#ffffff'}}
               >
-                <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-                  <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Export CSV
+                {importing ? (
+                  <div className="loading" style={{ width: '16px', height: '16px' }} />
+                ) : (
+                  <Upload className="w-5 h-5" />
+                )}
+                Import CSV
               </button>
             </div>
           </div>
@@ -1116,6 +1204,24 @@ const Environment = () => {
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em',
                         textAlign: 'center'
+                      }}>Soil°F</th>
+                      <th style={{ 
+                        padding: '1rem 1.25rem', 
+                        fontWeight: '600', 
+                        color: '#e2e8f0',
+                        fontSize: '0.8rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        textAlign: 'center'
+                      }}>Power</th>
+                      <th style={{ 
+                        padding: '1rem 1.25rem', 
+                        fontWeight: '600', 
+                        color: '#e2e8f0',
+                        fontSize: '0.8rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        textAlign: 'center'
                       }}>Actions</th>
                     </tr>
                   </thead>
@@ -1258,6 +1364,24 @@ const Environment = () => {
                             fontSize: '0.875rem'
                           }}>
                             {log.vpd ? `${log.vpd}kPa` : '-'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                          <span style={{ 
+                            color: log.soil_temperature_f ? '#f59e0b' : '#64748b', 
+                            fontWeight: '600',
+                            fontSize: '0.875rem'
+                          }}>
+                            {log.soil_temperature_f ? `${log.soil_temperature_f}°F` : '-'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                          <span style={{ 
+                            color: log.power_consumption ? '#8b5cf6' : '#64748b', 
+                            fontWeight: '600',
+                            fontSize: '0.875rem'
+                          }}>
+                            {log.power_consumption ? `${log.power_consumption}W` : '-'}
                           </span>
                         </td>
                         <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>

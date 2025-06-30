@@ -1,0 +1,28 @@
+{
+  "name": "emerald-plant-tracker-mcp",
+  "description": "MCP configuration for Emerald Plant Tracker development",
+  "version": "1.0.0",
+  "servers": {
+    "git": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-git",
+        "--repository",
+        "."
+      ],
+      "env": {
+        "GIT_REPOSITORY_PATH": "."
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-filesystem",
+        "."
+      ],
+      "env": {
+        "ALLOWED_DIRECTORIES": "."
+      }
+    }
+  }
+} 

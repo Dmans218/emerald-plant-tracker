@@ -1,439 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calculator, Info, Beaker, Copy, CheckCircle, FlaskConical } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-// Nutrient brand database with verified ratios and feeding schedules
-// Updated based on research from GrowWeedEasy.com and official manufacturer guidelines
-// General Hydroponics ratios verified against expert cannabis growing recommendations
-const nutrientBrands = {
-    'general-hydroponics': {
-      name: 'General Hydroponics FloraSeries',
-      description: 'The O.G. 3-Part Hydroponic-Based Nutrient System',
-      products: {
-        seedling: [
-          { name: 'FloraMicro', ratio: 1.25, unit: 'ml/gal' },  // GrowWeedEasy.com: 1/4 tsp/gal = 1.25ml/gal
-          { name: 'FloraGro', ratio: 1.25, unit: 'ml/gal' },   // GrowWeedEasy.com: 1/4 tsp/gal = 1.25ml/gal
-          { name: 'FloraBloom', ratio: 1.25, unit: 'ml/gal' }  // GrowWeedEasy.com: 1/4 tsp/gal = 1.25ml/gal
-        ],
-        vegetative: [
-          { name: 'FloraMicro', ratio: 2.5, unit: 'ml/gal' },  // GrowWeedEasy.com: 1/2 tsp/gal = 2.5ml/gal
-          { name: 'FloraGro', ratio: 2.5, unit: 'ml/gal' },   // GrowWeedEasy.com: 1/2 tsp/gal = 2.5ml/gal
-          { name: 'FloraBloom', ratio: 2.5, unit: 'ml/gal' }  // GrowWeedEasy.com: 1/2 tsp/gal = 2.5ml/gal
-        ],
-        flowering: [
-          { name: 'FloraMicro', ratio: 5.0, unit: 'ml/gal' }, // GrowWeedEasy.com: 1 tsp/gal = 5ml/gal
-          { name: 'FloraGro', ratio: 2.5, unit: 'ml/gal' },  // GrowWeedEasy.com: 1/2 tsp/gal = 2.5ml/gal
-          { name: 'FloraBloom', ratio: 7.5, unit: 'ml/gal' } // GrowWeedEasy.com: 1.5 tsp/gal = 7.5ml/gal
-        ],
-        supplements: [
-          { name: 'CaliMagic', ratio: 2.5, unit: 'ml/gal', optional: true },    // 0.5 tsp/gal = 2.5ml/gal
-          { name: 'Armor Si', ratio: 1.25, unit: 'ml/gal', optional: true },    // 0.25 tsp/gal = 1.25ml/gal
-          { name: 'Hydroguard', ratio: 5.0, unit: 'ml/gal', hydroOnly: true }   // 1 tsp/gal = 5ml/gal
-        ]
-      },
-      strengthMultipliers: {
-        light: 0.5,
-        medium: 0.75,
-        aggressive: 1.0
-      },
-      targetEC: {
-        seedling: { light: 0.4, medium: 0.6, aggressive: 0.8 },
-        vegetative: { light: 0.8, medium: 1.2, aggressive: 1.6 },
-        flowering: { light: 1.0, medium: 1.5, aggressive: 2.0 }
-      },
-      targetTDS: {
-        seedling: { light: 200, medium: 300, aggressive: 400 },
-        vegetative: { light: 400, medium: 600, aggressive: 800 },
-        flowering: { light: 500, medium: 750, aggressive: 1000 }
-      },
-      wateringMethodMultipliers: {
-        'hand-watering': 1.0,
-        'drip-system': 0.9,          // Slightly reduced for more frequent feeding
-        'bottom-wicking': 0.95,      // Slightly reduced for constant access
-        'aeroponics': 0.7,           // Significantly reduced due to constant misting
-        'deep-water-culture': 1.0,   // Same as hand watering - roots constantly in solution
-        'ebb-flow': 1.0              // Same as hand watering - periodic flooding
-      }
-    },
-    'advanced-nutrients': {
-      name: 'Advanced Nutrients pH Perfect GMB',
-      description: 'pH Perfect Technology for Cannabis - Micro/Grow/Bloom',
-      products: {
-        seedling: [
-          { name: 'pH Perfect Micro', ratio: 2.0, unit: 'ml/L' },  // Reduced for seedlings
-          { name: 'pH Perfect Grow', ratio: 2.0, unit: 'ml/L' },   // Reduced for seedlings
-          { name: 'pH Perfect Bloom', ratio: 2.0, unit: 'ml/L' }   // Reduced for seedlings
-        ],
-        vegetative: [
-          { name: 'pH Perfect Micro', ratio: 4.0, unit: 'ml/L' },  // Official AN: 4ml/L each component
-          { name: 'pH Perfect Grow', ratio: 4.0, unit: 'ml/L' },   // Official AN: 4ml/L each component
-          { name: 'pH Perfect Bloom', ratio: 4.0, unit: 'ml/L' }   // Official AN: 4ml/L each component
-        ],
-        flowering: [
-          { name: 'pH Perfect Micro', ratio: 4.0, unit: 'ml/L' },  // Official AN: 4ml/L each component
-          { name: 'pH Perfect Grow', ratio: 4.0, unit: 'ml/L' },   // Official AN: 4ml/L each component 
-          { name: 'pH Perfect Bloom', ratio: 4.0, unit: 'ml/L' }   // Official AN: 4ml/L each component
-        ],
-        supplements: [
-          { name: 'Voodoo Juice', ratio: 2.0, unit: 'ml/L', optional: true },                        // Standard AN supplement ratio
-          { name: 'Big Bud', ratio: 2.0, unit: 'ml/L', optional: true, floweringOnly: true },        // Standard AN supplement ratio
-          { name: 'Overdrive', ratio: 2.0, unit: 'ml/L', optional: true, floweringOnly: true },      // Standard AN supplement ratio
-          { name: 'B-52', ratio: 2.0, unit: 'ml/L', optional: true },                               // Standard AN supplement ratio
-          { name: 'Bud Candy', ratio: 2.0, unit: 'ml/L', optional: true, floweringOnly: true }      // Standard AN supplement ratio
-        ]
-      },
-      strengthMultipliers: {
-        light: 0.5,
-        medium: 0.75,
-        aggressive: 1.0
-      },
-      targetEC: {
-        seedling: { light: 0.3, medium: 0.5, aggressive: 0.7 },
-        vegetative: { light: 0.9, medium: 1.3, aggressive: 1.7 },
-        flowering: { light: 1.1, medium: 1.6, aggressive: 2.1 }
-      },
-      targetTDS: {
-        seedling: { light: 150, medium: 250, aggressive: 350 },
-        vegetative: { light: 450, medium: 650, aggressive: 850 },
-        flowering: { light: 550, medium: 800, aggressive: 1050 }
-      },
-      wateringMethodMultipliers: {
-        'hand-watering': 1.0,
-        'drip-system': 0.9,
-        'bottom-wicking': 0.95,
-        'aeroponics': 0.7,
-        'deep-water-culture': 1.0,
-        'ebb-flow': 1.0
-      }
-    },
-    'fox-farm': {
-      name: 'Fox Farm Trio',
-      description: 'Natural & Organic Based Plant Food',
-      products: {
-        seedling: [
-          { name: 'Big Bloom', ratio: 1.0, unit: 'tsp/gal' }  // Just Big Bloom for young plants
-        ],
-        vegetative: [
-          { name: 'Grow Big', ratio: 1.0, unit: 'tsp/gal' },
-          { name: 'Big Bloom', ratio: 2.0, unit: 'tsp/gal' }
-        ],
-        flowering: [
-          { name: 'Tiger Bloom', ratio: 1.0, unit: 'tsp/gal' },
-          { name: 'Big Bloom', ratio: 2.0, unit: 'tsp/gal' }
-        ],
-        supplements: [
-          { name: 'Cal-Mag', ratio: 1.0, unit: 'tsp/gal', optional: true }
-        ]
-      },
-      strengthMultipliers: {
-        light: 0.5,
-        medium: 0.75,
-        aggressive: 1.0
-      },
-      targetEC: {
-        seedling: { light: 0.5, medium: 0.7, aggressive: 0.9 },
-        vegetative: { light: 0.9, medium: 1.4, aggressive: 1.8 },
-        flowering: { light: 1.2, medium: 1.7, aggressive: 2.2 }
-      },
-      targetTDS: {
-        seedling: { light: 250, medium: 350, aggressive: 450 },
-        vegetative: { light: 450, medium: 700, aggressive: 900 },
-        flowering: { light: 600, medium: 850, aggressive: 1100 }
-      },
-      wateringMethodMultipliers: {
-        'hand-watering': 1.0,
-        'drip-system': 0.9,
-        'bottom-wicking': 0.95,
-        'aeroponics': 0.7,
-        'deep-water-culture': 1.0,
-        'ebb-flow': 1.0
-      }
-    },
-    'canna': {
-      name: 'Canna Coco',
-      description: 'Specifically designed for Coco Coir',
-      products: {
-        vegetative: [
-          { name: 'Canna Coco A', ratio: 4.0, unit: 'ml/L' },  // Official CANNA: 40ml/10L = 4ml/L base dosage
-          { name: 'Canna Coco B', ratio: 4.0, unit: 'ml/L' }   // Official CANNA: 40ml/10L = 4ml/L base dosage
-        ],
-        flowering: [
-          { name: 'Canna Coco A', ratio: 4.0, unit: 'ml/L' },  // Official CANNA: same for veg and flower
-          { name: 'Canna Coco B', ratio: 4.0, unit: 'ml/L' }   // Official CANNA: same for veg and flower
-        ],
-        supplements: [
-          { name: 'Rhizotonic', ratio: 4.0, unit: 'ml/L', optional: true },    // Official CANNA: 40ml/10L
-          { name: 'Cannazym', ratio: 2.5, unit: 'ml/L', optional: true },      // Official CANNA: 25ml/10L
-          { name: 'Cannaboost', ratio: 2.0, unit: 'ml/L', optional: true },    // Official CANNA: 20ml/10L
-          { name: 'PK 13/14', ratio: 1.5, unit: 'ml/L', optional: true, floweringOnly: true }  // Official CANNA: 15ml/10L in flower
-        ]
-      },
-      strengthMultipliers: {
-        light: 0.6,
-        medium: 0.8,
-        aggressive: 1.0
-      },
-      targetEC: {
-        seedling: { light: 0.4, medium: 0.6, aggressive: 0.8 },
-        vegetative: { light: 1.0, medium: 1.4, aggressive: 1.8 },
-        flowering: { light: 1.2, medium: 1.6, aggressive: 2.0 }
-      },
-      targetTDS: {
-        seedling: { light: 200, medium: 300, aggressive: 400 },
-        vegetative: { light: 500, medium: 700, aggressive: 900 },
-        flowering: { light: 600, medium: 800, aggressive: 1000 }
-      },
-      wateringMethodMultipliers: {
-        'hand-watering': 1.0,
-        'drip-system': 0.9,
-        'bottom-wicking': 0.95,
-        'aeroponics': 0.7,
-        'deep-water-culture': 1.0,
-        'ebb-flow': 1.0
-      }
-    },
-    'jack-nutrients': {
-      name: 'Jack\'s Nutrients 321',
-      description: 'Professional Dry Nutrients - Ultra Concentrated',
-      products: {
-        vegetative: [
-          { name: 'Jack\'s 5-12-26', ratio: 3.6, unit: 'g/gal' },
-          { name: 'Epsom Salt', ratio: 1.2, unit: 'g/gal' },
-          { name: 'Calcium Nitrate', ratio: 2.4, unit: 'g/gal' }
-        ],
-        flowering: [
-          { name: 'Jack\'s 5-12-26', ratio: 3.6, unit: 'g/gal' },
-          { name: 'Epsom Salt', ratio: 1.2, unit: 'g/gal' },
-          { name: 'Calcium Nitrate', ratio: 2.4, unit: 'g/gal' }
-        ],
-        supplements: [
-          { name: 'Jack\'s Bloom 10-30-20', ratio: 3.5, unit: 'g/gal', optional: true, floweringOnly: true }
-        ]
-      },
-      strengthMultipliers: {
-        light: 0.5,
-        medium: 0.8,
-        aggressive: 1.0
-      },
-      targetEC: {
-        seedling: { light: 0.4, medium: 0.6, aggressive: 0.8 },
-        vegetative: { light: 1.0, medium: 1.5, aggressive: 2.0 },
-        flowering: { light: 1.2, medium: 1.7, aggressive: 2.2 }
-      },
-      targetTDS: {
-        seedling: { light: 200, medium: 300, aggressive: 400 },
-        vegetative: { light: 500, medium: 750, aggressive: 1000 },
-        flowering: { light: 600, medium: 850, aggressive: 1100 }
-      },
-      wateringMethodMultipliers: {
-        'hand-watering': 1.0,
-        'drip-system': 0.9,
-        'bottom-wicking': 0.95,
-        'aeroponics': 0.7,
-        'deep-water-culture': 1.0,
-        'ebb-flow': 1.0
-      }
-    },
-    'megacrop': {
-      name: 'MegaCrop by Greenleaf',
-      description: 'All-in-One Complete Nutrient - Seed to Harvest',
-      products: {
-        vegetative: [
-          { name: 'MegaCrop', ratio: 5.0, unit: 'g/gal' }
-        ],
-        flowering: [
-          { name: 'MegaCrop', ratio: 6.0, unit: 'g/gal' }
-        ],
-        supplements: [
-          { name: 'Bud Explosion PK', ratio: 1.0, unit: 'g/gal', optional: true, floweringOnly: true },
-          { name: 'Sweet Candy', ratio: 0.5, unit: 'g/gal', optional: true },
-          { name: 'CalMag Pro', ratio: 1.0, unit: 'g/gal', optional: true }
-        ]
-      },
-      strengthMultipliers: {
-        light: 0.7,
-        medium: 0.85,
-        aggressive: 1.0
-      },
-      targetEC: {
-        seedling: { light: 0.5, medium: 0.7, aggressive: 0.9 },
-        vegetative: { light: 1.0, medium: 1.4, aggressive: 1.8 },
-        flowering: { light: 1.2, medium: 1.6, aggressive: 2.0 }
-      },
-      targetTDS: {
-        seedling: { light: 250, medium: 350, aggressive: 450 },
-        vegetative: { light: 500, medium: 700, aggressive: 900 },
-        flowering: { light: 600, medium: 800, aggressive: 1000 }
-      },
-      wateringMethodMultipliers: {
-        'hand-watering': 1.0,
-        'drip-system': 0.9,
-        'bottom-wicking': 0.95,
-        'aeroponics': 0.7,
-        'deep-water-culture': 1.0,
-        'ebb-flow': 1.0
-      }
-    },
-    'botanicare': {
-      name: 'Botanicare Pure Blend Pro',
-      description: 'Premium Natural & Organic Based Nutrients',
-      products: {
-        vegetative: [
-          { name: 'Pure Blend Pro Grow', ratio: 1.0, unit: 'tsp/gal' }
-        ],
-        flowering: [
-          { name: 'Pure Blend Pro Bloom', ratio: 1.0, unit: 'tsp/gal' }
-        ],
-        supplements: [
-          { name: 'Cal-Mag Plus', ratio: 1.0, unit: 'tsp/gal', optional: true },
-          { name: 'Hydroguard', ratio: 2.0, unit: 'ml/L', hydroOnly: true }
-        ]
-      },
-      strengthMultipliers: {
-        light: 0.5,
-        medium: 0.75,
-        aggressive: 1.0
-      },
-      targetEC: {
-        seedling: { light: 0.4, medium: 0.6, aggressive: 0.8 },
-        vegetative: { light: 0.8, medium: 1.2, aggressive: 1.6 },
-        flowering: { light: 1.0, medium: 1.4, aggressive: 1.8 }
-      },
-      targetTDS: {
-        seedling: { light: 200, medium: 300, aggressive: 400 },
-        vegetative: { light: 400, medium: 600, aggressive: 800 },
-        flowering: { light: 500, medium: 700, aggressive: 900 }
-      },
-      wateringMethodMultipliers: {
-        'hand-watering': 1.0,
-        'drip-system': 0.9,
-        'bottom-wicking': 0.95,
-        'aeroponics': 0.7,
-        'deep-water-culture': 1.0,
-        'ebb-flow': 1.0
-      }
-    },
-    'dyna-gro': {
-      name: 'Dyna-Gro Foliage Pro + Bloom',
-      description: 'Simple 2-Part System - Originally for Orchids',
-      products: {
-        vegetative: [
-          { name: 'Foliage Pro 9-3-6', ratio: 1.0, unit: 'tsp/gal' }
-        ],
-        flowering: [
-          { name: 'Bloom 3-12-6', ratio: 1.0, unit: 'tsp/gal' }
-        ],
-        supplements: [
-          { name: 'Pro-TeKt (Silica)', ratio: 0.5, unit: 'tsp/gal', optional: true }
-        ]
-      },
-      strengthMultipliers: {
-        light: 0.5,
-        medium: 0.75,
-        aggressive: 1.0
-      },
-      targetEC: {
-        seedling: { light: 0.3, medium: 0.5, aggressive: 0.7 },
-        vegetative: { light: 0.8, medium: 1.2, aggressive: 1.6 },
-        flowering: { light: 1.0, medium: 1.4, aggressive: 1.8 }
-      },
-      targetTDS: {
-        seedling: { light: 150, medium: 250, aggressive: 350 },
-        vegetative: { light: 400, medium: 600, aggressive: 800 },
-        flowering: { light: 500, medium: 700, aggressive: 900 }
-      },
-      wateringMethodMultipliers: {
-        'hand-watering': 1.0,
-        'drip-system': 0.9,
-        'bottom-wicking': 0.95,
-        'aeroponics': 0.7,
-        'deep-water-culture': 1.0,
-        'ebb-flow': 1.0
-      }
-    },
-    'house-garden': {
-      name: 'House & Garden Aqua Flakes',
-      description: 'Premium Dutch Nutrients - Tested on Cannabis',
-      products: {
-        vegetative: [
-          { name: 'Aqua Flakes A', ratio: 2.7, unit: 'ml/L' },
-          { name: 'Aqua Flakes B', ratio: 2.7, unit: 'ml/L' }
-        ],
-        flowering: [
-          { name: 'Aqua Flakes A', ratio: 2.7, unit: 'ml/L' },
-          { name: 'Aqua Flakes B', ratio: 2.7, unit: 'ml/L' }
-        ],
-        supplements: [
-          { name: 'Roots Excelurator', ratio: 1.1, unit: 'ml/L', optional: true },
-          { name: 'Bud XL', ratio: 1.0, unit: 'ml/L', optional: true, floweringOnly: true },
-          { name: 'Shooting Powder', ratio: 65.0, unit: 'mg/L', optional: true, floweringOnly: true }
-        ]
-      },
-      strengthMultipliers: {
-        light: 0.6,
-        medium: 0.8,
-        aggressive: 1.0
-      },
-      targetEC: {
-        seedling: { light: 0.4, medium: 0.6, aggressive: 0.8 },
-        vegetative: { light: 1.0, medium: 1.4, aggressive: 1.8 },
-        flowering: { light: 1.2, medium: 1.6, aggressive: 2.0 }
-      },
-      targetTDS: {
-        seedling: { light: 200, medium: 300, aggressive: 400 },
-        vegetative: { light: 500, medium: 700, aggressive: 900 },
-        flowering: { light: 600, medium: 800, aggressive: 1000 }
-      },
-      wateringMethodMultipliers: {
-        'hand-watering': 1.0,
-        'drip-system': 0.9,
-        'bottom-wicking': 0.95,
-        'aeroponics': 0.7,
-        'deep-water-culture': 1.0,
-        'ebb-flow': 1.0
-      }
-    },
-    'nectar-gods': {
-      name: 'Nectar for the Gods',
-      description: 'Calcium-Based Organic Nutrient Line',
-      products: {
-        vegetative: [
-          { name: 'Medusa\'s Magic', ratio: 2.0, unit: 'tsp/gal' },
-          { name: 'Gaia Mania', ratio: 1.0, unit: 'tsp/gal' }
-        ],
-        flowering: [
-          { name: 'Medusa\'s Magic', ratio: 2.0, unit: 'tsp/gal' },
-          { name: 'Herculean Harvest', ratio: 1.0, unit: 'tsp/gal' }
-        ],
-        supplements: [
-          { name: 'Zeus Juice', ratio: 1.0, unit: 'tsp/gal', optional: true }
-        ]
-      },
-      strengthMultipliers: {
-        light: 0.5,
-        medium: 0.75,
-        aggressive: 1.0
-      },
-      targetEC: {
-        seedling: { light: 0.3, medium: 0.5, aggressive: 0.7 },
-        vegetative: { light: 0.8, medium: 1.2, aggressive: 1.6 },
-        flowering: { light: 1.0, medium: 1.4, aggressive: 1.8 }
-      },
-      targetTDS: {
-        seedling: { light: 150, medium: 250, aggressive: 350 },
-        vegetative: { light: 400, medium: 600, aggressive: 800 },
-        flowering: { light: 500, medium: 700, aggressive: 900 }
-      },
-      wateringMethodMultipliers: {
-        'hand-watering': 1.0,
-        'drip-system': 0.9,
-        'bottom-wicking': 0.95,
-        'aeroponics': 0.7,
-        'deep-water-culture': 1.0,
-        'ebb-flow': 1.0
-      }
-    }
-  };
+import { nutrientsAPI } from '../utils/api';
 
 const NutrientCalculator = () => {
   // Load saved preferences from localStorage or use defaults
@@ -449,12 +17,70 @@ const NutrientCalculator = () => {
   const [selectedBrand, setSelectedBrand] = useState(() => loadPreference('selectedBrand', 'general-hydroponics'));
   const [growthStage, setGrowthStage] = useState(() => loadPreference('growthStage', 'vegetative'));
   const [tankSize, setTankSize] = useState(() => loadPreference('tankSize', 50));
-  const [waterType, setWaterType] = useState(() => loadPreference('waterType', 'soft'));
+  const [selectedOptionals, setSelectedOptionals] = useState(() => loadPreference('selectedOptionals', []));
   const [growMedium, setGrowMedium] = useState(() => loadPreference('growMedium', 'hydro'));
   const [feedingStrength, setFeedingStrength] = useState(() => loadPreference('feedingStrength', 'medium'));
   const [wateringMethod, setWateringMethod] = useState(() => loadPreference('wateringMethod', 'hand-watering'));
   const [calculations, setCalculations] = useState(null);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+
+  // New state for API data
+  const [nutrientBrands, setNutrientBrands] = useState({});
+  const [availableBrands, setAvailableBrands] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch available brands on component mount
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        setLoading(true);
+        const response = await nutrientsAPI.getBrands();
+        if (response.success) {
+          setAvailableBrands(response.data);
+          // Load the first brand data by default
+          if (response.data.length > 0) {
+            const defaultBrandId = response.data.find(brand => brand.id === selectedBrand)?.id || response.data[0].id;
+            setSelectedBrand(defaultBrandId);
+          }
+        } else {
+          throw new Error(response.error || 'Failed to fetch brands');
+        }
+      } catch (err) {
+        console.error('Error fetching nutrient brands:', err);
+        setError('Failed to load nutrient brands. Please try refreshing the page.');
+        toast.error('Failed to load nutrient brands');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBrands();
+  }, []);
+
+  // Fetch specific brand data when selectedBrand changes
+  useEffect(() => {
+    const fetchBrandData = async () => {
+      if (!selectedBrand || !availableBrands.length) return;
+
+      try {
+        const response = await nutrientsAPI.getBrandData(selectedBrand);
+        if (response.success) {
+          setNutrientBrands(prev => ({
+            ...prev,
+            [selectedBrand]: response.data
+          }));
+        } else {
+          throw new Error(response.error || 'Failed to fetch brand data');
+        }
+      } catch (err) {
+        console.error('Error fetching brand data:', err);
+        toast.error('Failed to load brand data');
+      }
+    };
+
+    fetchBrandData();
+  }, [selectedBrand, availableBrands]);
 
   // Save preferences to localStorage
   const savePreference = (key, value) => {
@@ -507,28 +133,20 @@ const NutrientCalculator = () => {
     setFeedingStrength(newStrength);
     savePreference('feedingStrength', newStrength);
     
-    // Suggest appropriate growth stage based on feeding strength
-    if (newStrength === 'light' && growthStage === 'flowering') {
-      toast('💡 Light feeding is typically used for seedlings or young plants', {
-        icon: '💡',
-        duration: 3000
-      });
-    } else if (newStrength === 'aggressive' && (growthStage === 'vegetative' || growthStage === 'seedling')) {
-      toast('💡 Aggressive feeding is typically used in flowering stage', {
-        icon: '💡',
-        duration: 3000
-      });
-    } else if (newStrength === 'medium' && growthStage === 'seedling') {
-      toast('💡 Consider using light feeding for seedlings to prevent burn', {
-        icon: '💡',
-        duration: 3000
-      });
+    // Smart warnings for strength vs. growth stage mismatches
+    if (newStrength === 'aggressive' && growthStage === 'seedling') {
+      toast.error('⚠️ Aggressive feeding may burn seedlings. Consider light strength.');
+    } else if (newStrength === 'light' && growthStage === 'flowering') {
+      toast('💡 Light feeding during flowering may reduce yields. Consider medium or aggressive.');
     }
   };
 
   const handleBrandChange = (brand) => {
     setSelectedBrand(brand);
     savePreference('selectedBrand', brand);
+    // Reset selected optionals when brand changes
+    setSelectedOptionals([]);
+    savePreference('selectedOptionals', []);
   };
 
   const handleTankSizeChange = (size) => {
@@ -536,9 +154,13 @@ const NutrientCalculator = () => {
     savePreference('tankSize', size);
   };
 
-  const handleWaterTypeChange = (type) => {
-    setWaterType(type);
-    savePreference('waterType', type);
+  const handleOptionalsChange = (optionalName, isSelected) => {
+    const newOptionals = isSelected 
+      ? [...selectedOptionals, optionalName]
+      : selectedOptionals.filter(name => name !== optionalName);
+    
+    setSelectedOptionals(newOptionals);
+    savePreference('selectedOptionals', newOptionals);
   };
 
   const handleGrowMediumChange = (medium) => {
@@ -553,8 +175,10 @@ const NutrientCalculator = () => {
 
   const calculateNutrients = useCallback(() => {
     const brand = nutrientBrands[selectedBrand];
-    const products = brand.products[growthStage];
-    const supplements = brand.products.supplements;
+    if (!brand) return;
+    
+    const products = brand.products[growthStage] || [];
+    const supplements = brand.products.supplements || [];
     let multiplier = brand.strengthMultipliers[feedingStrength];
     
     // Apply watering method adjustments using brand-specific multipliers
@@ -579,7 +203,7 @@ const NutrientCalculator = () => {
     };
 
     // Calculate base nutrients
-    products.forEach(product => {
+      products.forEach(product => {
       let amount = product.ratio * multiplier;
       
       if (product.unit === 'tsp/gal') {
@@ -642,14 +266,8 @@ const NutrientCalculator = () => {
       let amount = supplement.ratio * multiplier;
       let adjustedOptional = supplement.optional;
       
-      // Adjust CalMag recommendations based on water type
-      if (isCalMag) {
-        if (waterType === 'hard') {
-          adjustedOptional = true; // Make it optional for hard water
-        } else if (waterType === 'soft') {
-          adjustedOptional = false; // Make it recommended for soft/RO water
-        }
-      }
+      // CalMag is now controlled by user selection in optionals
+      // No automatic water type adjustments needed
       
       let unit = 'ml';
       if (supplement.unit === 'tsp/gal') {
@@ -673,7 +291,7 @@ const NutrientCalculator = () => {
         optional: adjustedOptional,
         originalRatio: supplement.ratio,
         originalUnit: supplement.unit,
-        waterTypeNote: isCalMag ? (waterType === 'soft' ? 'Essential for RO/soft water' : 'May not be needed - test your tap water first') : null
+        waterTypeNote: null
       });
     });
 
@@ -761,7 +379,7 @@ const NutrientCalculator = () => {
     }
 
     setCalculations(calculations);
-  }, [selectedBrand, growthStage, tankSize, waterType, growMedium, feedingStrength, wateringMethod]);
+  }, [selectedBrand, growthStage, tankSize, selectedOptionals, growMedium, feedingStrength, wateringMethod]);
 
   const copyToClipboard = () => {
     if (!calculations) return;
@@ -796,10 +414,12 @@ const NutrientCalculator = () => {
   };
 
   useEffect(() => {
-    calculateNutrients();
-  }, [calculateNutrients]);
+    if (selectedBrand && nutrientBrands[selectedBrand]) {
+      calculateNutrients();
+    }
+  }, [calculateNutrients, selectedBrand, nutrientBrands]);
 
-  // Add CSS for dark dropdown options
+  // Add CSS for dark dropdown options and loading spinner
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
@@ -810,6 +430,10 @@ const NutrientCalculator = () => {
       select option:hover {
         background-color: #4a5568 !important;
       }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
     `;
     document.head.appendChild(style);
     
@@ -818,7 +442,75 @@ const NutrientCalculator = () => {
     };
   }, []);
 
-  return (
+  if (loading) {
+    return (
+      <div className="dashboard-page">
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '60vh',
+          flexDirection: 'column',
+          gap: '1rem'
+        }}>
+          <div style={{ 
+            width: '40px', 
+            height: '40px', 
+            border: '3px solid var(--primary-color)', 
+            borderTop: '3px solid transparent', 
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>
+            Loading nutrient database...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard-page">
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '60vh',
+          flexDirection: 'column',
+          gap: '1rem',
+          padding: '2rem'
+        }}>
+          <div style={{ 
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            borderRadius: '12px',
+            padding: '2rem',
+            textAlign: 'center',
+            maxWidth: '500px'
+          }}>
+            <h2 style={{ color: '#ef4444', marginBottom: '1rem' }}>Error Loading Nutrient Data</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>{error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              style={{
+                background: 'var(--primary-color)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '0.75rem 1.5rem',
+                cursor: 'pointer'
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+    return (
     <div className="dashboard-page">
       {/* Ultra-Modern Header */}
       <header className="dashboard-header" style={{ animation: 'fadeInUp 0.6s ease-out' }}>
@@ -875,7 +567,7 @@ const NutrientCalculator = () => {
           </h2>
         </div>
         
-        <div style={{
+      <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
           gap: '1.5rem'
@@ -904,10 +596,10 @@ const NutrientCalculator = () => {
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
               <div><strong>Vegetative:</strong> Higher N, Light-Medium strength</div>
               <div><strong>Flowering:</strong> Higher P&K, Medium-Aggressive strength</div>
-            </div>
-          </div>
-          
-          <div style={{
+        </div>
+      </div>
+
+    <div style={{
             background: 'rgba(59, 130, 246, 0.1)',
             border: '1px solid rgba(59, 130, 246, 0.2)',
             borderRadius: '12px',
@@ -935,7 +627,7 @@ const NutrientCalculator = () => {
             </div>
           </div>
 
-          <div style={{
+      <div style={{
             background: 'rgba(245, 158, 11, 0.1)',
             border: '1px solid rgba(245, 158, 11, 0.2)',
             borderRadius: '12px',
@@ -959,7 +651,7 @@ const NutrientCalculator = () => {
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
               <div><strong>Hydro/Coco:</strong> 5.5-6.5</div>
               <div><strong>Soil:</strong> 6.0-7.0</div>
-            </div>
+        </div>
           </div>
 
           <div style={{
@@ -987,7 +679,7 @@ const NutrientCalculator = () => {
               <div><strong>Hand:</strong> Standard (100%)</div>
               <div><strong>Drip:</strong> Reduced (80%)</div>
               <div><strong>Aero:</strong> Very Low (60%)</div>
-            </div>
+      </div>
           </div>
         </div>
       </section>
@@ -1033,6 +725,7 @@ const NutrientCalculator = () => {
             <select
               value={selectedBrand}
               onChange={(e) => handleBrandChange(e.target.value)}
+              disabled={loading || availableBrands.length === 0}
               style={{
                 width: '100%',
                 background: '#2d3748',
@@ -1040,19 +733,21 @@ const NutrientCalculator = () => {
                 borderRadius: '8px',
                 padding: '0.75rem',
                 color: 'var(--text-primary)',
-                fontSize: '0.875rem'
+                fontSize: '0.875rem',
+                opacity: loading ? 0.6 : 1
               }}
             >
-              <option value="general-hydroponics">General Hydroponics FloraSeries</option>
-              <option value="advanced-nutrients">Advanced Nutrients pH Perfect GMB</option>
-              <option value="fox-farm">Fox Farm Trio</option>
-              <option value="canna">Canna Coco</option>
-              <option value="jack-nutrients">Jack&apos;s Nutrients 321</option>
-              <option value="megacrop">MegaCrop by Greenleaf</option>
-              <option value="botanicare">Botanicare Pure Blend Pro</option>
-              <option value="dyna-gro">Dyna-Gro Foliage Pro + Bloom</option>
-              <option value="house-garden">House & Garden Aqua Flakes</option>
-              <option value="nectar-gods">Nectar for the Gods</option>
+              {loading ? (
+                <option value="">Loading nutrient brands...</option>
+              ) : availableBrands.length === 0 ? (
+                <option value="">No brands available</option>
+              ) : (
+                availableBrands.map(brand => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))
+              )}
             </select>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: '0.25rem 0 0 0' }}>
               {nutrientBrands[selectedBrand]?.description || 'Professional nutrient system'}
@@ -1167,24 +862,67 @@ const NutrientCalculator = () => {
               color: 'var(--text-primary)', 
               marginBottom: '0.5rem' 
             }}>
-              Water Type
+              Optional Supplements
             </label>
-            <select
-              value={waterType}
-              onChange={(e) => handleWaterTypeChange(e.target.value)}
-              style={{
-                width: '100%',
-                background: '#2d3748',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                padding: '0.75rem',
-                color: 'var(--text-primary)',
-                fontSize: '0.875rem'
-              }}
-            >
-              <option value="soft">💧 Soft Water (RO/Distilled)</option>
-              <option value="hard">🪨 Hard Water (Tap)</option>
-            </select>
+            <div style={{
+              maxHeight: '120px',
+              overflowY: 'auto',
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              padding: '0.5rem',
+              background: '#2d3748'
+            }}>
+              {nutrientBrands[selectedBrand]?.products?.supplements?.length > 0 ? (
+                nutrientBrands[selectedBrand].products.supplements
+                  .filter(supplement => {
+                    // Filter by growth stage and medium compatibility
+                    if (supplement.floweringOnly && growthStage !== 'flowering') return false;
+                    if (supplement.hydroOnly && growMedium !== 'hydro') return false;
+                    if (supplement.earlyGrowth && growthStage === 'flowering') return false;
+                    return true;
+                  })
+                  .map((supplement, index) => (
+                    <label key={index} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.25rem 0',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      color: 'var(--text-primary)'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedOptionals.includes(supplement.name)}
+                        onChange={(e) => handleOptionalsChange(supplement.name, e.target.checked)}
+                        style={{
+                          width: '16px',
+                          height: '16px',
+                          accentColor: 'var(--primary-color)'
+                        }}
+                      />
+                      <span style={{ flex: 1 }}>
+                        {supplement.name}
+                        {supplement.floweringOnly && <span style={{ color: '#f59e0b', fontSize: '0.75rem' }}> (flower only)</span>}
+                        {supplement.hydroOnly && <span style={{ color: '#06b6d4', fontSize: '0.75rem' }}> (hydro only)</span>}
+                        {supplement.earlyGrowth && <span style={{ color: '#10b981', fontSize: '0.75rem' }}> (early growth)</span>}
+                      </span>
+                    </label>
+                  ))
+              ) : (
+                <p style={{ 
+                  color: 'var(--text-muted)', 
+                  fontSize: '0.75rem', 
+                  margin: '0.5rem 0',
+                  textAlign: 'center'
+                }}>
+                  {loading ? 'Loading...' : 'No supplements available'}
+                </p>
+              )}
+            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: '0.25rem 0 0 0' }}>
+              Select only the supplements you actually have
+            </p>
           </div>
 
           <div className="stat-card" style={{ animation: 'fadeInUp 0.8s ease-out 0.6s both' }}>
@@ -1225,27 +963,27 @@ const NutrientCalculator = () => {
       </section>
 
       {/* Your Nutrient Recipe - Stylish and Modern */}
-      <section style={{
-        background: 'rgba(255,255,255,0.02)',
-        borderRadius: '16px',
-        border: '1px solid var(--border)',
-        padding: '1.5rem',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        animation: 'fadeInUp 0.8s ease-out 0.6s both'
-      }}>
+        <section style={{
+          background: 'rgba(255,255,255,0.02)',
+          borderRadius: '16px',
+          border: '1px solid var(--border)',
+          padding: '1.5rem',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          animation: 'fadeInUp 0.8s ease-out 0.6s both'
+        }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <FlaskConical className="w-6 h-6" style={{ color: 'var(--primary-color)' }} />
-            <h2 style={{
-              color: 'var(--text-primary)',
-              fontSize: '1.5rem',
-              fontWeight: 'bold',
-              margin: 0
-            }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <FlaskConical className="w-6 h-6" style={{ color: 'var(--primary-color)' }} />
+              <h2 style={{
+                color: 'var(--text-primary)',
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                margin: 0
+              }}>
               Your Nutrient Recipe
-            </h2>
-          </div>
+              </h2>
+            </div>
           
           {/* Tank Size Input in Recipe Card */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -1270,12 +1008,12 @@ const NutrientCalculator = () => {
               max="1000"
             />
           </div>
-        </div>
+          </div>
 
         {calculations && (
           <div style={{ display: 'grid', gap: '1.5rem' }}>
             {/* Recipe Header */}
-            <div style={{
+          <div style={{
               background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1))',
               border: '1px solid rgba(16, 185, 129, 0.2)',
               borderRadius: '12px',
@@ -1298,7 +1036,7 @@ const NutrientCalculator = () => {
                 color: 'var(--primary-color)', 
                 fontWeight: '600', 
                 marginBottom: '0.5rem',
-                display: 'flex',
+                  display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem'
               }}>
@@ -1318,7 +1056,7 @@ const NutrientCalculator = () => {
             {/* Vertical Recipe Layout for Clear Mixing Order */}
             <div style={{ display: 'grid', gap: '1.5rem' }}>
               {/* Supplements First - They go in the water first */}
-              {calculations.supplements.length > 0 && (
+            {calculations.supplements.length > 0 && (
                 <div className="stat-card" style={{ animation: 'fadeInUp 0.8s ease-out 0.2s both' }}>
                   <h4 style={{
                     color: '#f59e0b',
@@ -1331,15 +1069,15 @@ const NutrientCalculator = () => {
                     ⚡ Step 1: Supplements (Add first - before base nutrients)
                   </h4>
                   <div style={{ display: 'grid', gap: '0.75rem' }}>
-                    {calculations.supplements.map((supplement, index) => (
-                      <div key={index} style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
+                {calculations.supplements.map((supplement, index) => (
+                  <div key={index} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
                         alignItems: 'center',
                         padding: '1rem',
                         background: 'rgba(245, 158, 11, 0.1)',
                         border: '1px solid rgba(245, 158, 11, 0.2)',
-                        borderRadius: '8px',
+                    borderRadius: '8px',
                         transition: 'all 0.3s ease',
                         cursor: 'pointer'
                       }}
@@ -1370,7 +1108,7 @@ const NutrientCalculator = () => {
                           </div>
                           <span style={{ fontWeight: '500', color: 'var(--text-primary)', fontSize: '1rem' }}>
                             {supplement.name}
-                          </span>
+                    </span>
                         </div>
                         <span style={{ 
                           color: '#f59e0b', 
@@ -1379,9 +1117,9 @@ const NutrientCalculator = () => {
                           fontSize: '1rem'
                         }}>
                           {supplement.amount} {supplement.unit}
-                        </span>
-                      </div>
-                    ))}
+                    </span>
+                  </div>
+                ))}
                   </div>
                   <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.75rem', margin: '0.75rem 0 0 0' }}>
                     💡 Add in exact order shown. 
@@ -1406,8 +1144,8 @@ const NutrientCalculator = () => {
                       }
                     })()}
                   </p>
-                </div>
-              )}
+              </div>
+            )}
 
               {/* Base Nutrients Second */}
               <div className="stat-card" style={{ animation: 'fadeInUp 0.8s ease-out 0.3s both' }}>
@@ -1424,13 +1162,13 @@ const NutrientCalculator = () => {
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
                   {calculations.baseNutrients.map((nutrient, index) => (
                     <div key={index} style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
+                  display: 'flex',
+                  justifyContent: 'space-between',
                       alignItems: 'center',
                       padding: '1rem',
                       background: 'rgba(59, 130, 246, 0.1)',
                       border: '1px solid rgba(59, 130, 246, 0.2)',
-                      borderRadius: '8px',
+                  borderRadius: '8px',
                       transition: 'all 0.3s ease',
                       cursor: 'pointer'
                     }}
@@ -1445,13 +1183,13 @@ const NutrientCalculator = () => {
                       e.target.style.borderColor = 'rgba(59, 130, 246, 0.2)';
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{
+                <div style={{
                           width: '24px',
                           height: '24px',
                           borderRadius: '50%',
                           background: '#3b82f6',
                           color: 'white',
-                          display: 'flex',
+                  display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontSize: '0.75rem',
@@ -1461,8 +1199,8 @@ const NutrientCalculator = () => {
                         </div>
                         <span style={{ fontWeight: '500', color: 'var(--text-primary)', fontSize: '1rem' }}>
                           {nutrient.name}
-                        </span>
-                      </div>
+                  </span>
+                </div>
                       <span style={{ 
                         color: '#3b82f6', 
                         fontWeight: '600',
@@ -1477,8 +1215,8 @@ const NutrientCalculator = () => {
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.75rem', margin: '0.75rem 0 0 0' }}>
                   💡 Mix thoroughly between each addition
                 </p>
-              </div>
             </div>
+          </div>
 
             {/* Mixing Instructions */}
             <div style={{
@@ -1547,10 +1285,10 @@ const NutrientCalculator = () => {
                 <li><strong>Check pH</strong> - Adjust to 5.5-6.5 for hydro/coco, 6.0-7.0 for soil</li>
                 <li><strong>Check TDS/PPM</strong> - Should match your feeding strength guidelines{calculations.targetTDS ? ` (target: ${calculations.targetTDS} ppm)` : ''}</li>
                 <li><strong>Use fresh</strong> - Mix fresh every 7-10 days for best results</li>
-              </ol>
-            </div>
+            </ol>
           </div>
-        )}
+          </div>
+      )}
       </section>
     </div>
   );

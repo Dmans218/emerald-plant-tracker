@@ -23,14 +23,13 @@
     "web-vitals": "^5.0.2"
   },
   "scripts": {
-    "start": "craco start",
-    "build": "craco build",
-    "test": "craco test --watchAll=false --passWithNoTests",
-    "eject": "react-scripts eject",
-    "audit": "npm audit || true",
-    "audit-fix": "npm audit fix",
-    "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix"
+    "dev": "bun run build && bun run serve.js",
+    "start": "bun run build && bun run serve.js", 
+    "build": "bun build src/index.js --outdir=build --target=browser --minify --sourcemap=external --define 'process.env.NODE_ENV=\"development\"' --define 'process.env={}' --define 'global=globalThis'",
+    "serve": "bun run serve.js",
+    "test": "bun test",
+    "lint": "bun run eslint src/",
+    "lint:fix": "bun run eslint src/ --fix"
   },
   "npmConfig": {
     "legacy-peer-deps": true
@@ -47,15 +46,12 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:420",
+
   "devDependencies": {
-    "@craco/craco": "^7.1.0",
     "@eslint/js": "^9.28.0",
     "eslint": "^9.28.0",
     "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
-    "react-scripts": "^5.0.1"
+    "eslint-plugin-react-hooks": "^5.2.0"
   },
   "engines": {
     "node": ">=22.0.0",

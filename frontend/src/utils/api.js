@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// In production (single container), use relative paths
-// In development, use the environment variable or default to localhost:5000
-const API_BASE_URL = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000');
+// Use relative paths to go through the development proxy on port 3000 -> 420
+// In production (single container), also use relative paths
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
@@ -88,6 +88,13 @@ export const environmentApi = {
   update: (id, data) => api.put(`/environment/${id}`, data),
   delete: (id) => api.delete(`/environment/${id}`),
   getGrowTents: () => api.get('/environment/grow-tents'),
+};
+
+// Nutrients API
+export const nutrientsAPI = {
+  getBrands: () => api.get('/nutrients/brands'),
+  getBrandData: (brandId) => api.get(`/nutrients/brands/${brandId}`),
+  calculate: (data) => api.post('/nutrients/calculate', data),
 };
 
 // Health check

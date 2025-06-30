@@ -1,12 +1,12 @@
-FROM node:22-alpine
+FROM oven/bun:1.1-alpine
 
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json bun.lockb* ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies with Bun (much faster than npm)
+RUN bun install --frozen-lockfile
 
 # Copy source code
 COPY . .
@@ -14,5 +14,5 @@ COPY . .
 # Expose port
 EXPOSE 3000
 
-# Start development server
-CMD ["npm", "start"]
+# Start development server with Bun
+CMD ["bun", "run", "start"]

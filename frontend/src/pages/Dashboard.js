@@ -55,7 +55,7 @@ const Dashboard = () => {
       }
       
       // Fallback: try direct URL
-      const directResponse = await fetch('http://localhost:5000/api/environment/latest-per-tent');
+      const directResponse = await fetch('/api/environment/latest-per-tent');
       if (directResponse.ok) {
         const directData = await directResponse.json();
         setEnvironmentData(directData || []);

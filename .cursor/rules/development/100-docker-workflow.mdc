@@ -1,0 +1,45 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Docker-First Development Workflow
+
+## CRITICAL: Development Commands
+
+**NEVER use `npm start` from frontend directory!**
+
+### ✅ Correct Development Commands:
+- `./start-dev.sh` - Primary development command (Docker-first)
+- `./dev-helper.sh start` - Alternative using helper script
+- `npm run dev` - From project root (uses concurrently)
+
+### ❌ AVOID These Commands:
+- `cd frontend && npm start` - Breaks Docker-first workflow
+- Direct npm commands from subdirectories
+
+## Port Configuration
+- **Backend**: Port 420 (cannabis-themed, consistent dev/prod)
+- **Frontend Dev Server**: Port 3000 (proxies to 420)
+- **Production**: Port 420 only
+
+## Why Docker-First?
+1. **Consistency**: Same environment dev/prod
+2. **Dependencies**: Eliminates "works on my machine"
+3. **Port Stability**: Port 420 used everywhere
+4. **Database**: SQLite with proper volume mounting
+
+## Quick Commands
+```bash
+# Start development (primary method)
+./start-dev.sh
+
+# Check project status
+./dev-helper.sh status
+
+# View logs
+./dev-helper.sh logs
+
+# Clean install
+./dev-helper.sh clean
+```

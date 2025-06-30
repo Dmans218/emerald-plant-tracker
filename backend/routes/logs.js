@@ -5,7 +5,7 @@ const path = require('path');
 const Joi = require('joi');
 const fs = require('fs');
 const crypto = require('crypto');
-const db = require('../database');
+const { query } = require('../config/database');
 
 // File type validation using magic numbers (file signatures)
 const allowedMimeTypes = new Map([
@@ -89,93 +89,88 @@ const logSchema = Joi.object({
 });
 
 // GET /api/logs - Get all logs with optional filtering
-router.get('/', (req, res) => {
-  const database = db.getDb();
-  const { plant_id, type, limit = 100, offset = 0 } = req.query;
-  
-  let sql = `
-    SELECT l.*, p.name as plant_name 
-    FROM logs l 
-    LEFT JOIN plants p ON l.plant_id = p.id 
-    WHERE 1=1
-  `;
-  const params = [];
-  
-  if (plant_id) {
-    sql += ' AND l.plant_id = ?';
-    params.push(parseInt(plant_id));
-  }
-  
-  if (type) {
-    sql += ' AND l.type = ?';
-    params.push(type);
-  }
-  
-  sql += ' ORDER BY l.logged_at DESC LIMIT ? OFFSET ?';
-  params.push(parseInt(limit), parseInt(offset));
-  
-  database.all(sql, params, (err, rows) => {
-    if (err) {
-      console.error('Error fetching logs:', err);
-      return res.status(500).json({ error: 'Failed to fetch logs' });
+router.get('/', async (req, res) => {
+  try {
+    const { plant_id, type, limit = 100, offset = 0 } = req.query;
+    
+    let sql = `
+      SELECT l.*, p.name as plant_name 
+      FROM logs l 
+      LEFT JOIN plants p ON l.plant_id = p.id 
+      WHERE 1=1
+    `;
+    const params = [];
+    let paramIndex = 1;
+    
+    if (plant_id) {
+      sql += ` AND l.plant_id = $${paramIndex++}`;
+      params.push(parseInt(plant_id));
     }
-    res.json(rows);
-  });
+    
+    if (type) {
+      sql += ` AND l.type = $${paramIndex++}`;
+      params.push(type);
+    }
+    
+    sql += ` ORDER BY l.logged_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    params.push(parseInt(limit), parseInt(offset));
+    
+    const result = await query(sql, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching logs:', err);
+    res.status(500).json({ error: 'Failed to fetch logs' });
+  }
 });
 
 // GET /api/logs/:id - Get specific log
-router.get('/:id', (req, res) => {
-  const database = db.getDb();
-  const logId = parseInt(req.params.id);
-  
-  if (isNaN(logId)) {
-    return res.status(400).json({ error: 'Invalid log ID' });
-  }
-
-  const sql = `
-    SELECT l.*, p.name as plant_name 
-    FROM logs l 
-    LEFT JOIN plants p ON l.plant_id = p.id 
-    WHERE l.id = ?
-  `;
-  
-  database.get(sql, [logId], (err, row) => {
-    if (err) {
-      console.error('Error fetching log:', err);
-      return res.status(500).json({ error: 'Failed to fetch log' });
-    }
+router.get('/:id', async (req, res) => {
+  try {
+    const logId = parseInt(req.params.id);
     
-    if (!row) {
+    if (isNaN(logId)) {
+      return res.status(400).json({ error: 'Invalid log ID' });
+    }
+
+    const sql = `
+      SELECT l.*, p.name as plant_name 
+      FROM logs l 
+      LEFT JOIN plants p ON l.plant_id = p.id 
+      WHERE l.id = $1
+    `;
+    
+    const result = await query(sql, [logId]);
+    
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Log not found' });
     }
     
-    res.json(row);
-  });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error fetching log:', err);
+    res.status(500).json({ error: 'Failed to fetch log' });
+  }
 });
 
 // POST /api/logs - Create new log
-router.post('/', (req, res) => {
-  const { error, value } = logSchema.validate(req.body);
-  
-  if (error) {
-    return res.status(400).json({ error: error.details[0].message });
-  }
-
-  const database = db.getDb();
-  const { 
-    plant_id, type, description, value: logValue, unit, notes,
-    ph_level, ec_tds, temperature, humidity, light_intensity, 
-    co2_level, water_amount, nutrient_info, height_cm, logged_at 
-  } = value;
-  
-  // Verify plant exists
-  database.get('SELECT id FROM plants WHERE id = ?', [plant_id], (err, plant) => {
-    if (err) {
-      console.error('Error checking plant:', err);
-      return res.status(500).json({ error: 'Failed to verify plant' });
-    }
+router.post('/', async (req, res) => {
+  try {
+    const { error, value } = logSchema.validate(req.body);
     
-    if (!plant) {
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
+
+    const { 
+      plant_id, type, description, value: logValue, unit, notes,
+      ph_level, ec_tds, temperature, humidity, light_intensity, 
+      co2_level, water_amount, nutrient_info, height_cm, logged_at 
+    } = value;
+    
+    // Verify plant exists
+    const plantCheck = await query('SELECT id FROM plants WHERE id = $1', [plant_id]);
+    
+    if (plantCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Plant not found' });
     }
     
@@ -185,41 +180,35 @@ router.post('/', (req, res) => {
         ph_level, ec_tds, temperature, humidity, light_intensity,
         co2_level, water_amount, nutrient_info, height_cm, logged_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      RETURNING *
     `;
     
-    database.run(sql, [
+    const result = await query(sql, [
       plant_id, type, description, logValue, unit, notes,
       ph_level, ec_tds, temperature, humidity, light_intensity,
       co2_level, water_amount, nutrient_info, height_cm, 
       logged_at || new Date().toISOString()
-    ], function(err) {
-      if (err) {
-        console.error('Error creating log:', err);
-        return res.status(500).json({ error: 'Failed to create log' });
-      }
-      
-      // Fetch the created log
-      const fetchSql = `
-        SELECT l.*, p.name as plant_name 
-        FROM logs l 
-        LEFT JOIN plants p ON l.plant_id = p.id 
-        WHERE l.id = ?
-      `;
-      
-      database.get(fetchSql, [this.lastID], (err, row) => {
-        if (err) {
-          console.error('Error fetching created log:', err);
-          return res.status(500).json({ error: 'Log created but failed to fetch' });
-        }
-        res.status(201).json(row);
-      });
-    });
-  });
+    ]);
+    
+    // Fetch the created log with plant name
+    const fetchSql = `
+      SELECT l.*, p.name as plant_name 
+      FROM logs l 
+      LEFT JOIN plants p ON l.plant_id = p.id 
+      WHERE l.id = $1
+    `;
+    
+    const fetchResult = await query(fetchSql, [result.rows[0].id]);
+    res.status(201).json(fetchResult.rows[0]);
+  } catch (err) {
+    console.error('Error creating log:', err);
+    res.status(500).json({ error: 'Failed to create log' });
+  }
 });
 
 // POST /api/logs/photo - Upload photo log with content validation
-router.post('/photo', upload.single('photo'), (req, res) => {
+router.post('/photo', upload.single('photo'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No photo uploaded' });
   }
@@ -249,177 +238,154 @@ router.post('/photo', upload.single('photo'), (req, res) => {
     return res.status(400).json({ error: 'Plant ID is required' });
   }
 
-  const database = db.getDb();
-  const photoUrl = `/uploads/${req.file.filename}`;
-  
-  // Verify plant exists
-  database.get('SELECT id FROM plants WHERE id = ?', [parseInt(plant_id)], (err, plant) => {
-    if (err) {
-      console.error('Error checking plant:', err);
-      return res.status(500).json({ error: 'Failed to verify plant' });
-    }
+  try {
+    const photoUrl = `/uploads/${req.file.filename}`;
     
-    if (!plant) {
+    // Verify plant exists
+    const plantCheck = await query('SELECT id FROM plants WHERE id = $1', [parseInt(plant_id)]);
+    
+    if (plantCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Plant not found' });
     }
     
     const sql = `
       INSERT INTO logs (plant_id, type, description, photo_url, logged_at)
-      VALUES (?, 'photo', ?, ?, ?)
+      VALUES ($1, 'photo', $2, $3, $4)
+      RETURNING *
     `;
     
-    database.run(sql, [parseInt(plant_id), description || 'Photo upload', photoUrl, new Date().toISOString()], function(err) {
-      if (err) {
-        console.error('Error creating photo log:', err);
-        return res.status(500).json({ error: 'Failed to create photo log' });
-      }
-      
-      // Fetch the created log
-      const fetchSql = `
-        SELECT l.*, p.name as plant_name 
-        FROM logs l 
-        LEFT JOIN plants p ON l.plant_id = p.id 
-        WHERE l.id = ?
-      `;
-      
-      database.get(fetchSql, [this.lastID], (err, row) => {
-        if (err) {
-          console.error('Error fetching created photo log:', err);
-          return res.status(500).json({ error: 'Photo log created but failed to fetch' });
-        }
-        res.status(201).json(row);
-      });
-    });
-  });
+    const result = await query(sql, [parseInt(plant_id), description || 'Photo upload', photoUrl, new Date().toISOString()]);
+    
+    // Fetch the created log with plant name
+    const fetchSql = `
+      SELECT l.*, p.name as plant_name 
+      FROM logs l 
+      LEFT JOIN plants p ON l.plant_id = p.id 
+      WHERE l.id = $1
+    `;
+    
+    const fetchResult = await query(fetchSql, [result.rows[0].id]);
+    res.status(201).json(fetchResult.rows[0]);
+  } catch (err) {
+    console.error('Error creating photo log:', err);
+    res.status(500).json({ error: 'Failed to create photo log' });
+  }
 });
 
 // PUT /api/logs/:id - Update log
-router.put('/:id', (req, res) => {
-  const logId = parseInt(req.params.id);
-  
-  if (isNaN(logId)) {
-    return res.status(400).json({ error: 'Invalid log ID' });
-  }
-
-  const { error, value } = logSchema.validate(req.body);
-  
-  if (error) {
-    return res.status(400).json({ error: error.details[0].message });
-  }
-
-  const database = db.getDb();
-  const { 
-    plant_id, type, description, value: logValue, unit, notes,
-    ph_level, ec_tds, temperature, humidity, light_intensity, 
-    co2_level, water_amount, nutrient_info, height_cm, logged_at 
-  } = value;
-  
-  // Verify plant exists
-  database.get('SELECT id FROM plants WHERE id = ?', [plant_id], (err, plant) => {
-    if (err) {
-      console.error('Error checking plant:', err);
-      return res.status(500).json({ error: 'Failed to verify plant' });
-    }
+router.put('/:id', async (req, res) => {
+  try {
+    const logId = parseInt(req.params.id);
     
-    if (!plant) {
+    if (isNaN(logId)) {
+      return res.status(400).json({ error: 'Invalid log ID' });
+    }
+
+    const { error, value } = logSchema.validate(req.body);
+    
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
+
+    const { 
+      plant_id, type, description, value: logValue, unit, notes,
+      ph_level, ec_tds, temperature, humidity, light_intensity, 
+      co2_level, water_amount, nutrient_info, height_cm, logged_at 
+    } = value;
+    
+    // Verify plant exists
+    const plantCheck = await query('SELECT id FROM plants WHERE id = $1', [plant_id]);
+    
+    if (plantCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Plant not found' });
     }
     
     const sql = `
       UPDATE logs SET 
-        plant_id = ?, type = ?, description = ?, value = ?, unit = ?, notes = ?,
-        ph_level = ?, ec_tds = ?, temperature = ?, humidity = ?, light_intensity = ?,
-        co2_level = ?, water_amount = ?, nutrient_info = ?, height_cm = ?, logged_at = ?
-      WHERE id = ?
+        plant_id = $1, type = $2, description = $3, value = $4, unit = $5, notes = $6,
+        ph_level = $7, ec_tds = $8, temperature = $9, humidity = $10, light_intensity = $11,
+        co2_level = $12, water_amount = $13, nutrient_info = $14, height_cm = $15, logged_at = $16
+      WHERE id = $17
+      RETURNING *
     `;
     
-    database.run(sql, [
+    const result = await query(sql, [
       plant_id, type, description, logValue, unit, notes,
       ph_level, ec_tds, temperature, humidity, light_intensity,
       co2_level, water_amount, nutrient_info, height_cm, 
       logged_at || new Date().toISOString(), logId
-    ], function(err) {
-      if (err) {
-        console.error('Error updating log:', err);
-        return res.status(500).json({ error: 'Failed to update log' });
-      }
-      
-      if (this.changes === 0) {
-        return res.status(404).json({ error: 'Log not found' });
-      }
-      
-      // Fetch the updated log
-      const fetchSql = `
-        SELECT l.*, p.name as plant_name 
-        FROM logs l 
-        LEFT JOIN plants p ON l.plant_id = p.id 
-        WHERE l.id = ?
-      `;
-      
-      database.get(fetchSql, [logId], (err, row) => {
-        if (err) {
-          console.error('Error fetching updated log:', err);
-          return res.status(500).json({ error: 'Log updated but failed to fetch' });
-        }
-        res.json(row);
-      });
-    });
-  });
+    ]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Log not found' });
+    }
+    
+    // Fetch the updated log with plant name
+    const fetchSql = `
+      SELECT l.*, p.name as plant_name 
+      FROM logs l 
+      LEFT JOIN plants p ON l.plant_id = p.id 
+      WHERE l.id = $1
+    `;
+    
+    const fetchResult = await query(fetchSql, [logId]);
+    res.json(fetchResult.rows[0]);
+  } catch (err) {
+    console.error('Error updating log:', err);
+    res.status(500).json({ error: 'Failed to update log' });
+  }
 });
 
 // DELETE /api/logs/:id - Delete log
-router.delete('/:id', (req, res) => {
-  const logId = parseInt(req.params.id);
-  
-  if (isNaN(logId)) {
-    return res.status(400).json({ error: 'Invalid log ID' });
-  }
-
-  const database = db.getDb();
-  
-  database.run('DELETE FROM logs WHERE id = ?', [logId], function(err) {
-    if (err) {
-      console.error('Error deleting log:', err);
-      return res.status(500).json({ error: 'Failed to delete log' });
-    }
+router.delete('/:id', async (req, res) => {
+  try {
+    const logId = parseInt(req.params.id);
     
-    if (this.changes === 0) {
+    if (isNaN(logId)) {
+      return res.status(400).json({ error: 'Invalid log ID' });
+    }
+
+    const sql = 'DELETE FROM logs WHERE id = $1 RETURNING id';
+    const result = await query(sql, [logId]);
+    
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Log not found' });
     }
     
     res.json({ message: 'Log deleted successfully' });
-  });
+  } catch (err) {
+    console.error('Error deleting log:', err);
+    res.status(500).json({ error: 'Failed to delete log' });
+  }
 });
 
 // GET /api/logs/stats/:plant_id - Get statistics for a plant
-router.get('/stats/:plant_id', (req, res) => {
-  const plantId = parseInt(req.params.plant_id);
-  
-  if (isNaN(plantId)) {
-    return res.status(400).json({ error: 'Invalid plant ID' });
-  }
-
-  const database = db.getDb();
-  
-  const sql = `
-    SELECT 
-      type,
-      COUNT(*) as count,
-      MAX(logged_at) as last_logged,
-      AVG(value) as avg_value
-    FROM logs 
-    WHERE plant_id = ? 
-    GROUP BY type
-    ORDER BY count DESC
-  `;
-  
-  database.all(sql, [plantId], (err, rows) => {
-    if (err) {
-      console.error('Error fetching log stats:', err);
-      return res.status(500).json({ error: 'Failed to fetch log statistics' });
+router.get('/stats/:plant_id', async (req, res) => {
+  try {
+    const plantId = parseInt(req.params.plant_id);
+    
+    if (isNaN(plantId)) {
+      return res.status(400).json({ error: 'Invalid plant ID' });
     }
-    res.json(rows);
-  });
+
+    const sql = `
+      SELECT 
+        type,
+        COUNT(*) as count,
+        MAX(logged_at) as last_logged,
+        AVG(value) as avg_value
+      FROM logs 
+      WHERE plant_id = $1 
+      GROUP BY type
+      ORDER BY count DESC
+    `;
+    
+    const result = await query(sql, [plantId]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching log stats:', err);
+    res.status(500).json({ error: 'Failed to fetch log statistics' });
+  }
 });
 
 module.exports = router; 

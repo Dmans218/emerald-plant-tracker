@@ -1,19 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const nutrientData = require('../models/nutrientData');
+const { query } = require('../config/database');
 
 // Get all nutrient brands
-router.get('/brands', (req, res) => {
+router.get('/brands', async (req, res) => {
   try {
-    const brands = Object.keys(nutrientData.nutrientBrands).map(key => ({
-      id: key,
-      name: nutrientData.nutrientBrands[key].name,
-      description: nutrientData.nutrientBrands[key].description,
-    }));
+    const brandsResult = await query(`
+      SELECT brand_key as id, name, description, created_at, updated_at
+      FROM nutrient_brands 
+      ORDER BY name
+    `);
 
     res.json({
       success: true,
-      data: brands,
+      data: brandsResult.rows,
     });
   } catch (error) {
     console.error('Error fetching nutrient brands:', error);
@@ -24,25 +24,145 @@ router.get('/brands', (req, res) => {
   }
 });
 
-// Get specific brand data
-router.get('/brands/:brandId', (req, res) => {
+// Get specific brand data with all related information
+router.get('/brands/:brandId', async (req, res) => {
   try {
     const { brandId } = req.params;
-    const brand = nutrientData.nutrientBrands[brandId];
+    
+    // Get brand basic info
+    const brandResult = await query(`
+      SELECT * FROM nutrient_brands WHERE brand_key = $1
+    `, [brandId]);
 
-    if (!brand) {
+    if (brandResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'Brand not found',
       });
     }
 
+    const brand = brandResult.rows[0];
+
+    // Get products by growth stage
+    const productsResult = await query(`
+      SELECT growth_stage, name, ratio, unit, is_optional, is_flowering_only, 
+             is_hydro_only, is_early_growth, week_range
+      FROM nutrient_products 
+      WHERE brand_id = $1
+      ORDER BY growth_stage, name
+    `, [brand.id]);
+
+    // Get strength multipliers
+    const multipliersResult = await query(`
+      SELECT multiplier_type, multiplier_key, multiplier_value
+      FROM nutrient_multipliers 
+      WHERE brand_id = $1
+    `, [brand.id]);
+
+    // Get target values
+    const targetsResult = await query(`
+      SELECT growth_stage, feeding_strength, target_ec, target_tds
+      FROM nutrient_targets 
+      WHERE brand_id = $1
+    `, [brand.id]);
+
+    // Get weekly schedules if available
+    const schedulesResult = await query(`
+      SELECT growth_stage, week_number, product_name, ratio
+      FROM nutrient_weekly_schedules 
+      WHERE brand_id = $1
+      ORDER BY growth_stage, week_number
+    `, [brand.id]);
+
+    // Format data to match frontend expectations
+    const products = {};
+    productsResult.rows.forEach(product => {
+      if (!products[product.growth_stage]) {
+        products[product.growth_stage] = [];
+      }
+      
+      const productData = {
+        name: product.name,
+        ratio: parseFloat(product.ratio),
+        unit: product.unit,
+      };
+
+      if (product.is_optional) productData.optional = true;
+      if (product.is_flowering_only) productData.floweringOnly = true;
+      if (product.is_hydro_only) productData.hydroOnly = true;
+      if (product.is_early_growth) productData.earlyGrowth = true;
+      if (product.week_range) productData.week = JSON.parse(product.week_range);
+
+      products[product.growth_stage].push(productData);
+    });
+
+    // Format multipliers
+    const strengthMultipliers = {};
+    const wateringMethodMultipliers = {};
+    
+    multipliersResult.rows.forEach(mult => {
+      if (mult.multiplier_type === 'strength') {
+        strengthMultipliers[mult.multiplier_key] = parseFloat(mult.multiplier_value);
+      } else if (mult.multiplier_type === 'watering_method') {
+        wateringMethodMultipliers[mult.multiplier_key] = parseFloat(mult.multiplier_value);
+      }
+    });
+
+    // Format targets
+    const targetEC = {};
+    const targetTDS = {};
+    
+    targetsResult.rows.forEach(target => {
+      if (!targetEC[target.growth_stage]) {
+        targetEC[target.growth_stage] = {};
+        targetTDS[target.growth_stage] = {};
+      }
+      
+      if (target.target_ec) {
+        targetEC[target.growth_stage][target.feeding_strength] = parseFloat(target.target_ec);
+      }
+      if (target.target_tds) {
+        targetTDS[target.growth_stage][target.feeding_strength] = parseInt(target.target_tds);
+      }
+    });
+
+    // Format weekly schedule if available
+    let weeklySchedule = null;
+    if (schedulesResult.rows.length > 0) {
+      weeklySchedule = {};
+      schedulesResult.rows.forEach(schedule => {
+        if (!weeklySchedule[schedule.growth_stage]) {
+          weeklySchedule[schedule.growth_stage] = {};
+        }
+        
+        const weekKey = schedule.week_number === 99 ? 'flush' : `week${schedule.week_number}`;
+        
+        if (!weeklySchedule[schedule.growth_stage][weekKey]) {
+          weeklySchedule[schedule.growth_stage][weekKey] = {};
+        }
+        
+        weeklySchedule[schedule.growth_stage][weekKey][schedule.product_name] = parseFloat(schedule.ratio);
+      });
+    }
+
+    const brandData = {
+      id: brand.brand_key,
+      name: brand.name,
+      description: brand.description,
+      products,
+      strengthMultipliers,
+      wateringMethodMultipliers,
+      targetEC,
+      targetTDS,
+    };
+
+    if (weeklySchedule) {
+      brandData.weeklySchedule = weeklySchedule;
+    }
+
     res.json({
       success: true,
-      data: {
-        id: brandId,
-        ...brand,
-      },
+      data: brandData,
     });
   } catch (error) {
     console.error('Error fetching brand data:', error);

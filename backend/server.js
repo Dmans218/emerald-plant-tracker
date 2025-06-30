@@ -6,11 +6,12 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const db = require('./database');
+const { testConnection } = require('./config/database');
 const plantsRouter = require('./routes/plants');
 const logsRouter = require('./routes/logs');
 const environmentRouter = require('./routes/environment');
 const nutrientsRouter = require('./routes/nutrients');
+const tentsRouter = require('./routes/tents');
 
 const app = express();
 const PORT = process.env.PORT || 420;
@@ -97,95 +98,77 @@ app.use('/api/plants', plantsRouter);
 app.use('/api/logs', logsRouter);
 app.use('/api/environment', environmentRouter);
 app.use('/api/nutrients', nutrientsRouter);
+app.use('/api/tents', tentsRouter);
 
 // Health check with database connectivity
-app.get('/api/health', (req, res) => {
-  const database = db.getDb();
+app.get('/api/health', async (req, res) => {
+  try {
+    const { query } = require('./config/database');
+    
+    // Test database connectivity
+    await query('SELECT 1 as test');
+    
+    // Check if plants table exists
+    const tableResult = await query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' AND table_name = 'plants'
+    `);
 
-  if (!database) {
-    return res.status(503).json({
+    res.json({
+      status: 'OK',
+      database: 'connected',
+      tables: tableResult.rows.length > 0 ? 'initialized' : 'missing',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('❌ Database health check failed:', err);
+    res.status(503).json({
       status: 'ERROR',
-      database: 'disconnected',
+      database: 'error',
+      error: err.message,
       timestamp: new Date().toISOString(),
     });
   }
-
-  // Test database connectivity
-  database.get('SELECT 1 as test', (err, row) => {
-    if (err) {
-      console.error('❌ Database health check failed:', err);
-      return res.status(503).json({
-        status: 'ERROR',
-        database: 'error',
-        error: err.message,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // Also check if plants table exists
-    database.get(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name='plants'",
-      (err, table) => {
-        if (err) {
-          return res.status(503).json({
-            status: 'ERROR',
-            database: 'connected',
-            tables: 'error',
-            error: err.message,
-            timestamp: new Date().toISOString(),
-          });
-        }
-
-        res.json({
-          status: 'OK',
-          database: 'connected',
-          tables: table ? 'initialized' : 'missing',
-          timestamp: new Date().toISOString(),
-        });
-      }
-    );
-  });
 });
 
 // Debug endpoint for database info
-app.get('/api/debug/database', (req, res) => {
-  const dbPath =
-    process.env.DATABASE_URL ||
-    path.join(__dirname, 'data', 'emerald-plant-tracker.db');
-  const dataDir = path.dirname(dbPath);
+app.get('/api/debug/database', async (req, res) => {
+  try {
+    const { query } = require('./config/database');
+    
+    const debugInfo = {
+      database_type: 'PostgreSQL',
+      database_host: process.env.DB_HOST || 'localhost',
+      database_port: process.env.DB_PORT || 5432,
+      database_name: process.env.DB_NAME || 'emerald_db',
+      database_user: process.env.DB_USER || 'plant_user',
+      working_directory: __dirname,
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString(),
+    };
 
-  const debugInfo = {
-    database_path: dbPath,
-    data_directory: dataDir,
-    data_dir_exists: fs.existsSync(dataDir),
-    database_file_exists: fs.existsSync(dbPath),
-    working_directory: __dirname,
-    process_user: process.getuid ? process.getuid() : 'unknown',
-    environment: process.env.NODE_ENV || 'development',
-    timestamp: new Date().toISOString(),
-  };
+    // Get database version and connection info
+    const versionResult = await query('SELECT version() as version');
+    debugInfo.postgres_version = versionResult.rows[0].version;
 
-  // Try to get file stats if database exists
-  if (debugInfo.database_file_exists) {
-    try {
-      const stats = fs.statSync(dbPath);
-      debugInfo.database_size = stats.size;
-      debugInfo.database_modified = stats.mtime;
-    } catch (err) {
-      debugInfo.database_stats_error = err.message;
-    }
+    // Get table count
+    const tableResult = await query(`
+      SELECT COUNT(*) as table_count 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `);
+    debugInfo.table_count = parseInt(tableResult.rows[0].table_count);
+
+    res.json(debugInfo);
+  } catch (err) {
+    console.error('❌ Database debug error:', err);
+    res.status(500).json({
+      error: 'Database debug failed',
+      message: err.message,
+      timestamp: new Date().toISOString(),
+    });
   }
-
-  // Try to list data directory contents
-  if (debugInfo.data_dir_exists) {
-    try {
-      debugInfo.data_dir_contents = fs.readdirSync(dataDir);
-    } catch (err) {
-      debugInfo.data_dir_list_error = err.message;
-    }
-  }
-
-  res.json(debugInfo);
 });
 
 // Debug endpoint for protocol and connection info
@@ -224,13 +207,23 @@ app.use((err, req, res, next) => {
 });
 
 // Initialize database and start server
-db.init()
-  .then(() => {
+const initializeApp = async () => {
+  try {
+    console.log('🔍 Testing PostgreSQL connection...');
+    const isConnected = await testConnection();
+    
+    if (!isConnected) {
+      throw new Error('Failed to connect to PostgreSQL database');
+    }
+
     app.listen(PORT, () => {
       console.log(`🌿 Emerald Plant Tracker API running on port ${PORT}`);
+      console.log(`📊 Connected to PostgreSQL database`);
     });
-  })
-  .catch(err => {
-    console.error('Failed to initialize database:', err);
+  } catch (err) {
+    console.error('❌ Failed to initialize application:', err);
     process.exit(1);
-  });
+  }
+};
+
+initializeApp();

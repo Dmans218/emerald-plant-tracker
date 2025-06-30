@@ -1,19 +1,44 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: emerald_postgres_dev
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=emerald_db
+      - POSTGRES_USER=plant_user
+      - POSTGRES_PASSWORD=securepassword
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U plant_user -d emerald_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   backend:
     build: 
       context: ./backend
       dockerfile: Dockerfile.dev
-    container_name: growlogger_backend_dev
+    container_name: emerald_backend_dev
     ports:
-      - "5000:5000"
+      - "420:420"
     volumes:
       - ./backend:/app
       - /app/node_modules
-      - growlogger_data:/app/data
       - ./backend/uploads:/app/uploads
     environment:
       - NODE_ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=emerald_db
+      - DB_USER=plant_user
+      - DB_PASSWORD=securepassword
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   frontend:
     build:
@@ -27,7 +52,7 @@ services:
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
-      - REACT_APP_API_URL=http://localhost:5000
+      - REACT_APP_API_URL=http://localhost:420
     restart: unless-stopped
     depends_on:
       - backend
@@ -35,4 +60,4 @@ services:
     tty: true
 
 volumes:
-  growlogger_data:
+  postgres_data:

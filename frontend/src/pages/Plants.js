@@ -209,12 +209,7 @@ const Plants = () => {
   // Tent Management Functions for Archived Grows
   const handleExportTent = async (tentName) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/plants/tent/${encodeURIComponent(tentName)}/export`);
-      if (!response.ok) {
-        throw new Error('Export failed');
-      }
-      
-      const csvData = await response.text();
+      const csvData = await plantsApi.exportArchivedTent(tentName);
       const blob = new Blob([csvData], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -256,14 +251,7 @@ const Plants = () => {
     if (!doubleConfirmed) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/plants/tent/${encodeURIComponent(tentName)}/environment`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to clear tent data');
-      }
-
+      await plantsApi.clearTentEnvironmentData(tentName, true);
       toast.success(`${tentName} environment data cleared successfully`);
     } catch {
       toast.error('Failed to clear tent data');
