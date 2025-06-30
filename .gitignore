@@ -11,11 +11,12 @@ lerna-debug.log*
 # Commenting out package-lock.json as it should be committed for reproducible builds
 # package-lock.json
 
-# Build output (frontend build should be committed for production Docker builds)
+# Build output
 /dist/
-# Commenting out frontend/build as it's needed for production Docker image
-# /frontend/build/
+/frontend/build/
 /frontend/dist/
+build/
+*.tsbuildinfo
 
 # Environment variables
 .env
@@ -24,6 +25,9 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 .env.production
+
+# CSV files (may contain device serial numbers or personal data)
+*.csv
 
 # Backend data and uploads
 /backend/uploads/*
