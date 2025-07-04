@@ -35,6 +35,15 @@ const init = () => {
       console.log('📁 Connected to SQLite database successfully');
       console.log(`📍 Database file exists: ${fs.existsSync(DB_PATH)}`);
       
+      // Enable foreign key constraints for SQLite
+      db.run('PRAGMA foreign_keys = ON', (pragmaErr) => {
+        if (pragmaErr) {
+          console.error('❌ Failed to enable foreign key constraints:', pragmaErr.message);
+        } else {
+          console.log('🔑 SQLite foreign key constraints enabled');
+        }
+      });
+      
       createTables().then(() => {
         console.log('✅ Database tables created/verified successfully');
         resolve();

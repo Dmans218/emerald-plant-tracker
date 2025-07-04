@@ -661,7 +661,14 @@ router.post('/archived/:id/unarchive', async (req, res) => {
         archivedGrow.strain,
         archivedGrow.final_stage || 'vegetative',
         archivedGrow.planted_date,
-        archivedGrow.planted_date + (120 * 24 * 60 * 60 * 1000), // Expected harvest ~4 months
+        (() => {
+          // Calculate expected harvest approximately 120 days after planted_date
+          if (!archivedGrow.planted_date) return null;
+          const planted = new Date(archivedGrow.planted_date);
+          if (isNaN(planted.getTime())) return null; // Fallback if date parsing fails
+          const expectedHarvest = new Date(planted.getTime() + 120 * 24 * 60 * 60 * 1000);
+          return expectedHarvest.toISOString();
+        })(),
         archivedGrow.notes,
         archivedGrow.grow_tent
       ], function(err) {

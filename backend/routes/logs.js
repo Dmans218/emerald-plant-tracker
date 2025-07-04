@@ -124,7 +124,7 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/logs/:id - Get specific log
-router.get('/:id', (req, res) => {
+router.get('/:id(\\d+)', (req, res) => {
   const database = db.getDb();
   const logId = parseInt(req.params.id);
   
@@ -294,7 +294,7 @@ router.post('/photo', upload.single('photo'), (req, res) => {
 });
 
 // PUT /api/logs/:id - Update log
-router.put('/:id', (req, res) => {
+router.put('/:id(\\d+)', (req, res) => {
   const logId = parseInt(req.params.id);
   
   if (isNaN(logId)) {
@@ -368,7 +368,7 @@ router.put('/:id', (req, res) => {
 });
 
 // DELETE /api/logs/:id - Delete log
-router.delete('/:id', (req, res) => {
+router.delete('/:id(\\d+)', (req, res) => {
   const logId = parseInt(req.params.id);
   
   if (isNaN(logId)) {
