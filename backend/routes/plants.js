@@ -141,10 +141,18 @@ router.get('/archived/tent/:tentName/export', (req, res) => {
 
       const growIds = grows.map(g => g.id);
       
+      // Fix: Validate grow IDs to prevent SQL injection
+      if (growIds.some(id => typeof id !== 'number' || isNaN(id))) {
+        return res.status(400).json({ error: 'Invalid grow IDs' });
+      }
+      
+      // Create safe placeholder string for IN clause
+      const placeholders = growIds.map(() => '?').join(',');
+      
       // Get all environment data for these grows
       database.all(
         `SELECT * FROM archived_environment_data 
-         WHERE archived_grow_id IN (${growIds.map(() => '?').join(',')}) 
+         WHERE archived_grow_id IN (${placeholders}) 
          ORDER BY logged_at ASC`,
         growIds,
         (err, environmentData) => {
@@ -534,24 +542,28 @@ router.post('/:id/archive', async (req, res) => {
         });
       });
 
-      // Insert archived environment data
-      for (const envLog of environmentLogs) {
-        await new Promise((resolve, reject) => {
-          const sql = `
-            INSERT INTO archived_environment_data (
-              archived_grow_id, original_log_id, temperature, humidity, 
-              ph_level, light_hours, vpd, co2_ppm, ppfd, grow_tent, logged_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `;
-          database.run(sql, [
-            archivedGrowId, envLog.id, envLog.temperature, envLog.humidity,
-            envLog.ph_level, envLog.light_hours, envLog.vpd, envLog.co2_ppm,
-            envLog.ppfd, envLog.grow_tent, envLog.logged_at
-          ], (err) => {
-            if (err) reject(err);
-            else resolve();
-          });
-        });
+      // Fix: Parallelize environment data insertion instead of sequential processing
+      if (environmentLogs.length > 0) {
+        const environmentInsertPromises = environmentLogs.map(envLog => 
+          new Promise((resolve, reject) => {
+            const sql = `
+              INSERT INTO archived_environment_data (
+                archived_grow_id, original_log_id, temperature, humidity, 
+                ph_level, light_hours, vpd, co2_ppm, ppfd, grow_tent, logged_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `;
+            database.run(sql, [
+              archivedGrowId, envLog.id, envLog.temperature, envLog.humidity,
+              envLog.ph_level, envLog.light_hours, envLog.vpd, envLog.co2_ppm,
+              envLog.ppfd, envLog.grow_tent, envLog.logged_at
+            ], (err) => {
+              if (err) reject(err);
+              else resolve();
+            });
+          })
+        );
+        
+        await Promise.all(environmentInsertPromises);
       }
     }
 
@@ -568,23 +580,27 @@ router.post('/:id/archive', async (req, res) => {
       });
     });
 
-    // Insert archived plant logs
-    for (const log of plantLogs) {
-      await new Promise((resolve, reject) => {
-        const sql = `
-          INSERT INTO archived_logs (
-            archived_grow_id, original_log_id, plant_id, type, 
-            description, value, notes, logged_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-        database.run(sql, [
-          archivedGrowId, log.id, log.plant_id, log.type,
-          log.description, log.value, log.notes, log.logged_at
-        ], (err) => {
-          if (err) reject(err);
-          else resolve();
-        });
-      });
+    // Fix: Parallelize plant log insertion instead of sequential processing
+    if (plantLogs.length > 0) {
+      const plantLogInsertPromises = plantLogs.map(log => 
+        new Promise((resolve, reject) => {
+          const sql = `
+            INSERT INTO archived_logs (
+              archived_grow_id, original_log_id, plant_id, type, 
+              description, value, notes, logged_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `;
+          database.run(sql, [
+            archivedGrowId, log.id, log.plant_id, log.type,
+            log.description, log.value, log.notes, log.logged_at
+          ], (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        })
+      );
+      
+      await Promise.all(plantLogInsertPromises);
     }
 
     // Remove plant from plants table (since it's now in archived_grows)
@@ -651,6 +667,14 @@ router.post('/archived/:id/unarchive', async (req, res) => {
 
     // Create new plant record from archived data
     const newPlantId = await new Promise((resolve, reject) => {
+      // Fix: Properly calculate expected harvest date by creating Date objects
+      let expectedHarvest = null;
+      if (archivedGrow.planted_date) {
+        const plantedDate = new Date(archivedGrow.planted_date);
+        expectedHarvest = new Date(plantedDate.getTime() + (120 * 24 * 60 * 60 * 1000)); // Expected harvest ~4 months
+        expectedHarvest = expectedHarvest.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      }
+      
       database.run(`
         INSERT INTO plants (
           name, strain, stage, planted_date, expected_harvest, notes, 
@@ -661,7 +685,7 @@ router.post('/archived/:id/unarchive', async (req, res) => {
         archivedGrow.strain,
         archivedGrow.final_stage || 'vegetative',
         archivedGrow.planted_date,
-        archivedGrow.planted_date + (120 * 24 * 60 * 60 * 1000), // Expected harvest ~4 months
+        expectedHarvest,
         archivedGrow.notes,
         archivedGrow.grow_tent
       ], function(err) {
