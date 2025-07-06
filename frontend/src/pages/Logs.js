@@ -1,15 +1,30 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Plus, Save, X, Droplets, Thermometer, Eye, 
-  Scissors, Leaf, Bug, FlaskConical, Ruler, Camera, 
-  Activity, Home, Edit, Trash2, Search
-} from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import {
+    Activity,
+    ArrowLeft,
+    Bug,
+    Camera,
+    Droplets,
+    Edit,
+    Eye,
+    FlaskConical,
+    Home,
+    Leaf,
+    Plus,
+    Ruler,
+    Save,
+    Scissors,
+    Search,
+    Thermometer,
+    Trash2,
+    X
+} from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
-import { plantsApi, logsApi } from '../utils/api';
+import { logsApi, plantsApi } from '../utils/api';
 
 const Logs = () => {
   const [plants, setPlants] = useState([]);
@@ -31,7 +46,7 @@ const Logs = () => {
     const params = new URLSearchParams(location.search);
     const editId = params.get('editId');
     const plantId = params.get('plantId');
-    
+
     if (editId && plantId) {
       setShowAddForm(true);
       // Will set editing log after logs are loaded
@@ -73,7 +88,7 @@ const Logs = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const editId = params.get('editId');
-    
+
     if (editId && logs.length > 0) {
       const logToEdit = logs.find(log => log.id === parseInt(editId));
       if (logToEdit) {
@@ -84,83 +99,83 @@ const Logs = () => {
   }, [logs, location.search, setValue, populateForm]);
 
   const logTypes = [
-    { 
-      id: 'watering', 
-      label: 'Watering', 
-      icon: <Droplets className="w-4 h-4" />, 
+    {
+      id: 'watering',
+      label: 'Watering',
+      icon: <Droplets className="w-4 h-4" />,
       color: '#3b82f6',
       fields: ['water_amount', 'ph_level', 'ec_tds', 'notes']
     },
-    { 
-      id: 'feeding', 
-      label: 'Nutrient Feeding', 
-      icon: <FlaskConical className="w-4 h-4" />, 
+    {
+      id: 'feeding',
+      label: 'Nutrient Feeding',
+      icon: <FlaskConical className="w-4 h-4" />,
       color: '#10b981',
       fields: ['nutrient_info', 'ph_level', 'ec_tds', 'water_amount', 'notes']
     },
-    { 
-      id: 'environmental', 
-      label: 'Environmental Check', 
-      icon: <Thermometer className="w-4 h-4" />, 
+    {
+      id: 'environmental',
+      label: 'Environmental Check',
+      icon: <Thermometer className="w-4 h-4" />,
       color: '#f59e0b',
       fields: ['temperature', 'humidity', 'light_intensity', 'co2_level', 'notes']
     },
-    { 
-      id: 'observation', 
-      label: 'Plant Observation', 
-      icon: <Eye className="w-4 h-4" />, 
+    {
+      id: 'observation',
+      label: 'Plant Observation',
+      icon: <Eye className="w-4 h-4" />,
       color: '#8b5cf6',
       fields: ['height_cm', 'notes']
     },
-    { 
-      id: 'training', 
-      label: 'Training/Pruning', 
-      icon: <Scissors className="w-4 h-4" />, 
+    {
+      id: 'training',
+      label: 'Training/Pruning',
+      icon: <Scissors className="w-4 h-4" />,
       color: '#ef4444',
       fields: ['notes']
     },
-    { 
-      id: 'transplant', 
-      label: 'Transplant', 
-      icon: <Home className="w-4 h-4" />, 
+    {
+      id: 'transplant',
+      label: 'Transplant',
+      icon: <Home className="w-4 h-4" />,
       color: '#06b6d4',
       fields: ['notes']
     },
-    { 
-      id: 'pest_disease', 
-      label: 'Pest/Disease', 
-      icon: <Bug className="w-4 h-4" />, 
+    {
+      id: 'pest_disease',
+      label: 'Pest/Disease',
+      icon: <Bug className="w-4 h-4" />,
       color: '#dc2626',
       fields: ['notes']
     },
-    { 
-      id: 'deficiency', 
-      label: 'Nutrient Issue', 
-      icon: <Leaf className="w-4 h-4" />, 
+    {
+      id: 'deficiency',
+      label: 'Nutrient Issue',
+      icon: <Leaf className="w-4 h-4" />,
       color: '#ea580c',
       fields: ['notes']
     },
-    { 
-      id: 'measurement', 
-      label: 'Growth Measurement', 
-      icon: <Ruler className="w-4 h-4" />, 
+    {
+      id: 'measurement',
+      label: 'Growth Measurement',
+      icon: <Ruler className="w-4 h-4" />,
       color: '#059669',
       fields: ['height_cm', 'notes']
     },
-    { 
-      id: 'photo', 
-      label: 'Photo Documentation', 
-      icon: <Camera className="w-4 h-4" />, 
+    {
+      id: 'photo',
+      label: 'Photo Documentation',
+      icon: <Camera className="w-4 h-4" />,
       color: '#7c3aed',
       fields: ['notes']
     }
   ];
 
   const getLogTypeConfig = (type) => {
-    return logTypes.find(t => t.id === type) || { 
-      id: type, 
-      label: type, 
-      icon: <Activity className="w-4 h-4" />, 
+    return logTypes.find(t => t.id === type) || {
+      id: type,
+      label: type,
+      icon: <Activity className="w-4 h-4" />,
       color: '#64748b',
       fields: ['notes']
     };
@@ -213,13 +228,13 @@ const Logs = () => {
   const filteredLogs = logs.filter(log => {
     const matchesPlant = !selectedPlant || log.plant_id === parseInt(selectedPlant);
     const matchesType = !selectedType || log.type === selectedType;
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = !searchTerm ||
       log.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       log.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       plants.find(p => p.id === log.plant_id)?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDate = !dateFilter || 
+    const matchesDate = !dateFilter ||
       format(parseISO(log.logged_at), 'yyyy-MM-dd') === dateFilter;
-    
+
     return matchesPlant && matchesType && matchesSearch && matchesDate;
   });
 
@@ -262,7 +277,7 @@ const Logs = () => {
     }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         {/* Header */}
-        <div 
+        <div
           style={{
             background: 'rgba(30, 41, 59, 0.6)',
             backdropFilter: 'blur(20px)',
@@ -303,12 +318,12 @@ const Logs = () => {
               Add Log Entry
             </button>
           </div>
-          
+
           <div>
-            <h1 style={{ 
-              fontSize: '2rem', 
-              fontWeight: '700', 
-              color: '#f8fafc', 
+            <h1 style={{
+              fontSize: '2rem',
+              fontWeight: '700',
+              color: '#f8fafc',
               marginBottom: '0.5rem',
               display: 'flex',
               alignItems: 'center',
@@ -324,7 +339,7 @@ const Logs = () => {
 
         {/* Add/Edit Form */}
         {showAddForm && (
-          <div 
+          <div
             style={{
               background: 'rgba(30, 41, 59, 0.6)',
               backdropFilter: 'blur(20px)',
@@ -350,10 +365,10 @@ const Logs = () => {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-              <h2 style={{ 
-                fontSize: '1.5rem', 
-                fontWeight: '700', 
-                color: '#f8fafc', 
+              <h2 style={{
+                fontSize: '1.5rem',
+                fontWeight: '700',
+                color: '#f8fafc',
                 margin: 0,
                 display: 'flex',
                 alignItems: 'center',
@@ -389,12 +404,12 @@ const Logs = () => {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                 {/* Plant Selection */}
                 <div>
-                  <label style={{ 
-                    display: 'block', 
-                    color: '#e2e8f0', 
-                    fontSize: '0.875rem', 
-                    fontWeight: '600', 
-                    marginBottom: '0.5rem' 
+                  <label style={{
+                    display: 'block',
+                    color: '#e2e8f0',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    marginBottom: '0.5rem'
                   }}>
                     Plant *
                   </label>
@@ -423,12 +438,12 @@ const Logs = () => {
 
                 {/* Log Type */}
                 <div>
-                  <label style={{ 
-                    display: 'block', 
-                    color: '#e2e8f0', 
-                    fontSize: '0.875rem', 
-                    fontWeight: '600', 
-                    marginBottom: '0.5rem' 
+                  <label style={{
+                    display: 'block',
+                    color: '#e2e8f0',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    marginBottom: '0.5rem'
                   }}>
                     Activity Type *
                   </label>
@@ -457,12 +472,12 @@ const Logs = () => {
 
                 {/* Date/Time */}
                 <div>
-                  <label style={{ 
-                    display: 'block', 
-                    color: '#e2e8f0', 
-                    fontSize: '0.875rem', 
-                    fontWeight: '600', 
-                    marginBottom: '0.5rem' 
+                  <label style={{
+                    display: 'block',
+                    color: '#e2e8f0',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    marginBottom: '0.5rem'
                   }}>
                     Date & Time
                   </label>
@@ -485,12 +500,12 @@ const Logs = () => {
 
                 {/* Description */}
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ 
-                    display: 'block', 
-                    color: '#e2e8f0', 
-                    fontSize: '0.875rem', 
-                    fontWeight: '600', 
-                    marginBottom: '0.5rem' 
+                  <label style={{
+                    display: 'block',
+                    color: '#e2e8f0',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    marginBottom: '0.5rem'
                   }}>
                     Description
                   </label>
@@ -515,10 +530,10 @@ const Logs = () => {
               {/* Dynamic Fields Based on Type */}
               {selectedTypeConfig && selectedTypeConfig.fields.length > 0 && (
                 <div style={{ marginBottom: '2rem' }}>
-                  <h3 style={{ 
-                    color: '#f8fafc', 
-                    fontSize: '1.125rem', 
-                    fontWeight: '600', 
+                  <h3 style={{
+                    color: '#f8fafc',
+                    fontSize: '1.125rem',
+                    fontWeight: '600',
                     marginBottom: '1rem',
                     display: 'flex',
                     alignItems: 'center',
@@ -527,16 +542,16 @@ const Logs = () => {
                     {selectedTypeConfig.icon}
                     {selectedTypeConfig.label} Details
                   </h3>
-                  
+
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
                     {selectedTypeConfig.fields.includes('water_amount') && (
                       <div>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
+                        <label style={{
+                          display: 'block',
+                          color: '#e2e8f0',
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          marginBottom: '0.5rem'
                         }}>
                           Water Amount (L)
                         </label>
@@ -561,12 +576,12 @@ const Logs = () => {
 
                     {selectedTypeConfig.fields.includes('ph_level') && (
                       <div>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
+                        <label style={{
+                          display: 'block',
+                          color: '#e2e8f0',
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          marginBottom: '0.5rem'
                         }}>
                           pH Level
                         </label>
@@ -593,12 +608,12 @@ const Logs = () => {
 
                     {selectedTypeConfig.fields.includes('ec_tds') && (
                       <div>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
+                        <label style={{
+                          display: 'block',
+                          color: '#e2e8f0',
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          marginBottom: '0.5rem'
                         }}>
                           EC/TDS (ppm)
                         </label>
@@ -623,12 +638,12 @@ const Logs = () => {
 
                     {selectedTypeConfig.fields.includes('temperature') && (
                       <div>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
+                        <label style={{
+                          display: 'block',
+                          color: '#e2e8f0',
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          marginBottom: '0.5rem'
                         }}>
                           Temperature (°C)
                         </label>
@@ -653,12 +668,12 @@ const Logs = () => {
 
                     {selectedTypeConfig.fields.includes('humidity') && (
                       <div>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
+                        <label style={{
+                          display: 'block',
+                          color: '#e2e8f0',
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          marginBottom: '0.5rem'
                         }}>
                           Humidity (%)
                         </label>
@@ -685,12 +700,12 @@ const Logs = () => {
 
                     {selectedTypeConfig.fields.includes('light_intensity') && (
                       <div>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
+                        <label style={{
+                          display: 'block',
+                          color: '#e2e8f0',
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          marginBottom: '0.5rem'
                         }}>
                           Light Intensity (PPFD)
                         </label>
@@ -715,12 +730,12 @@ const Logs = () => {
 
                     {selectedTypeConfig.fields.includes('co2_level') && (
                       <div>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
+                        <label style={{
+                          display: 'block',
+                          color: '#e2e8f0',
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          marginBottom: '0.5rem'
                         }}>
                           CO2 Level (ppm)
                         </label>
@@ -745,42 +760,34 @@ const Logs = () => {
 
                     {selectedTypeConfig.fields.includes('height_cm') && (
                       <div>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
+                        <label style={{
+                          display: 'block',
+                          color: '#e2e8f0',
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          marginBottom: '0.5rem'
                         }}>
                           Plant Height (cm)
                         </label>
                         <input
                           type="number"
                           step="0.1"
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            background: 'rgba(15, 23, 42, 0.6)',
-                            border: '1px solid rgba(100, 116, 139, 0.3)',
-                            borderRadius: '12px',
-                            color: '#f8fafc',
-                            fontSize: '0.875rem',
-                            outline: 'none'
-                          }}
                           {...register('height_cm')}
                           placeholder="25.0"
+                          inputMode="decimal"
+                          autoComplete="off"
                         />
                       </div>
                     )}
 
                     {selectedTypeConfig.fields.includes('nutrient_info') && (
                       <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
+                        <label style={{
+                          display: 'block',
+                          color: '#e2e8f0',
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          marginBottom: '0.5rem'
                         }}>
                           Nutrient Information
                         </label>
@@ -804,12 +811,12 @@ const Logs = () => {
 
                     {selectedTypeConfig.fields.includes('notes') && (
                       <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
+                        <label style={{
+                          display: 'block',
+                          color: '#e2e8f0',
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          marginBottom: '0.5rem'
                         }}>
                           Notes
                         </label>
@@ -883,7 +890,7 @@ const Logs = () => {
         )}
 
         {/* Filters */}
-        <div 
+        <div
           style={{
             background: 'rgba(30, 41, 59, 0.6)',
             backdropFilter: 'blur(20px)',
@@ -910,11 +917,11 @@ const Logs = () => {
         >
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
             <div>
-              <label style={{ 
-                display: 'block', 
-                color: '#e2e8f0', 
-                fontSize: '0.75rem', 
-                fontWeight: '600', 
+              <label style={{
+                display: 'block',
+                color: '#e2e8f0',
+                fontSize: '0.75rem',
+                fontWeight: '600',
                 marginBottom: '0.5rem',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em'
@@ -922,12 +929,12 @@ const Logs = () => {
                 Search Logs
               </label>
               <div style={{ position: 'relative' }}>
-                <Search className="w-4 h-4" style={{ 
-                  position: 'absolute', 
-                  left: '1rem', 
-                  top: '50%', 
-                  transform: 'translateY(-50%)', 
-                  color: '#94a3b8' 
+                <Search className="w-4 h-4" style={{
+                  position: 'absolute',
+                  left: '1rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: '#94a3b8'
                 }} />
                 <input
                   type="text"
@@ -949,11 +956,11 @@ const Logs = () => {
             </div>
 
             <div>
-              <label style={{ 
-                display: 'block', 
-                color: '#e2e8f0', 
-                fontSize: '0.75rem', 
-                fontWeight: '600', 
+              <label style={{
+                display: 'block',
+                color: '#e2e8f0',
+                fontSize: '0.75rem',
+                fontWeight: '600',
                 marginBottom: '0.5rem',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em'
@@ -984,11 +991,11 @@ const Logs = () => {
             </div>
 
             <div>
-              <label style={{ 
-                display: 'block', 
-                color: '#e2e8f0', 
-                fontSize: '0.75rem', 
-                fontWeight: '600', 
+              <label style={{
+                display: 'block',
+                color: '#e2e8f0',
+                fontSize: '0.75rem',
+                fontWeight: '600',
                 marginBottom: '0.5rem',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em'
@@ -1019,11 +1026,11 @@ const Logs = () => {
             </div>
 
             <div>
-              <label style={{ 
-                display: 'block', 
-                color: '#e2e8f0', 
-                fontSize: '0.75rem', 
-                fontWeight: '600', 
+              <label style={{
+                display: 'block',
+                color: '#e2e8f0',
+                fontSize: '0.75rem',
+                fontWeight: '600',
                 marginBottom: '0.5rem',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em'
@@ -1079,7 +1086,7 @@ const Logs = () => {
         </div>
 
         {/* Logs Table */}
-        <div 
+        <div
           style={{
             background: 'rgba(30, 41, 59, 0.6)',
             backdropFilter: 'blur(20px)',
@@ -1104,8 +1111,8 @@ const Logs = () => {
           }}
         >
           {filteredLogs.length === 0 ? (
-            <div style={{ 
-              textAlign: 'center', 
+            <div style={{
+              textAlign: 'center',
               padding: '4rem 2rem',
               background: 'rgba(15, 23, 42, 0.4)'
             }}>
@@ -1122,23 +1129,23 @@ const Logs = () => {
               }}>
                 <Activity className="w-10 h-10" style={{ color: 'white' }} />
               </div>
-              <h3 style={{ 
-                color: '#f8fafc', 
-                fontSize: '1.25rem', 
-                fontWeight: '600', 
+              <h3 style={{
+                color: '#f8fafc',
+                fontSize: '1.25rem',
+                fontWeight: '600',
                 marginBottom: '0.75rem'
               }}>
-                {searchTerm || selectedPlant || selectedType || dateFilter 
-                  ? 'No logs match your filters' 
+                {searchTerm || selectedPlant || selectedType || dateFilter
+                  ? 'No logs match your filters'
                   : 'No logs yet'
                 }
               </h3>
-              <p style={{ 
-                color: '#94a3b8', 
+              <p style={{
+                color: '#94a3b8',
                 marginBottom: '2rem',
                 fontSize: '0.95rem'
               }}>
-                {searchTerm || selectedPlant || selectedType || dateFilter 
+                {searchTerm || selectedPlant || selectedType || dateFilter
                   ? 'Try adjusting your search criteria or filters.'
                   : 'Start tracking your cultivation activities by adding your first log entry.'
                 }
@@ -1170,13 +1177,13 @@ const Logs = () => {
             <div style={{ overflowX: 'auto', minWidth: '100%' }}>
               <table style={{ width: '100%', fontSize: '0.875rem', textAlign: 'left', borderCollapse: 'collapse', minWidth: '900px' }}>
                 <thead>
-                  <tr style={{ 
-                    background: 'rgba(15, 23, 42, 0.8)', 
-                    borderBottom: '1px solid rgba(100, 116, 139, 0.3)' 
+                  <tr style={{
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    borderBottom: '1px solid rgba(100, 116, 139, 0.3)'
                   }}>
-                    <th style={{ 
-                      padding: '1rem 1.25rem', 
-                      fontWeight: '600', 
+                    <th style={{
+                      padding: '1rem 1.25rem',
+                      fontWeight: '600',
                       color: '#e2e8f0',
                       fontSize: '0.8rem',
                       textTransform: 'uppercase',
@@ -1184,9 +1191,9 @@ const Logs = () => {
                       textAlign: 'left',
                       width: '15%'
                     }}>Date/Time</th>
-                    <th style={{ 
-                      padding: '1rem 1.25rem', 
-                      fontWeight: '600', 
+                    <th style={{
+                      padding: '1rem 1.25rem',
+                      fontWeight: '600',
                       color: '#e2e8f0',
                       fontSize: '0.8rem',
                       textTransform: 'uppercase',
@@ -1194,9 +1201,9 @@ const Logs = () => {
                       textAlign: 'left',
                       width: '15%'
                     }}>Plant</th>
-                    <th style={{ 
-                      padding: '1rem 1.25rem', 
-                      fontWeight: '600', 
+                    <th style={{
+                      padding: '1rem 1.25rem',
+                      fontWeight: '600',
                       color: '#e2e8f0',
                       fontSize: '0.8rem',
                       textTransform: 'uppercase',
@@ -1204,9 +1211,9 @@ const Logs = () => {
                       textAlign: 'center',
                       width: '12%'
                     }}>Type</th>
-                    <th style={{ 
-                      padding: '1rem 1.25rem', 
-                      fontWeight: '600', 
+                    <th style={{
+                      padding: '1rem 1.25rem',
+                      fontWeight: '600',
                       color: '#e2e8f0',
                       fontSize: '0.8rem',
                       textTransform: 'uppercase',
@@ -1214,9 +1221,9 @@ const Logs = () => {
                       textAlign: 'left',
                       width: '20%'
                     }}>Description</th>
-                    <th style={{ 
-                      padding: '1rem 1.25rem', 
-                      fontWeight: '600', 
+                    <th style={{
+                      padding: '1rem 1.25rem',
+                      fontWeight: '600',
                       color: '#e2e8f0',
                       fontSize: '0.8rem',
                       textTransform: 'uppercase',
@@ -1224,9 +1231,9 @@ const Logs = () => {
                       textAlign: 'left',
                       width: '25%'
                     }}>Notes</th>
-                    <th style={{ 
-                      padding: '1rem 1.25rem', 
-                      fontWeight: '600', 
+                    <th style={{
+                      padding: '1rem 1.25rem',
+                      fontWeight: '600',
                       color: '#e2e8f0',
                       fontSize: '0.8rem',
                       textTransform: 'uppercase',
@@ -1240,11 +1247,11 @@ const Logs = () => {
                   {filteredLogs.map((log, index) => {
                     const plant = plants.find(p => p.id === log.plant_id);
                     const typeConfig = getLogTypeConfig(log.type);
-                    
+
                     return (
-                      <tr 
-                        key={log.id} 
-                        style={{ 
+                      <tr
+                        key={log.id}
+                        style={{
                           borderBottom: index < filteredLogs.length - 1 ? '1px solid rgba(100, 116, 139, 0.2)' : 'none',
                           transition: 'all 0.2s ease',
                           background: index % 2 === 0 ? 'rgba(15, 23, 42, 0.3)' : 'transparent'
@@ -1266,7 +1273,7 @@ const Logs = () => {
                             </span>
                           </div>
                         </td>
-                        
+
                         <td style={{ padding: '1rem 1.25rem', textAlign: 'left' }}>
                           <Link
                             to={`/plants/${plant?.id}`}
@@ -1287,10 +1294,10 @@ const Logs = () => {
                             </span>
                           )}
                         </td>
-                        
-                        <td style={{ 
-                          padding: '1rem 1.25rem', 
-                          whiteSpace: 'nowrap', 
+
+                        <td style={{
+                          padding: '1rem 1.25rem',
+                          whiteSpace: 'nowrap',
                           textAlign: 'center',
                           verticalAlign: 'middle'
                         }}>
@@ -1315,10 +1322,10 @@ const Logs = () => {
                             {typeConfig.label}
                           </span>
                         </td>
-                        
+
                         <td style={{ padding: '1rem 1.25rem', textAlign: 'left' }}>
-                          <span style={{ 
-                            color: '#f8fafc', 
+                          <span style={{
+                            color: '#f8fafc',
                             fontWeight: '500',
                             fontSize: '0.875rem',
                             lineHeight: '1.4',
@@ -1330,10 +1337,10 @@ const Logs = () => {
                             {log.description || 'No description provided'}
                           </span>
                         </td>
-                        
+
                         <td style={{ padding: '1rem 1.25rem', textAlign: 'left' }}>
-                          <span style={{ 
-                            color: '#cbd5e1', 
+                          <span style={{
+                            color: '#cbd5e1',
                             fontWeight: '400',
                             fontSize: '0.875rem',
                             lineHeight: '1.4',
@@ -1345,7 +1352,7 @@ const Logs = () => {
                             {log.notes || 'No notes provided'}
                           </span>
                         </td>
-                        
+
                         <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
                           <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
                             <button

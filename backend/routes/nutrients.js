@@ -7,7 +7,7 @@ router.get('/brands', async (req, res) => {
   try {
     const brandsResult = await query(`
       SELECT brand_key as id, name, description, created_at, updated_at
-      FROM nutrient_brands 
+      FROM nutrient_brands
       ORDER BY name
     `);
 
@@ -28,11 +28,14 @@ router.get('/brands', async (req, res) => {
 router.get('/brands/:brandId', async (req, res) => {
   try {
     const { brandId } = req.params;
-    
+
     // Get brand basic info
-    const brandResult = await query(`
+    const brandResult = await query(
+      `
       SELECT * FROM nutrient_brands WHERE brand_key = $1
-    `, [brandId]);
+    `,
+      [brandId]
+    );
 
     if (brandResult.rows.length === 0) {
       return res.status(404).json({
@@ -43,36 +46,48 @@ router.get('/brands/:brandId', async (req, res) => {
 
     const brand = brandResult.rows[0];
 
-    // Get products by growth stage
-    const productsResult = await query(`
-      SELECT growth_stage, name, ratio, unit, is_optional, is_flowering_only, 
+    // Get products by growth stage with proper mixing order
+    const productsResult = await query(
+      `
+      SELECT growth_stage, name, ratio, unit, is_optional, is_flowering_only,
              is_hydro_only, is_early_growth, week_range
-      FROM nutrient_products 
+      FROM nutrient_products
       WHERE brand_id = $1
-      ORDER BY growth_stage, name
-    `, [brand.id]);
+      ORDER BY growth_stage, mixing_order ASC, name
+    `,
+      [brand.id]
+    );
 
     // Get strength multipliers
-    const multipliersResult = await query(`
+    const multipliersResult = await query(
+      `
       SELECT multiplier_type, multiplier_key, multiplier_value
-      FROM nutrient_multipliers 
+      FROM nutrient_multipliers
       WHERE brand_id = $1
-    `, [brand.id]);
+    `,
+      [brand.id]
+    );
 
     // Get target values
-    const targetsResult = await query(`
+    const targetsResult = await query(
+      `
       SELECT growth_stage, feeding_strength, target_ec, target_tds
-      FROM nutrient_targets 
+      FROM nutrient_targets
       WHERE brand_id = $1
-    `, [brand.id]);
+    `,
+      [brand.id]
+    );
 
     // Get weekly schedules if available
-    const schedulesResult = await query(`
+    const schedulesResult = await query(
+      `
       SELECT growth_stage, week_number, product_name, ratio
-      FROM nutrient_weekly_schedules 
+      FROM nutrient_weekly_schedules
       WHERE brand_id = $1
       ORDER BY growth_stage, week_number
-    `, [brand.id]);
+    `,
+      [brand.id]
+    );
 
     // Format data to match frontend expectations
     const products = {};
@@ -80,7 +95,7 @@ router.get('/brands/:brandId', async (req, res) => {
       if (!products[product.growth_stage]) {
         products[product.growth_stage] = [];
       }
-      
+
       const productData = {
         name: product.name,
         ratio: parseFloat(product.ratio),
@@ -99,7 +114,7 @@ router.get('/brands/:brandId', async (req, res) => {
     // Format multipliers
     const strengthMultipliers = {};
     const wateringMethodMultipliers = {};
-    
+
     multipliersResult.rows.forEach(mult => {
       if (mult.multiplier_type === 'strength') {
         strengthMultipliers[mult.multiplier_key] = parseFloat(mult.multiplier_value);
@@ -111,13 +126,13 @@ router.get('/brands/:brandId', async (req, res) => {
     // Format targets
     const targetEC = {};
     const targetTDS = {};
-    
+
     targetsResult.rows.forEach(target => {
       if (!targetEC[target.growth_stage]) {
         targetEC[target.growth_stage] = {};
         targetTDS[target.growth_stage] = {};
       }
-      
+
       if (target.target_ec) {
         targetEC[target.growth_stage][target.feeding_strength] = parseFloat(target.target_ec);
       }
@@ -134,14 +149,16 @@ router.get('/brands/:brandId', async (req, res) => {
         if (!weeklySchedule[schedule.growth_stage]) {
           weeklySchedule[schedule.growth_stage] = {};
         }
-        
+
         const weekKey = schedule.week_number === 99 ? 'flush' : `week${schedule.week_number}`;
-        
+
         if (!weeklySchedule[schedule.growth_stage][weekKey]) {
           weeklySchedule[schedule.growth_stage][weekKey] = {};
         }
-        
-        weeklySchedule[schedule.growth_stage][weekKey][schedule.product_name] = parseFloat(schedule.ratio);
+
+        weeklySchedule[schedule.growth_stage][weekKey][schedule.product_name] = parseFloat(
+          schedule.ratio
+        );
       });
     }
 

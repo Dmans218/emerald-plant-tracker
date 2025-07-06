@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Edit, Home, Save, X, Activity, Trash2 } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
+import { Activity, ArrowLeft, Edit, Home, Plus, Save, Trash2, TrendingUp, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
+import { Link, useParams } from 'react-router-dom';
 
-import { plantsApi, logsApi } from '../utils/api';
+import { logsApi, plantsApi } from '../utils/api';
 // import LogModal from '../components/LogModal';
 
 const InlineLogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null }) => {
@@ -78,7 +78,7 @@ const InlineLogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null 
         await logsApi.create(submitData);
         toast.success('Log added successfully!');
       }
-      
+
       onSuccess();
       onClose();
     } catch (error) {
@@ -91,7 +91,7 @@ const InlineLogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null 
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       style={{
         position: 'fixed',
         top: 0,
@@ -107,7 +107,7 @@ const InlineLogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null 
       }}
       onClick={onClose}
     >
-      <div 
+      <div
         style={{
           background: '#1e293b',
           borderRadius: '16px',
@@ -128,15 +128,15 @@ const InlineLogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null 
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <h2 style={{ 
-            margin: 0, 
-            fontSize: '1.5rem', 
+          <h2 style={{
+            margin: 0,
+            fontSize: '1.5rem',
             color: '#f8fafc',
             fontWeight: '600'
           }}>
             {logToEdit ? 'Edit Log Entry' : 'Add Log Entry'}
           </h2>
-          <button 
+          <button
             style={{
               background: 'none',
               border: 'none',
@@ -152,14 +152,14 @@ const InlineLogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null 
             ×
           </button>
         </div>
-        
+
         <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             <div>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '0.5rem', 
-                fontWeight: '500', 
+              <label style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '500',
                 color: '#f8fafc',
                 fontSize: '0.875rem'
               }}>
@@ -193,10 +193,10 @@ const InlineLogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null 
             </div>
 
             <div>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '0.5rem', 
-                fontWeight: '500', 
+              <label style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '500',
                 color: '#f8fafc',
                 fontSize: '0.875rem'
               }}>
@@ -236,10 +236,10 @@ const InlineLogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null 
           </div>
 
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '0.5rem', 
-              fontWeight: '500', 
+            <label style={{
+              display: 'block',
+              marginBottom: '0.5rem',
+              fontWeight: '500',
               color: '#f8fafc',
               fontSize: '0.875rem'
             }}>
@@ -276,10 +276,10 @@ const InlineLogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null 
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             <div>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '0.5rem', 
-                fontWeight: '500', 
+              <label style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '500',
                 color: '#f8fafc',
                 fontSize: '0.875rem'
               }}>
@@ -291,6 +291,8 @@ const InlineLogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null 
                 value={formData.height_cm}
                 onChange={(e) => setFormData(prev => ({ ...prev, height_cm: e.target.value }))}
                 placeholder="Plant height in cm"
+                inputMode="decimal"
+                autoComplete="off"
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
@@ -314,10 +316,10 @@ const InlineLogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null 
             </div>
 
             <div>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '0.5rem', 
-                fontWeight: '500', 
+              <label style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '500',
                 color: '#f8fafc',
                 fontSize: '0.875rem'
               }}>
@@ -354,10 +356,10 @@ const InlineLogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null 
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             <div>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '0.5rem', 
-                fontWeight: '500', 
+              <label style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '500',
                 color: '#f8fafc',
                 fontSize: '0.875rem'
               }}>
@@ -394,10 +396,10 @@ const InlineLogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null 
             </div>
 
             <div>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '0.5rem', 
-                fontWeight: '500', 
+              <label style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '500',
                 color: '#f8fafc',
                 fontSize: '0.875rem'
               }}>
@@ -440,9 +442,9 @@ const InlineLogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null 
             paddingTop: '1rem',
             borderTop: '1px solid #475569'
           }}>
-            <button 
-              type="button" 
-              onClick={onClose} 
+            <button
+              type="button"
+              onClick={onClose}
               disabled={isSubmitting}
               style={{
                 padding: '0.75rem 1.5rem',
@@ -460,8 +462,8 @@ const InlineLogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null 
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isSubmitting}
               style={{
                 padding: '0.75rem 1.5rem',
@@ -512,7 +514,7 @@ const PlantDetail = () => {
       ]);
       setPlant(plantData);
       setLogs(logsData);
-      
+
       // Reset form with plant data when editing
       if (plantData) {
         reset({
@@ -680,9 +682,9 @@ const PlantDetail = () => {
               <h1 className="dashboard-title">{plant.name}</h1>
               <p className="dashboard-subtitle" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 {plant.grow_tent && (
-                  <span style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                  <span style={{
+                    display: 'flex',
+                    alignItems: 'center',
                     gap: '0.5rem'
                   }}>
                     <Home className="w-4 h-4" />
@@ -696,24 +698,39 @@ const PlantDetail = () => {
             </div>
             <div className="header-actions">
               {!editing ? (
-                <button 
-                  onClick={handleEdit}
-                  className="btn btn-accent"
-                >
-                  <Edit className="w-4 h-4" />
-                  Edit Plant
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <Link
+                    to={`/analytics/${id}`}
+                    className="btn btn-primary"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      textDecoration: 'none'
+                    }}
+                  >
+                    <TrendingUp className="w-4 h-4" />
+                    Analytics
+                  </Link>
+                  <button
+                    onClick={handleEdit}
+                    className="btn btn-accent"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Edit Plant
+                  </button>
+                </div>
               ) : (
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button 
-                    onClick={handleSubmit(onSubmit)} 
+                  <button
+                    onClick={handleSubmit(onSubmit)}
                     disabled={isSubmitting}
                     className="btn btn-primary"
                   >
                     <Save className="w-4 h-4" />
                     Save
                   </button>
-                  <button 
+                  <button
                     onClick={handleCancelEdit}
                     className="btn btn-secondary"
                   >
@@ -739,10 +756,10 @@ const PlantDetail = () => {
             animation: 'fadeInUp 0.8s ease-out 0.2s both'
           }}>
             <div style={{ padding: '2rem', borderBottom: '1px solid rgba(100, 116, 139, 0.2)' }}>
-              <h2 style={{ 
-                fontSize: '1.5rem', 
-                fontWeight: '700', 
-                color: '#f8fafc', 
+              <h2 style={{
+                fontSize: '1.5rem',
+                fontWeight: '700',
+                color: '#f8fafc',
                 marginBottom: '0.5rem',
                 display: 'flex',
                 alignItems: 'center',
@@ -758,12 +775,12 @@ const PlantDetail = () => {
               <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'grid', gap: '1.5rem' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                   <div>
-                    <label style={{ 
-                      display: 'block', 
-                      color: '#e2e8f0', 
-                      fontSize: '0.875rem', 
-                      fontWeight: '600', 
-                      marginBottom: '0.5rem' 
+                    <label style={{
+                      display: 'block',
+                      color: '#e2e8f0',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      marginBottom: '0.5rem'
                     }}>
                       Plant Name *
                     </label>
@@ -787,12 +804,12 @@ const PlantDetail = () => {
                   </div>
 
                   <div>
-                    <label style={{ 
-                      display: 'block', 
-                      color: '#e2e8f0', 
-                      fontSize: '0.875rem', 
-                      fontWeight: '600', 
-                      marginBottom: '0.5rem' 
+                    <label style={{
+                      display: 'block',
+                      color: '#e2e8f0',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      marginBottom: '0.5rem'
                     }}>
                       Strain
                     </label>
@@ -814,16 +831,16 @@ const PlantDetail = () => {
                   </div>
 
                   <div>
-                    <label style={{ 
-                      display: 'block', 
-                      color: '#e2e8f0', 
-                      fontSize: '0.875rem', 
-                      fontWeight: '600', 
-                      marginBottom: '0.5rem' 
+                    <label style={{
+                      display: 'block',
+                      color: '#e2e8f0',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      marginBottom: '0.5rem'
                     }}>
                       Growth Stage
                     </label>
-                    <select 
+                    <select
                       style={{
                         width: '100%',
                         padding: '0.75rem 1rem',
@@ -845,12 +862,12 @@ const PlantDetail = () => {
                   </div>
 
                   <div>
-                    <label style={{ 
-                      display: 'block', 
-                      color: '#e2e8f0', 
-                      fontSize: '0.875rem', 
-                      fontWeight: '600', 
-                      marginBottom: '0.5rem' 
+                    <label style={{
+                      display: 'block',
+                      color: '#e2e8f0',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      marginBottom: '0.5rem'
                     }}>
                       Grow Tent
                     </label>
@@ -878,12 +895,12 @@ const PlantDetail = () => {
                   </div>
 
                   <div>
-                    <label style={{ 
-                      display: 'block', 
-                      color: '#e2e8f0', 
-                      fontSize: '0.875rem', 
-                      fontWeight: '600', 
-                      marginBottom: '0.5rem' 
+                    <label style={{
+                      display: 'block',
+                      color: '#e2e8f0',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      marginBottom: '0.5rem'
                     }}>
                       Planted Date
                     </label>
@@ -904,12 +921,12 @@ const PlantDetail = () => {
                   </div>
 
                   <div>
-                    <label style={{ 
-                      display: 'block', 
-                      color: '#e2e8f0', 
-                      fontSize: '0.875rem', 
-                      fontWeight: '600', 
-                      marginBottom: '0.5rem' 
+                    <label style={{
+                      display: 'block',
+                      color: '#e2e8f0',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      marginBottom: '0.5rem'
                     }}>
                       Expected Harvest
                     </label>
@@ -931,12 +948,12 @@ const PlantDetail = () => {
                 </div>
 
                 <div>
-                  <label style={{ 
-                    display: 'block', 
-                    color: '#e2e8f0', 
-                    fontSize: '0.875rem', 
-                    fontWeight: '600', 
-                    marginBottom: '0.5rem' 
+                  <label style={{
+                    display: 'block',
+                    color: '#e2e8f0',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    marginBottom: '0.5rem'
                   }}>
                     Notes
                   </label>
@@ -975,10 +992,10 @@ const PlantDetail = () => {
           animation: 'fadeInUp 0.8s ease-out 0.4s both'
         }}>
           <div style={{ padding: '2rem', borderBottom: '1px solid rgba(100, 116, 139, 0.2)' }}>
-            <h2 style={{ 
-              fontSize: '1.5rem', 
-              fontWeight: '700', 
-              color: '#f8fafc', 
+            <h2 style={{
+              fontSize: '1.5rem',
+              fontWeight: '700',
+              color: '#f8fafc',
               marginBottom: '0.5rem',
               display: 'flex',
               alignItems: 'center',
@@ -991,9 +1008,9 @@ const PlantDetail = () => {
             </p>
           </div>
           <div style={{ padding: '2rem' }}>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(2, 1fr)', 
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
               gap: '2.5rem',
               marginBottom: '2rem'
             }}>
@@ -1068,7 +1085,7 @@ const PlantDetail = () => {
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
                 e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.4)';
-                e.currentTarget.style.borderColor = plant.stage === 'vegetative' ? 'rgba(34, 197, 94, 0.4)' : 
+                e.currentTarget.style.borderColor = plant.stage === 'vegetative' ? 'rgba(34, 197, 94, 0.4)' :
                                                    plant.stage === 'flowering' ? 'rgba(236, 72, 153, 0.4)' :
                                                    plant.stage === 'seedling' ? 'rgba(59, 130, 246, 0.4)' :
                                                    plant.stage === 'harvest' ? 'rgba(245, 158, 11, 0.4)' : 'rgba(100, 116, 139, 0.4)';
@@ -1081,7 +1098,7 @@ const PlantDetail = () => {
                 <div style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
                   Growth Stage
                 </div>
-                <div style={{ 
+                <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1091,12 +1108,12 @@ const PlantDetail = () => {
                   <span style={{ fontSize: '1.5rem' }}>
                     {getStageIcon(plant.stage)}
                   </span>
-                  <span style={{ 
-                    color: plant.stage === 'vegetative' ? '#22c55e' : 
+                  <span style={{
+                    color: plant.stage === 'vegetative' ? '#22c55e' :
                            plant.stage === 'flowering' ? '#ec4899' :
                            plant.stage === 'seedling' ? '#3b82f6' :
                            plant.stage === 'harvest' ? '#f59e0b' : '#64748b',
-                    fontSize: '1.125rem', 
+                    fontSize: '1.125rem',
                     fontWeight: '700',
                     textTransform: 'capitalize'
                   }}>
@@ -1135,11 +1152,11 @@ const PlantDetail = () => {
               </div>
             </div>
             {plant.notes && (
-              <div style={{ 
-                padding: '1.5rem', 
-                background: 'rgba(34, 197, 94, 0.1)', 
-                borderRadius: '16px', 
-                border: '1px solid rgba(34, 197, 94, 0.2)' 
+              <div style={{
+                padding: '1.5rem',
+                background: 'rgba(34, 197, 94, 0.1)',
+                borderRadius: '16px',
+                border: '1px solid rgba(34, 197, 94, 0.2)'
               }}>
                 <div style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
                   📝 Notes
@@ -1167,10 +1184,10 @@ const PlantDetail = () => {
           <div style={{ padding: '2rem', borderBottom: '1px solid rgba(100, 116, 139, 0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ 
-                  fontSize: '1.5rem', 
-                  fontWeight: '700', 
-                  color: '#f8fafc', 
+                <h2 style={{
+                  fontSize: '1.5rem',
+                  fontWeight: '700',
+                  color: '#f8fafc',
                   marginBottom: '0.5rem',
                   display: 'flex',
                   alignItems: 'center',
@@ -1182,7 +1199,7 @@ const PlantDetail = () => {
                   Latest plant care logs and observations
                 </p>
               </div>
-              <button 
+              <button
                 onClick={handleAddLog}
                 style={{
                   display: 'inline-flex',
@@ -1213,10 +1230,10 @@ const PlantDetail = () => {
               </button>
             </div>
           </div>
-          
+
           {logs.length === 0 ? (
-            <div style={{ 
-              textAlign: 'center', 
+            <div style={{
+              textAlign: 'center',
               padding: '4rem 2rem',
               background: 'rgba(15, 23, 42, 0.4)',
               margin: '2rem',
@@ -1236,24 +1253,24 @@ const PlantDetail = () => {
               }}>
                 <Activity className="w-10 h-10" style={{ color: 'white' }} />
               </div>
-              <h3 style={{ 
-                color: '#f8fafc', 
-                fontSize: '1.25rem', 
-                fontWeight: '600', 
+              <h3 style={{
+                color: '#f8fafc',
+                fontSize: '1.25rem',
+                fontWeight: '600',
                 marginBottom: '0.75rem',
                 letterSpacing: '-0.025em'
               }}>
                 No activity logs yet
               </h3>
-              <p style={{ 
-                color: '#94a3b8', 
+              <p style={{
+                color: '#94a3b8',
                 marginBottom: '2rem',
                 fontSize: '0.95rem',
                 lineHeight: '1.5'
               }}>
                 Start tracking your plant&apos;s growth by adding your first log entry.
               </p>
-              <button 
+              <button
                 onClick={handleAddLog}
                 style={{
                   display: 'inline-flex',
@@ -1284,15 +1301,15 @@ const PlantDetail = () => {
               <div style={{ overflowX: 'auto', minWidth: '100%' }}>
                 <table style={{ width: '100%', fontSize: '0.875rem', textAlign: 'left', borderCollapse: 'collapse', minWidth: '900px' }}>
                   <thead>
-                    <tr style={{ 
-                      background: 'rgba(15, 23, 42, 0.8)', 
+                    <tr style={{
+                      background: 'rgba(15, 23, 42, 0.8)',
                       backdropFilter: 'blur(10px)',
                       WebkitBackdropFilter: 'blur(10px)',
-                      borderBottom: '1px solid rgba(100, 116, 139, 0.3)' 
+                      borderBottom: '1px solid rgba(100, 116, 139, 0.3)'
                     }}>
-                      <th style={{ 
-                        padding: '1rem 1rem', 
-                        fontWeight: '600', 
+                      <th style={{
+                        padding: '1rem 1rem',
+                        fontWeight: '600',
                         color: '#e2e8f0',
                         fontSize: '0.8rem',
                         textTransform: 'uppercase',
@@ -1300,9 +1317,9 @@ const PlantDetail = () => {
                         textAlign: 'left',
                         width: '18%'
                       }}>Date/Time</th>
-                      <th style={{ 
-                        padding: '1rem 1rem', 
-                        fontWeight: '600', 
+                      <th style={{
+                        padding: '1rem 1rem',
+                        fontWeight: '600',
                         color: '#e2e8f0',
                         fontSize: '0.8rem',
                         textTransform: 'uppercase',
@@ -1310,9 +1327,9 @@ const PlantDetail = () => {
                         textAlign: 'center',
                         width: '15%'
                       }}>Type</th>
-                      <th style={{ 
-                        padding: '1rem 1rem', 
-                        fontWeight: '600', 
+                      <th style={{
+                        padding: '1rem 1rem',
+                        fontWeight: '600',
                         color: '#e2e8f0',
                         fontSize: '0.8rem',
                         textTransform: 'uppercase',
@@ -1320,9 +1337,9 @@ const PlantDetail = () => {
                         textAlign: 'center',
                         width: '35%'
                       }}>Measurements</th>
-                      <th style={{ 
-                        padding: '1rem 1rem', 
-                        fontWeight: '600', 
+                      <th style={{
+                        padding: '1rem 1rem',
+                        fontWeight: '600',
                         color: '#e2e8f0',
                         fontSize: '0.8rem',
                         textTransform: 'uppercase',
@@ -1330,9 +1347,9 @@ const PlantDetail = () => {
                         textAlign: 'left',
                         width: '22%'
                       }}>Notes</th>
-                      <th style={{ 
-                        padding: '1rem 1rem', 
-                        fontWeight: '600', 
+                      <th style={{
+                        padding: '1rem 1rem',
+                        fontWeight: '600',
                         color: '#e2e8f0',
                         fontSize: '0.8rem',
                         textTransform: 'uppercase',
@@ -1344,13 +1361,13 @@ const PlantDetail = () => {
                   </thead>
                   <tbody>
                     {logs.slice(0, 10).map((log, index) => (
-                      <tr 
-                        key={log.id} 
-                        style={{ 
+                      <tr
+                        key={log.id}
+                        style={{
                           borderBottom: index < Math.min(logs.length - 1, 9) ? '1px solid rgba(100, 116, 139, 0.2)' : 'none',
                           transition: 'all 0.2s ease',
                           background: index % 2 === 0 ? 'rgba(15, 23, 42, 0.3)' : 'transparent'
-                        }} 
+                        }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background = 'rgba(30, 41, 59, 0.7)';
                           e.currentTarget.style.backdropFilter = 'blur(8px)';
@@ -1372,9 +1389,9 @@ const PlantDetail = () => {
                             </span>
                           </div>
                         </td>
-                        <td style={{ 
-                          padding: '1rem 1rem', 
-                          whiteSpace: 'nowrap', 
+                        <td style={{
+                          padding: '1rem 1rem',
+                          whiteSpace: 'nowrap',
                           textAlign: 'center',
                           verticalAlign: 'middle'
                         }}>
@@ -1402,15 +1419,15 @@ const PlantDetail = () => {
                           </span>
                         </td>
                         <td style={{ padding: '1rem 1rem', textAlign: 'left' }}>
-                          <div style={{ 
-                            display: 'grid', 
-                            gridTemplateColumns: '1fr 1fr', 
-                            gap: '0.5rem', 
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: '0.5rem',
                             fontSize: '0.75rem'
                           }}>
                             {log.height_cm && (
-                              <div style={{ 
-                                padding: '0.25rem 0.5rem', 
+                              <div style={{
+                                padding: '0.25rem 0.5rem',
                                 background: 'rgba(16, 185, 129, 0.1)',
                                 border: '1px solid rgba(16, 185, 129, 0.2)',
                                 borderRadius: '6px',
@@ -1421,8 +1438,8 @@ const PlantDetail = () => {
                               </div>
                             )}
                             {log.water_amount && (
-                              <div style={{ 
-                                padding: '0.25rem 0.5rem', 
+                              <div style={{
+                                padding: '0.25rem 0.5rem',
                                 background: 'rgba(59, 130, 246, 0.1)',
                                 border: '1px solid rgba(59, 130, 246, 0.2)',
                                 borderRadius: '6px',
@@ -1433,8 +1450,8 @@ const PlantDetail = () => {
                               </div>
                             )}
                             {log.ph_level && (
-                              <div style={{ 
-                                padding: '0.25rem 0.5rem', 
+                              <div style={{
+                                padding: '0.25rem 0.5rem',
                                 background: 'rgba(168, 85, 247, 0.1)',
                                 border: '1px solid rgba(168, 85, 247, 0.2)',
                                 borderRadius: '6px',
@@ -1445,8 +1462,8 @@ const PlantDetail = () => {
                               </div>
                             )}
                             {log.ec_tds && (
-                              <div style={{ 
-                                padding: '0.25rem 0.5rem', 
+                              <div style={{
+                                padding: '0.25rem 0.5rem',
                                 background: 'rgba(245, 158, 11, 0.1)',
                                 border: '1px solid rgba(245, 158, 11, 0.2)',
                                 borderRadius: '6px',
@@ -1460,8 +1477,8 @@ const PlantDetail = () => {
                         </td>
                         <td style={{ padding: '1rem 1rem', textAlign: 'left' }}>
                           <div style={{ maxWidth: '250px' }}>
-                            <span style={{ 
-                              color: '#cbd5e1', 
+                            <span style={{
+                              color: '#cbd5e1',
                               fontWeight: '400',
                               fontSize: '0.875rem',
                               lineHeight: '1.4',
@@ -1548,4 +1565,4 @@ const PlantDetail = () => {
   );
 };
 
-export default PlantDetail; 
+export default PlantDetail;

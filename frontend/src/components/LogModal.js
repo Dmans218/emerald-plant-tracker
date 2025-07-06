@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { logsApi } from '../utils/api';
 
 const LogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null }) => {
@@ -84,7 +84,7 @@ const LogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null }) => 
       } else {
         await logsApi.create(submitData);
       }
-      
+
       onSuccess();
       onClose();
     } catch (error) {
@@ -103,7 +103,7 @@ const LogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null }) => 
           <h2>{logToEdit ? 'Edit Log Entry' : 'Add Log Entry'}</h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="form-group">
             <label htmlFor="logged_at">Date *</label>
@@ -169,6 +169,8 @@ const LogModal = ({ isOpen, onClose, onSuccess, plantId, logToEdit = null }) => 
                 value={formData.height_cm}
                 onChange={handleChange}
                 placeholder="Plant height in cm"
+                inputMode="decimal"
+                autoComplete="off"
               />
             </div>
 

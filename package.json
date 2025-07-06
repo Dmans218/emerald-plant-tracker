@@ -13,7 +13,11 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "audit": "npm audit || true",
-    "audit-fix": "npm audit fix"
+    "audit-fix": "npm audit fix",
+    "format": "cd frontend && bun run format",
+    "format:check": "cd frontend && bun run format:check",
+    "lint": "cd frontend && bun run lint",
+    "lint:fix": "cd frontend && bun run lint:fix"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

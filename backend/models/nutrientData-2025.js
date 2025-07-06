@@ -289,6 +289,288 @@ const nutrientBrands = {
       },
     },
   },
+  'jacks-321': {
+    name: 'Jack\'s 321 (2025)',
+    description: 'Professional Dry Nutrient System - 3.6g + 2.4g + 1.1g',
+    products: {
+      seedling: [
+        { name: 'Part A (5-12-26)', ratio: 1.8, unit: 'g/gal' }, // Half strength
+        { name: 'Calcium Nitrate', ratio: 1.2, unit: 'g/gal' },
+        { name: 'Epsom Salt', ratio: 0.55, unit: 'g/gal' },
+      ],
+      vegetative: [
+        { name: 'Part A (5-12-26)', ratio: 3.6, unit: 'g/gal' }, // Full strength
+        { name: 'Calcium Nitrate', ratio: 2.4, unit: 'g/gal' },
+        { name: 'Epsom Salt', ratio: 1.1, unit: 'g/gal' },
+      ],
+      flowering: [
+        { name: 'Part A (5-12-26)', ratio: 3.6, unit: 'g/gal' }, // Full strength
+        { name: 'Calcium Nitrate', ratio: 2.4, unit: 'g/gal' },
+        { name: 'Epsom Salt', ratio: 1.1, unit: 'g/gal' },
+      ],
+      supplements: [
+        { name: 'Potassium Silicate', ratio: 0.5, unit: 'g/gal', optional: true },
+        { name: 'Fulvic Acid', ratio: 0.25, unit: 'g/gal', optional: true },
+      ],
+    },
+    strengthMultipliers: {
+      light: 0.75,     // Conservative feeding
+      medium: 1.0,     // Standard 321 recipe
+      aggressive: 1.25, // Heavy feeding
+    },
+    targetEC: {
+      seedling: { light: 0.6, medium: 0.8, aggressive: 1.0 },
+      vegetative: { light: 1.0, medium: 1.3, aggressive: 1.6 },
+      flowering: { light: 1.2, medium: 1.5, aggressive: 1.8 },
+    },
+    targetTDS: {
+      seedling: { light: 300, medium: 400, aggressive: 500 },
+      vegetative: { light: 500, medium: 650, aggressive: 800 },
+      flowering: { light: 600, medium: 750, aggressive: 900 },
+    },
+    wateringMethodMultipliers: {
+      'hand-watering': 1.0,
+      'drip-system': 0.9,
+      'bottom-wicking': 0.95,
+      'aeroponics': 0.8,
+      'deep-water-culture': 1.0,
+      'ebb-flow': 0.95,
+    },
+  },
+  'megacrop': {
+    name: 'MegaCrop 1-Part (2025)',
+    description: 'All-in-One Complete Nutrient - 11-5-14 Formula',
+    products: {
+      seedling: [
+        { name: 'MegaCrop 1-Part', ratio: 2.0, unit: 'g/gal' }, // Light for seedlings
+      ],
+      vegetative: [
+        { name: 'MegaCrop 1-Part', ratio: 4.5, unit: 'g/gal' }, // Standard veg
+      ],
+      flowering: [
+        { name: 'MegaCrop 1-Part', ratio: 5.5, unit: 'g/gal' }, // Increased for bloom
+      ],
+      supplements: [
+        { name: 'Bud Explosion', ratio: 1.0, unit: 'g/gal', optional: true, floweringOnly: true },
+        { name: 'Sweet Candy', ratio: 1.0, unit: 'g/gal', optional: true },
+        { name: 'Sea-K', ratio: 0.5, unit: 'g/gal', optional: true },
+        { name: 'Cal-Mag Pro', ratio: 1.0, unit: 'g/gal', optional: true },
+      ],
+    },
+    strengthMultipliers: {
+      light: 0.75,     // Conservative feeding
+      medium: 1.0,     // Standard strength
+      aggressive: 1.25, // Heavy feeding
+    },
+    targetEC: {
+      seedling: { light: 0.4, medium: 0.6, aggressive: 0.8 },
+      vegetative: { light: 0.8, medium: 1.2, aggressive: 1.5 },
+      flowering: { light: 1.0, medium: 1.4, aggressive: 1.8 },
+    },
+    targetTDS: {
+      seedling: { light: 200, medium: 300, aggressive: 400 },
+      vegetative: { light: 400, medium: 600, aggressive: 750 },
+      flowering: { light: 500, medium: 700, aggressive: 900 },
+    },
+    wateringMethodMultipliers: {
+      'hand-watering': 1.0,
+      'drip-system': 0.9,
+      'bottom-wicking': 0.95,
+      'aeroponics': 0.75,
+      'deep-water-culture': 1.0,
+      'ebb-flow': 0.95,
+    },
+  },
+  'house-garden': {
+    name: 'House & Garden Soil A+B (2025)',
+    description: 'Premium Dutch Nutrients - Humboldt Crafted',
+    products: {
+      seedling: [
+        { name: 'Soil A', ratio: 1.25, unit: 'ml/gal' }, // Light start
+        { name: 'Soil B', ratio: 1.25, unit: 'ml/gal' },
+      ],
+      vegetative: [
+        { name: 'Soil A', ratio: 2.5, unit: 'ml/gal' }, // Standard strength
+        { name: 'Soil B', ratio: 2.5, unit: 'ml/gal' },
+      ],
+      flowering: [
+        { name: 'Soil A', ratio: 2.5, unit: 'ml/gal' }, // Standard strength
+        { name: 'Soil B', ratio: 2.5, unit: 'ml/gal' },
+      ],
+      supplements: [
+        { name: 'Roots Excelurator Gold', ratio: 1.1, unit: 'ml/gal', optional: true, earlyGrowth: true },
+        { name: 'Algen Extract', ratio: 2.5, unit: 'ml/gal', optional: true },
+        { name: 'Multi Zen', ratio: 2.5, unit: 'ml/gal', optional: true },
+        { name: 'Amino Treatment', ratio: 2.5, unit: 'ml/gal', optional: true },
+        { name: 'Bud XL', ratio: 1.5, unit: 'ml/gal', optional: true, floweringOnly: true },
+        { name: 'Top Booster', ratio: 1.5, unit: 'ml/gal', optional: true, floweringOnly: true },
+        { name: 'Shooting Powder', ratio: 1.0, unit: 'g/gal', optional: true, floweringOnly: true },
+        { name: 'Drip Clean', ratio: 0.15, unit: 'ml/gal', optional: true },
+      ],
+    },
+    strengthMultipliers: {
+      normal: 1.0,      // Standard strength
+      aggressive: 1.5,  // Heavy feeding
+    },
+    targetEC: {
+      seedling: { normal: 0.8, aggressive: 1.2 },
+      vegetative: { normal: 1.2, aggressive: 1.8 },
+      flowering: { normal: 1.4, aggressive: 2.0 },
+    },
+    targetTDS: {
+      seedling: { normal: 400, aggressive: 600 },
+      vegetative: { normal: 600, aggressive: 900 },
+      flowering: { normal: 700, aggressive: 1000 },
+    },
+    wateringMethodMultipliers: {
+      'hand-watering': 1.0,
+      'drip-system': 0.9,
+      'bottom-wicking': 0.95,
+      'aeroponics': 0.8,
+      'deep-water-culture': 0.9,
+      'ebb-flow': 0.95,
+    },
+  },
+  'botanicare': {
+    name: 'Botanicare Pure Blend Pro (2025)',
+    description: 'Organic-Based Hydro-Organic Formula',
+    products: {
+      seedling: [
+        { name: 'Pure Blend Pro Grow', ratio: 2.5, unit: 'ml/gal' }, // Light start
+      ],
+      vegetative: [
+        { name: 'Pure Blend Pro Grow', ratio: 7.5, unit: 'ml/gal' }, // Standard veg
+      ],
+      flowering: [
+        { name: 'Pure Blend Pro Bloom', ratio: 7.5, unit: 'ml/gal' }, // Standard bloom
+      ],
+      supplements: [
+        { name: 'Cal-Mag Plus', ratio: 2.5, unit: 'ml/gal', optional: true },
+        { name: 'Liquid Karma', ratio: 2.5, unit: 'ml/gal', optional: true },
+        { name: 'Sweet Raw', ratio: 1.25, unit: 'ml/gal', optional: true },
+        { name: 'Hydroplex', ratio: 1.25, unit: 'ml/gal', optional: true, floweringOnly: true },
+        { name: 'Silica Blast', ratio: 1.25, unit: 'ml/gal', optional: true },
+        { name: 'Clearex', ratio: 7.5, unit: 'ml/gal', optional: true, flushOnly: true },
+      ],
+    },
+    strengthMultipliers: {
+      light: 0.5,      // Conservative feeding
+      medium: 1.0,     // Standard strength
+      heavy: 1.5,      // Heavy feeding
+    },
+    targetEC: {
+      seedling: { light: 0.4, medium: 0.6, heavy: 0.8 },
+      vegetative: { light: 0.8, medium: 1.2, heavy: 1.6 },
+      flowering: { light: 1.0, medium: 1.4, heavy: 1.8 },
+    },
+    targetTDS: {
+      seedling: { light: 200, medium: 300, heavy: 400 },
+      vegetative: { light: 400, medium: 600, heavy: 800 },
+      flowering: { light: 500, medium: 700, heavy: 900 },
+    },
+    wateringMethodMultipliers: {
+      'hand-watering': 1.0,
+      'drip-system': 0.9,
+      'bottom-wicking': 0.95,
+      'aeroponics': 0.8,
+      'deep-water-culture': 0.9,
+      'ebb-flow': 0.95,
+    },
+  },
+  'biobizz': {
+    name: 'BioBizz All-Mix Organic (2025)',
+    description: 'European Organic Nutrients - Living Soil Focus',
+    products: {
+      seedling: [
+        { name: 'Bio-Grow', ratio: 1.0, unit: 'ml/gal' }, // Very light for organics
+      ],
+      vegetative: [
+        { name: 'Bio-Grow', ratio: 3.0, unit: 'ml/gal' }, // Standard organic veg
+      ],
+      flowering: [
+        { name: 'Bio-Bloom', ratio: 3.0, unit: 'ml/gal' }, // Standard organic bloom
+        { name: 'Top-Max', ratio: 1.5, unit: 'ml/gal' },
+      ],
+      supplements: [
+        { name: 'Root-Juice', ratio: 2.0, unit: 'ml/gal', optional: true, earlyGrowth: true },
+        { name: 'Bio-Heaven', ratio: 2.0, unit: 'ml/gal', optional: true },
+        { name: 'Alg-A-Mic', ratio: 2.0, unit: 'ml/gal', optional: true },
+        { name: 'CalMag', ratio: 1.5, unit: 'ml/gal', optional: true },
+        { name: 'Acti-Vera', ratio: 2.0, unit: 'ml/gal', optional: true },
+      ],
+    },
+    strengthMultipliers: {
+      light: 0.5,      // Very light organic feeding
+      medium: 1.0,     // Standard organic strength
+      strong: 1.5,     // Maximum organic feeding
+    },
+    targetEC: {
+      seedling: { light: 0.3, medium: 0.5, strong: 0.7 },
+      vegetative: { light: 0.6, medium: 1.0, strong: 1.4 },
+      flowering: { light: 0.8, medium: 1.2, strong: 1.6 },
+    },
+    targetTDS: {
+      seedling: { light: 150, medium: 250, strong: 350 },
+      vegetative: { light: 300, medium: 500, strong: 700 },
+      flowering: { light: 400, medium: 600, strong: 800 },
+    },
+    wateringMethodMultipliers: {
+      'hand-watering': 1.0,
+      'drip-system': 0.95,
+      'bottom-wicking': 0.9,
+      'aeroponics': 0.7,
+      'deep-water-culture': 0.8,
+      'ebb-flow': 0.9,
+    },
+  },
+  'masterblend': {
+    name: 'Masterblend 4-18-38 (2025)',
+    description: 'Professional Greenhouse Formula - Hydroponic Tomato',
+    products: {
+      seedling: [
+        { name: 'Masterblend 4-18-38', ratio: 1.2, unit: 'g/gal' }, // Half strength
+        { name: 'Calcium Nitrate', ratio: 1.2, unit: 'g/gal' },
+        { name: 'Epsom Salt', ratio: 0.6, unit: 'g/gal' },
+      ],
+      vegetative: [
+        { name: 'Masterblend 4-18-38', ratio: 2.4, unit: 'g/gal' }, // Standard strength
+        { name: 'Calcium Nitrate', ratio: 2.4, unit: 'g/gal' },
+        { name: 'Epsom Salt', ratio: 1.2, unit: 'g/gal' },
+      ],
+      flowering: [
+        { name: 'Masterblend 4-18-38', ratio: 2.4, unit: 'g/gal' }, // Standard strength
+        { name: 'Calcium Nitrate', ratio: 2.4, unit: 'g/gal' },
+        { name: 'Epsom Salt', ratio: 1.2, unit: 'g/gal' },
+      ],
+      supplements: [
+        { name: 'Potassium Sulfate', ratio: 1.0, unit: 'g/gal', optional: true, floweringOnly: true },
+        { name: 'Mono Potassium Phosphate', ratio: 0.5, unit: 'g/gal', optional: true, floweringOnly: true },
+      ],
+    },
+    strengthMultipliers: {
+      light: 0.75,     // Conservative feeding
+      medium: 1.0,     // Standard strength
+      aggressive: 1.25, // Heavy feeding
+    },
+    targetEC: {
+      seedling: { light: 0.5, medium: 0.7, aggressive: 0.9 },
+      vegetative: { light: 1.0, medium: 1.3, aggressive: 1.6 },
+      flowering: { light: 1.2, medium: 1.5, aggressive: 1.8 },
+    },
+    targetTDS: {
+      seedling: { light: 250, medium: 350, aggressive: 450 },
+      vegetative: { light: 500, medium: 650, aggressive: 800 },
+      flowering: { light: 600, medium: 750, aggressive: 900 },
+    },
+    wateringMethodMultipliers: {
+      'hand-watering': 1.0,
+      'drip-system': 0.9,
+      'bottom-wicking': 0.95,
+      'aeroponics': 0.8,
+      'deep-water-culture': 1.0,
+      'ebb-flow': 0.95,
+    },
+  },
 };
 
 module.exports = {

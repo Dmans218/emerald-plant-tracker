@@ -1,0 +1,79 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Build output
+build/
+dist/
+frontend/build/
+backend/build/
+*.min.js
+*.min.css
+
+# Package files
+package-lock.json
+frontend/package-lock.json
+backend/package-lock.json
+bun.lock
+frontend/bun.lock
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Upload directories
+backend/uploads/
+backend/data/
+
+# Config files
+.prettierrc*
+.eslintrc*
+eslint.config.js
+frontend/eslint.config.js
+backend/eslint.config.js
+
+# Generated files
+*.map
+*.d.ts
+
+# Logs
+*.log
+logs/
+
+# Cache
+.cache/
+.parcel-cache/
+.npm/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+
+# Environment files
+.env*
+
+# Documentation that should maintain original formatting
+CHANGELOG.md
+docs/reference/vendor-feeding-charts/
+
+# Version control
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+.cursor/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Shell scripts
+*.sh

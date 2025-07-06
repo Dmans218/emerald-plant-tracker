@@ -1,0 +1,28 @@
+version: 4.22.0
+markdownExploder: true
+prd:
+  prdFile: docs/prd.md
+  prdVersion: v4
+  prdSharded: true
+  prdShardedLocation: docs/prd
+  epicFilePattern: epic-*.story.md
+architecture:
+  architectureFile: docs/architecture.md
+  architectureVersion: v4
+  architectureSharded: true
+  architectureShardedLocation: docs/architecture
+customTechnicalDocuments:
+  - docs/bmad-cannabis-domain-knowledge.md
+  - docs/CSV_IMPORT_GUIDE.md
+devLoadAlwaysFiles:
+  - docs/architecture.md
+  - docs/prd.md
+  - docs/bmad-cannabis-domain-knowledge.md
+devDebugLog: .bmad-core/logs/dev-debug.md
+devStoryLocation: docs/stories
+workflow:
+  planFile: docs/workflow-plan.md
+  trackProgress: true
+  enforceSequence: false
+  updateOnCompletion: true
+agentCoreDump: .bmad-core/logs/core-dump-{n}.md

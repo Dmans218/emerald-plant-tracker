@@ -24,12 +24,14 @@
   },
   "scripts": {
     "dev": "bun run build && bun run serve.js",
-    "start": "bun run build && bun run serve.js", 
+    "start": "bun run build && bun run serve.js",
     "build": "bun build src/index.js --outdir=build --target=browser --minify --sourcemap=external --define 'process.env.NODE_ENV=\"development\"' --define 'process.env={}' --define 'global=globalThis'",
     "serve": "bun run serve.js",
     "test": "bun test",
     "lint": "bun run eslint src/",
-    "lint:fix": "bun run eslint src/ --fix"
+    "lint:fix": "bun run eslint src/ --fix",
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,json,css,md}\""
   },
   "npmConfig": {
     "legacy-peer-deps": true
@@ -46,12 +48,12 @@
       "last 1 safari version"
     ]
   },
-
   "devDependencies": {
     "@eslint/js": "^9.28.0",
     "eslint": "^9.28.0",
     "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^5.2.0"
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "prettier": "^3.3.3"
   },
   "engines": {
     "node": ">=22.0.0",

@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
-import { Camera, Upload, X, Loader, CheckCircle, AlertCircle } from 'lucide-react';
-import { parseEnvironmentalData } from '../utils/ocrParser';
+import { AlertCircle, Camera, CheckCircle, Loader, Upload, X } from 'lucide-react';
+import React, { useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { parseEnvironmentalData } from '../utils/ocrParser';
 
 // CSS animations for the modal
 const modalStyles = `
@@ -9,13 +9,13 @@ const modalStyles = `
     from { opacity: 0; }
     to { opacity: 1; }
   }
-  
+
   @keyframes modalSlideIn {
-    from { 
+    from {
       opacity: 0;
       transform: scale(0.95) translateY(-10px);
     }
-    to { 
+    to {
       opacity: 1;
       transform: scale(1) translateY(0);
     }
@@ -152,9 +152,10 @@ const ImageUpload = ({ onDataParsed, onClose }) => {
             alignItems: 'center',
             gap: '0.5rem'
           }}>
-            📱 Upload App Screenshot
+            📷 Upload or Take Photo
           </h3>
           <button
+            data-testid="imageupload-close-btn"
             onClick={onClose}
             style={{
               display: 'flex',
@@ -192,8 +193,8 @@ const ImageUpload = ({ onDataParsed, onClose }) => {
             fontSize: '0.875rem',
             lineHeight: '1.5'
           }}>
-            Take a screenshot of your Spider Farmer app showing environmental readings and upload it here. 
-            We&apos;ll automatically extract the temperature, humidity, VPD, and other values.
+            Take a photo of your grow app, nutrient label, or environmental readings.
+            On mobile, tap "Choose File" to access your camera directly. We&apos;ll automatically extract values using OCR.
           </p>
 
           {!preview ? (
@@ -244,7 +245,7 @@ const ImageUpload = ({ onDataParsed, onClose }) => {
                   fontWeight: '600',
                   color: '#f8fafc'
                 }}>
-                  Drop screenshot here or click to browse
+                  Drop image here, click to browse, or take photo
                 </h4>
                 <p style={{
                   margin: '0 0 1.5rem 0',
@@ -285,6 +286,7 @@ const ImageUpload = ({ onDataParsed, onClose }) => {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                capture="environment"
                 onChange={handleFileChange}
                 style={{ display: 'none' }}
               />
@@ -295,9 +297,9 @@ const ImageUpload = ({ onDataParsed, onClose }) => {
                 position: 'relative',
                 marginBottom: '1.5rem'
               }}>
-                <img 
-                  src={preview} 
-                  alt="Screenshot preview" 
+                <img
+                  src={preview}
+                  alt="Screenshot preview"
                   style={{
                     width: '100%',
                     maxHeight: '300px',
@@ -307,7 +309,7 @@ const ImageUpload = ({ onDataParsed, onClose }) => {
                     background: 'rgba(15, 23, 42, 0.5)'
                   }}
                 />
-                <button 
+                <button
                   onClick={clearImage}
                   style={{
                     position: 'absolute',
@@ -402,7 +404,7 @@ const ImageUpload = ({ onDataParsed, onClose }) => {
                         gap: '0.75rem'
                       }}>
                         {Object.entries(parsedData.parsedValues).map(([key, value]) => (
-                          <div 
+                          <div
                             key={key}
                             style={{
                               display: 'flex',
@@ -465,7 +467,7 @@ const ImageUpload = ({ onDataParsed, onClose }) => {
           borderTop: '1px solid rgba(100, 116, 139, 0.2)',
           background: 'rgba(30, 41, 59, 0.3)'
         }}>
-          <button 
+          <button
             onClick={onClose}
             style={{
               padding: '0.75rem 1.5rem',
@@ -490,7 +492,7 @@ const ImageUpload = ({ onDataParsed, onClose }) => {
             Cancel
           </button>
           {parsedData && parsedData.success && (
-            <button 
+            <button
               onClick={handleUseData}
               style={{
                 padding: '0.75rem 1.5rem',
@@ -522,4 +524,4 @@ const ImageUpload = ({ onDataParsed, onClose }) => {
   );
 };
 
-export default ImageUpload; 
+export default ImageUpload;

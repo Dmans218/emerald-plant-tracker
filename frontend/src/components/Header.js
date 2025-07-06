@@ -1,6 +1,7 @@
+import { Calculator, Home, Sprout, Thermometer } from 'lucide-react';
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Sprout, Calculator, Home, Thermometer } from 'lucide-react';
+import MobileNavigation from './mobile/MobileNavigation';
 
 const Header = () => {
   const location = useLocation();
@@ -39,9 +40,12 @@ const Header = () => {
             ))}
           </nav>
         </div>
+        <div className="mobile-only">
+          <MobileNavigation />
+        </div>
       </div>
     </header>
   );
 };
 
-export default Header; 
+export default Header;

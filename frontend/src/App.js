@@ -1,28 +1,38 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { Suspense } from 'react';
 import { Toaster } from 'react-hot-toast';
+import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 
 import Header from './components/Header';
-import Dashboard from './pages/Dashboard';
-import Plants from './pages/Plants';
-import PlantDetail from './pages/PlantDetail';
-import Calculator from './pages/Calculator';
-import Environment from './pages/Environment';
+import MobileNavigation from './components/mobile/MobileNavigation';
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Plants = React.lazy(() => import('./pages/Plants'));
+const PlantDetail = React.lazy(() => import('./pages/PlantDetail'));
+const Environment = React.lazy(() => import('./pages/Environment'));
+const Logs = React.lazy(() => import('./pages/Logs'));
+const Calculator = React.lazy(() => import('./pages/Calculator'));
+const ArchivedTents = React.lazy(() => import('./pages/ArchivedTents'));
+const AnalyticsDashboard = React.lazy(() => import('./pages/AnalyticsDashboard'));
 
 function App() {
   return (
     <Router>
       <div className="app">
         <Header />
-        <main className="container mx-auto py-8">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/plants" element={<Plants />} />
-            <Route path="/plants/:id" element={<PlantDetail />} />
-            <Route path="/calculator" element={<Calculator />} />
-            <Route path="/environment" element={<Environment />} />
-          </Routes>
-        </main>
+        <MobileNavigation />
+        <Suspense fallback={<div>Loading...</div>}>
+          <main className="container mx-auto py-8">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/plants" element={<Plants />} />
+              <Route path="/plants/:id" element={<PlantDetail />} />
+              <Route path="/analytics/:plantId" element={<AnalyticsDashboard />} />
+              <Route path="/environment" element={<Environment />} />
+              <Route path="/logs" element={<Logs />} />
+              <Route path="/calculator" element={<Calculator />} />
+              <Route path="/archived" element={<ArchivedTents />} />
+            </Routes>
+          </main>
+        </Suspense>
         <Toaster
           position="top-right"
           toastOptions={{
@@ -45,4 +55,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

@@ -38,6 +38,9 @@ const environmentSchema = Joi.object({
   co2_ppm: Joi.number().min(0).max(5000).allow(null, ''),
   ppfd: Joi.number().min(0).max(3000).allow(null, ''),
   grow_tent: Joi.string().max(100).allow(null, ''),
+  stage: Joi.string().valid('Seedling', 'Vegetative', 'Pre-Flower', 'Flower', 'Late Flower', 'Harvest', 'Drying', 'Curing').allow(null, ''),
+  soil_temperature_f: Joi.number().min(-50).max(150).allow(null, ''),
+  power_consumption: Joi.number().min(0).max(10000).allow(null, ''),
   notes: Joi.string().max(1000).allow(null, ''),
   logged_at: Joi.date().iso().allow(null, '')
 });
@@ -52,68 +55,30 @@ router.get('/', async (req, res) => {
   try {
     const { limit = 50, offset = 0, from_date, to_date, grow_tent } = req.query;
     
-    // Enhanced query to include plant growth stages from the tent at the time of reading
-    let sql = `
-      SELECT 
-        e.*,
-        STRING_AGG(DISTINCT p.stage, ',') as plant_stages,
-        COUNT(DISTINCT p.id) as plant_count
-      FROM environment_logs e
-      LEFT JOIN plants p ON (p.grow_tent = e.grow_tent AND p.archived_at IS NULL)
-      WHERE 1=1
-    `;
+    let sql = `SELECT * FROM environment_logs WHERE 1=1`;
     const params = [];
     let paramIndex = 1;
     
     if (from_date) {
-      sql += ` AND e.logged_at >= $${paramIndex++}`;
+      sql += ` AND logged_at >= $${paramIndex++}`;
       params.push(from_date);
     }
     
     if (to_date) {
-      sql += ` AND e.logged_at <= $${paramIndex++}`;
+      sql += ` AND logged_at <= $${paramIndex++}`;
       params.push(to_date);
     }
     
     if (grow_tent) {
-      sql += ` AND e.grow_tent = $${paramIndex++}`;
+      sql += ` AND grow_tent = $${paramIndex++}`;
       params.push(grow_tent);
     }
     
-    sql += ` GROUP BY e.id ORDER BY e.logged_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    sql += ` ORDER BY logged_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
     params.push(parseInt(limit), parseInt(offset));
     
     const result = await query(sql, params);
-    
-    // Process the results to format the stage information
-    const processedRows = result.rows.map(row => {
-      let dominantStage = 'N/A';
-      
-      if (row.plant_stages) {
-        const stages = row.plant_stages.split(',');
-        // Count stage occurrences
-        const stageCounts = {};
-        stages.forEach(stage => {
-          stageCounts[stage] = (stageCounts[stage] || 0) + 1;
-        });
-        
-        // Find most common stage
-        dominantStage = Object.keys(stageCounts).reduce((a, b) => 
-          stageCounts[a] > stageCounts[b] ? a : b
-        );
-        
-        // Capitalize the stage name
-        dominantStage = dominantStage.charAt(0).toUpperCase() + dominantStage.slice(1);
-      }
-      
-      return {
-        ...row,
-        stage: dominantStage,
-        plant_stages: undefined // Remove the raw data
-      };
-    });
-    
-    res.json(processedRows);
+    res.json(result.rows);
   } catch (err) {
     console.error('Error fetching environment logs:', err);
     res.status(500).json({ error: 'Failed to fetch environment logs' });
@@ -125,49 +90,19 @@ router.get('/latest', async (req, res) => {
   try {
     const { grow_tent } = req.query;
     
-    let sql = `
-      SELECT 
-        e.*,
-        STRING_AGG(DISTINCT p.stage, ',') as plant_stages,
-        COUNT(DISTINCT p.id) as plant_count
-      FROM environment_logs e
-      LEFT JOIN plants p ON (p.grow_tent = e.grow_tent AND p.archived_at IS NULL)
-    `;
+    let sql = `SELECT * FROM environment_logs`;
     const params = [];
     let paramIndex = 1;
     
     if (grow_tent) {
-      sql += ` WHERE e.grow_tent = $${paramIndex++}`;
+      sql += ` WHERE grow_tent = $${paramIndex++}`;
       params.push(grow_tent);
     }
     
-    sql += ' GROUP BY e.id ORDER BY e.logged_at DESC LIMIT 1';
+    sql += ' ORDER BY logged_at DESC LIMIT 1';
     
     const result = await query(sql, params);
-    let row = result.rows[0];
-    
-    if (row) {
-      let dominantStage = 'N/A';
-      
-      if (row.plant_stages) {
-        const stages = row.plant_stages.split(',');
-        const stageCounts = {};
-        stages.forEach(stage => {
-          stageCounts[stage] = (stageCounts[stage] || 0) + 1;
-        });
-        
-        dominantStage = Object.keys(stageCounts).reduce((a, b) => 
-          stageCounts[a] > stageCounts[b] ? a : b
-        );
-        
-        dominantStage = dominantStage.charAt(0).toUpperCase() + dominantStage.slice(1);
-      }
-      
-      row.stage = dominantStage;
-      delete row.plant_stages;
-    }
-    
-    res.json(row || {});
+    res.json(result.rows[0] || {});
   } catch (err) {
     console.error('Error fetching latest environment log:', err);
     res.status(500).json({ error: 'Failed to fetch latest environment log' });
@@ -178,50 +113,19 @@ router.get('/latest', async (req, res) => {
 router.get('/latest-per-tent', async (req, res) => {
   try {
     const sql = `
-      SELECT 
-        e1.*,
-        STRING_AGG(DISTINCT p.stage, ',') as plant_stages,
-        COUNT(DISTINCT p.id) as plant_count
+      SELECT e1.*
       FROM environment_logs e1
-      LEFT JOIN plants p ON (p.grow_tent = e1.grow_tent AND p.archived_at IS NULL)
       INNER JOIN (
         SELECT grow_tent, MAX(logged_at) as max_logged_at
         FROM environment_logs 
         WHERE grow_tent IS NOT NULL AND grow_tent != ''
         GROUP BY grow_tent
       ) e2 ON e1.grow_tent = e2.grow_tent AND e1.logged_at = e2.max_logged_at
-      GROUP BY e1.grow_tent, e1.logged_at, e1.id, e1.temperature, e1.humidity, e1.ph_level, e1.light_hours, e1.vpd, e1.co2_ppm, e1.ppfd, e1.notes, e1.logged_at, e1.created_at
       ORDER BY e1.grow_tent
     `;
     
     const result = await query(sql, []);
-    
-    // Process the rows to add dominant stage
-    const processedRows = result.rows.map(row => {
-      let dominantStage = 'N/A';
-      
-      if (row.plant_stages) {
-        const stages = row.plant_stages.split(',');
-        const stageCounts = {};
-        stages.forEach(stage => {
-          stageCounts[stage] = (stageCounts[stage] || 0) + 1;
-        });
-        
-        dominantStage = Object.keys(stageCounts).reduce((a, b) => 
-          stageCounts[a] > stageCounts[b] ? a : b
-        );
-        
-        dominantStage = dominantStage.charAt(0).toUpperCase() + dominantStage.slice(1);
-      }
-      
-      return {
-        ...row,
-        stage: dominantStage,
-        plant_stages: undefined // Remove this from response
-      };
-    });
-    
-    res.json(processedRows);
+    res.json(result.rows);
   } catch (err) {
     console.error('Error fetching latest environment readings per tent:', err);
     res.status(500).json({ error: 'Failed to fetch latest environment readings per tent' });
@@ -296,14 +200,14 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: error.details[0].message });
     }
 
-    const { temperature, humidity, ph_level, light_hours, vpd, co2_ppm, ppfd, grow_tent, notes, logged_at } = value;
+    const { temperature, humidity, ph_level, light_hours, vpd, co2_ppm, ppfd, grow_tent, stage, soil_temperature_f, power_consumption, notes, logged_at } = value;
     
     const sql = `
       INSERT INTO environment_logs (
         temperature, humidity, ph_level, light_hours, vpd, co2_ppm, ppfd, 
-        grow_tent, notes, logged_at
+        grow_tent, stage, soil_temperature_f, power_consumption, notes, logged_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *
     `;
     
@@ -316,6 +220,9 @@ router.post('/', async (req, res) => {
       co2_ppm,
       ppfd,
       grow_tent,
+      stage,
+      soil_temperature_f,
+      power_consumption,
       notes, 
       logged_at || new Date().toISOString()
     ]);
@@ -594,13 +501,14 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ error: error.details[0].message });
     }
 
-    const { temperature, humidity, ph_level, light_hours, vpd, co2_ppm, ppfd, grow_tent, notes, logged_at } = value;
+    const { temperature, humidity, ph_level, light_hours, vpd, co2_ppm, ppfd, grow_tent, stage, soil_temperature_f, power_consumption, notes, logged_at } = value;
     
     const sql = `
       UPDATE environment_logs 
       SET temperature = $1, humidity = $2, ph_level = $3, light_hours = $4, vpd = $5, 
-          co2_ppm = $6, ppfd = $7, grow_tent = $8, notes = $9, logged_at = $10
-      WHERE id = $11
+          co2_ppm = $6, ppfd = $7, grow_tent = $8, stage = $9, soil_temperature_f = $10, 
+          power_consumption = $11, notes = $12, logged_at = $13
+      WHERE id = $14
       RETURNING *
     `;
     
@@ -613,6 +521,9 @@ router.put('/:id', async (req, res) => {
       co2_ppm,
       ppfd,
       grow_tent,
+      stage,
+      soil_temperature_f,
+      power_consumption,
       notes, 
       logged_at || new Date().toISOString(),
       logId
@@ -649,6 +560,180 @@ router.delete('/:id', async (req, res) => {
   } catch (err) {
     console.error('Error deleting environment log:', err);
     res.status(500).json({ error: 'Failed to delete environment log' });
+  }
+});
+
+// GET /api/environment/bulk-stats - Get bulk update statistics
+router.get('/bulk-stats', async (req, res) => {
+  try {
+    const { grow_tent } = req.query;
+    
+    let whereClause = 'WHERE 1=1';
+    const params = [];
+    let paramIndex = 1;
+    
+    if (grow_tent) {
+      whereClause += ` AND grow_tent = $${paramIndex++}`;
+      params.push(grow_tent);
+    }
+    
+    const statsResult = await query(`
+      SELECT 
+        COUNT(*) as total_logs,
+        COUNT(stage) as logs_with_stage,
+        COUNT(*) - COUNT(stage) as logs_without_stage,
+        MIN(logged_at) as earliest_date,
+        MAX(logged_at) as latest_date,
+        COUNT(DISTINCT grow_tent) as tent_count
+      FROM environment_logs
+      ${whereClause}
+    `, params);
+
+    const stageBreakdownResult = await query(`
+      SELECT 
+        stage,
+        COUNT(*) as count
+      FROM environment_logs
+      ${whereClause}
+      GROUP BY stage
+      ORDER BY count DESC
+    `, params);
+
+    const tentBreakdownResult = await query(`
+      SELECT 
+        grow_tent,
+        COUNT(*) as total_logs,
+        COUNT(stage) as logs_with_stage,
+        COUNT(*) - COUNT(stage) as logs_without_stage
+      FROM environment_logs
+      WHERE grow_tent IS NOT NULL AND grow_tent != ''
+      GROUP BY grow_tent
+      ORDER BY total_logs DESC
+    `);
+
+    res.json({
+      stats: statsResult.rows[0],
+      stageBreakdown: stageBreakdownResult.rows,
+      tentBreakdown: tentBreakdownResult.rows
+    });
+  } catch (err) {
+    console.error('Error fetching bulk stats:', err);
+    res.status(500).json({ error: 'Failed to fetch bulk statistics' });
+  }
+});
+
+// POST /api/environment/bulk-update - Bulk update environment logs
+router.post('/bulk-update', async (req, res) => {
+  try {
+    const { 
+      stage, 
+      conditions = {}, 
+      dryRun = false 
+    } = req.body;
+    
+    // Validate stage
+    const validStages = ['Seedling', 'Vegetative', 'Pre-Flower', 'Flower', 'Late Flower', 'Harvest', 'Drying', 'Curing'];
+    if (!validStages.includes(stage)) {
+      return res.status(400).json({ error: 'Invalid stage value' });
+    }
+
+    let whereClause = 'WHERE 1=1';
+    const params = [stage];
+    let paramIndex = 2;
+
+    // Build conditions
+    if (conditions.tent) {
+      whereClause += ` AND grow_tent = $${paramIndex++}`;
+      params.push(conditions.tent);
+    }
+    
+    if (conditions.dateFrom) {
+      whereClause += ` AND logged_at >= $${paramIndex++}`;
+      params.push(conditions.dateFrom);
+    }
+    
+    if (conditions.dateTo) {
+      whereClause += ` AND logged_at <= $${paramIndex++}`;
+      params.push(conditions.dateTo);
+    }
+
+    if (conditions.onlyEmpty !== false) {
+      whereClause += ` AND (stage IS NULL OR stage = '')`;
+    }
+
+    if (conditions.temperatureMin !== undefined) {
+      whereClause += ` AND temperature >= $${paramIndex++}`;
+      params.push(conditions.temperatureMin);
+    }
+
+    if (conditions.temperatureMax !== undefined) {
+      whereClause += ` AND temperature <= $${paramIndex++}`;
+      params.push(conditions.temperatureMax);
+    }
+
+    if (dryRun) {
+      // Just count what would be updated
+      const countSql = `SELECT COUNT(*) as count FROM environment_logs ${whereClause.replace('SET stage = $1', '')}`;
+      const countResult = await query(countSql, params.slice(1));
+      
+      res.json({
+        dryRun: true,
+        wouldUpdate: parseInt(countResult.rows[0].count),
+        stage: stage,
+        conditions: conditions
+      });
+    } else {
+      // Perform the actual update
+      const sql = `
+        UPDATE environment_logs 
+        SET stage = $1 
+        ${whereClause}
+        RETURNING id, logged_at, grow_tent, stage
+      `;
+      
+      const result = await query(sql, params);
+      
+      res.json({
+        success: true,
+        updated: result.rows.length,
+        stage: stage,
+        conditions: conditions,
+        records: result.rows.slice(0, 10) // Return first 10 for verification
+      });
+    }
+  } catch (err) {
+    console.error('Error in bulk update:', err);
+    res.status(500).json({ error: 'Failed to perform bulk update' });
+  }
+});
+
+// POST /api/environment/smart-assignment - Smart chronological stage assignment
+router.post('/smart-assignment', async (req, res) => {
+  try {
+    const { 
+      grow_tent = null, 
+      dryRun = false,
+      dateFrom = null,
+      dateTo = null
+    } = req.body;
+    
+    const { bulkUpdateStages } = require('../bulk-update-stages');
+    
+    const result = await bulkUpdateStages({
+      dryRun,
+      tentFilter: grow_tent,
+      dateFrom,
+      dateTo
+    });
+    
+    res.json({
+      success: true,
+      dryRun,
+      message: dryRun ? 'Smart assignment preview completed' : 'Smart assignment completed successfully'
+    });
+  } catch (err) {
+    console.error('Error in smart assignment:', err);
+    res.status(500).json({ error: 'Failed to perform smart assignment' });
   }
 });
 

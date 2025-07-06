@@ -1,23 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
-import { 
-  Sprout, 
-  Plus, 
-  Search, 
-  SortAsc, 
-  SortDesc, 
-  Edit, 
-  Trash2, 
+import { format, formatDistanceToNow } from 'date-fns';
+import {
+  AlertTriangle,
   Archive,
   ArchiveRestore,
   Copy,
-  Home,
   Download,
-  AlertTriangle
+  Edit,
+  Home,
+  Plus,
+  Search,
+  SortAsc,
+  SortDesc,
+  Sprout,
+  Trash2
 } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
+import { Link } from 'react-router-dom';
 import { plantsApi } from '../utils/api';
 
 const Plants = () => {
@@ -64,7 +64,7 @@ const Plants = () => {
     try {
       setLoading(true);
       setPlants([]); // Clear plants immediately to prevent wrong empty state flash
-      
+
       if (showArchived) {
         // Use new archived grows API
         const archivedData = await plantsApi.getArchivedGrows();
@@ -219,7 +219,7 @@ const Plants = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       toast.success(`${tentName} data exported successfully`);
     } catch {
       toast.error('Failed to export tent data');
@@ -228,7 +228,7 @@ const Plants = () => {
 
   const handleClearTentData = async (tentName) => {
     const activePlantsInTent = plants.filter(plant => !plant.archived && plant.grow_tent === tentName);
-    
+
     if (activePlantsInTent.length > 0) {
       toast.error(`Cannot clear data: ${activePlantsInTent.length} active plants in ${tentName}`);
       return;
@@ -327,14 +327,14 @@ const Plants = () => {
   const filteredAndSortedPlants = () => {
     let filtered = plants.filter(plant => {
       const matchesArchived = showArchived ? plant.archived : !plant.archived;
-      const matchesSearch = 
+      const matchesSearch =
         plant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (plant.strain && plant.strain.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (plant.grow_tent && plant.grow_tent.toLowerCase().includes(searchTerm.toLowerCase()));
-      
+
       const matchesStage = !filterStage || plant.stage === filterStage;
       const matchesTent = !selectedGrowTent || plant.grow_tent === selectedGrowTent;
-      
+
       return matchesArchived && matchesSearch && matchesStage && matchesTent;
     });
 
@@ -382,7 +382,7 @@ const Plants = () => {
   }, {}) : { 'All Plants': plants.filter(plant => showArchived ? plant.archived : !plant.archived) };
 
   const renderPlantCard = (plant) => (
-    <div key={plant.id} className="plant-card">
+    <div key={plant.id} className="card plant-card touch-feedback">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <Link
@@ -430,6 +430,7 @@ const Plants = () => {
         <div className="flex gap-2">
           {!plant.archived && (
             <button
+              data-testid="plant-clone-btn"
               onClick={() => handleClone(plant)}
               className="btn btn-secondary btn-sm"
               title="Clone Plant"
@@ -438,6 +439,7 @@ const Plants = () => {
             </button>
           )}
           <button
+            data-testid="plant-edit-btn"
             onClick={() => handleEdit(plant)}
             className="btn btn-secondary btn-sm"
             title="Edit Plant"
@@ -445,6 +447,7 @@ const Plants = () => {
             <Edit className="w-3 h-3" />
           </button>
           <button
+            data-testid={`plant-archive-btn-${plant.archived ? 'unarchive' : 'archive'}`}
             onClick={() => plant.archived ? handleArchive(plant) : openArchiveModal(plant)}
             className="btn btn-outline btn-sm"
             title={plant.archived ? "Unarchive Plant" : "Archive Plant"}
@@ -452,6 +455,7 @@ const Plants = () => {
             {plant.archived ? <ArchiveRestore className="w-3 h-3" /> : <Archive className="w-3 h-3" />}
           </button>
           <button
+            data-testid="plant-delete-btn"
             onClick={() => handleDelete(plant)}
             className="btn btn-danger btn-sm"
             title="Delete Plant"
@@ -477,7 +481,7 @@ const Plants = () => {
               Track and manage your cannabis cultivation
             </p>
           </div>
-          
+
           <div className="header-actions">
             <button
               onClick={() => {
@@ -728,29 +732,8 @@ const Plants = () => {
 
       {/* Plants Display */}
       {loading ? (
-        <div style={{
-          background: 'rgba(15, 23, 42, 0.95)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderRadius: '20px',
-          border: '1px solid rgba(100, 116, 139, 0.2)',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
-          padding: '3rem 2rem',
-          textAlign: 'center',
-          animation: 'fadeInUp 0.6s ease-out'
-        }}>
-          <div style={{ 
-            width: '40px', 
-            height: '40px', 
-            margin: '0 auto 1rem',
-            border: '4px solid rgba(100, 116, 139, 0.2)',
-            borderTop: '4px solid #4ade80',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }}></div>
-          <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.125rem', fontWeight: '600', color: '#cbd5e1' }}>
-            Loading {showArchived ? 'archived' : 'active'} plants...
-          </h3>
+        <div className="flex items-center justify-center min-h-64">
+          <div className="loading"></div>
         </div>
       ) : plants.length === 0 ? (
         <div style={{
@@ -769,7 +752,7 @@ const Plants = () => {
             {showArchived ? 'No archived plants yet' : 'No plants yet'}
           </h3>
           <p style={{ margin: '0 0 1.5rem 0', color: '#94a3b8' }}>
-            {showArchived 
+            {showArchived
               ? 'When you archive plants, they will appear here with their grow data'
               : 'Start your cultivation journey by adding your first plant'
             }
@@ -820,7 +803,7 @@ const Plants = () => {
               padding: '1.5rem',
               marginBottom: '2rem'
             }}>
-              <div className="grow-tent-header" style={{ 
+              <div className="grow-tent-header" style={{
                 marginBottom: '1.5rem',
                 paddingBottom: '1rem',
                 borderBottom: '1px solid rgba(100, 116, 139, 0.2)'
@@ -832,23 +815,24 @@ const Plants = () => {
                     <span className="grow-tent-count">
                       {tentPlants.filter(plant => {
                         const matchesArchived = showArchived ? plant.archived : !plant.archived;
-                        const matchesSearch = 
+                        const matchesSearch =
                           plant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (plant.strain && plant.strain.toLowerCase().includes(searchTerm.toLowerCase())) ||
                           (plant.grow_tent && plant.grow_tent.toLowerCase().includes(searchTerm.toLowerCase()));
-                        
+
                         const matchesStage = !filterStage || plant.stage === filterStage;
                         const matchesTent = !selectedGrowTent || plant.grow_tent === selectedGrowTent;
-                        
+
                         return matchesArchived && matchesSearch && matchesStage && matchesTent;
                       }).length} plant{tentPlants.length !== 1 ? 's' : ''}
                     </span>
                   </div>
-                  
+
                   {/* Tent Management Actions for Archived Grows */}
                   {showArchived && (
                     <div className="flex items-center gap-2">
                       <button
+                        data-testid="export-tent-btn"
                         onClick={() => handleExportTent(tentName)}
                         style={{
                           padding: '0.5rem 1rem',
@@ -878,6 +862,7 @@ const Plants = () => {
                         Export Tent Data
                       </button>
                       <button
+                        data-testid="clear-tent-btn"
                         onClick={() => handleClearTentData(tentName)}
                         style={{
                           padding: '0.5rem 1rem',
@@ -914,14 +899,14 @@ const Plants = () => {
                 {tentPlants
                   .filter(plant => {
                     const matchesArchived = showArchived ? plant.archived : !plant.archived;
-                    const matchesSearch = 
+                    const matchesSearch =
                       plant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                       (plant.strain && plant.strain.toLowerCase().includes(searchTerm.toLowerCase())) ||
                       (plant.grow_tent && plant.grow_tent.toLowerCase().includes(searchTerm.toLowerCase()));
-                    
+
                     const matchesStage = !filterStage || plant.stage === filterStage;
                     const matchesTent = !selectedGrowTent || plant.grow_tent === selectedGrowTent;
-                    
+
                     return matchesArchived && matchesSearch && matchesStage && matchesTent;
                   })
                   .sort((a, b) => {
@@ -951,7 +936,7 @@ const Plants = () => {
         // Table View - Modern table layout
         (() => {
           const filtered = filteredAndSortedPlants();
-          
+
           return (
             <div style={{
               background: 'rgba(15, 23, 42, 0.95)',
@@ -1022,7 +1007,7 @@ const Plants = () => {
                   </thead>
                   <tbody>
                     {filtered.map((plant, index) => (
-                      <tr 
+                      <tr
                         key={plant.id}
                         style={{
                           borderBottom: index < filtered.length - 1 ? '1px solid rgba(100, 116, 139, 0.2)' : 'none',
@@ -1141,6 +1126,7 @@ const Plants = () => {
                           <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
                             {!plant.archived && (
                               <button
+                                data-testid="plant-clone-btn"
                                 onClick={() => handleClone(plant)}
                                 style={{
                                   display: 'inline-flex',
@@ -1166,6 +1152,7 @@ const Plants = () => {
                               </button>
                             )}
                             <button
+                              data-testid="plant-edit-btn"
                               onClick={() => handleEdit(plant)}
                               style={{
                                 display: 'inline-flex',
@@ -1190,6 +1177,7 @@ const Plants = () => {
                               <Edit className="w-3 h-3" />
                             </button>
                             <button
+                              data-testid={`plant-archive-btn-${plant.archived ? 'unarchive' : 'archive'}`}
                               onClick={() => plant.archived ? handleArchive(plant) : openArchiveModal(plant)}
                               style={{
                                 display: 'inline-flex',
@@ -1214,6 +1202,7 @@ const Plants = () => {
                               {plant.archived ? <ArchiveRestore className="w-3 h-3" /> : <Archive className="w-3 h-3" />}
                             </button>
                             <button
+                              data-testid="plant-delete-btn"
                               onClick={() => handleDelete(plant)}
                               style={{
                                 display: 'inline-flex',
@@ -1305,8 +1294,10 @@ const Plants = () => {
                       border: errors.name ? '1px solid #ef4444' : '1px solid rgba(100, 116, 139, 0.3)',
                       borderRadius: '8px',
                       color: '#e2e8f0',
-                      fontSize: '0.875rem'
+                      fontSize: '0.875rem',
                     }}
+                    inputMode="text"
+                    autoComplete="name"
                   />
                   {errors.name && (
                     <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: '#ef4444' }}>
@@ -1512,19 +1503,19 @@ const ArchiveModal = ({ plant, onClose, onArchive }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+
     const archiveData = {
       archive_reason: archiveReason,
       final_yield: finalYield ? parseFloat(finalYield) : null,
       harvest_date: harvestDate
     };
-    
+
     await onArchive(plant, archiveData);
     setLoading(false);
   };
 
   return (
-    <div 
+    <div
       style={{
         position: 'fixed',
         top: 0,

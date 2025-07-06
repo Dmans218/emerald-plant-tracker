@@ -1,23 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Archive, 
-  Download, 
-  Eye, 
-  Calendar, 
-  TrendingUp, 
-  Clock,
-  MapPin,
-  Thermometer,
-  Droplets,
-  Sun,
-  Filter,
-  ArrowUpDown,
-  Search,
-  Trash2
-} from 'lucide-react';
 import { format } from 'date-fns';
-import { plantsApi } from '../utils/api';
+import {
+    Archive,
+    ArrowUpDown,
+    Calendar,
+    Clock,
+    Download,
+    Droplets,
+    Eye,
+    Filter,
+    MapPin,
+    Search,
+    Sun,
+    Thermometer,
+    Trash2,
+    TrendingUp
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { plantsApi } from '../utils/api';
 
 const ArchivedTents = () => {
   const [archivedGrows, setArchivedGrows] = useState([]);
@@ -61,7 +61,7 @@ const ArchivedTents = () => {
     try {
       toast.loading('Preparing tent export...');
       const response = await plantsApi.exportArchivedTent(tentName);
-      
+
       // Create download link
       const url = window.URL.createObjectURL(new Blob([response]));
       const link = document.createElement('a');
@@ -71,7 +71,7 @@ const ArchivedTents = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      
+
       toast.dismiss();
       toast.success('Tent data exported successfully');
     } catch {
@@ -90,9 +90,9 @@ const ArchivedTents = () => {
       `• Should only be done when starting a completely new grow cycle\n\n` +
       `Are you absolutely sure you want to continue?`
     );
-    
+
     if (!confirmed) return;
-    
+
     try {
       toast.loading('Clearing tent environment data...');
       await plantsApi.clearTentEnvironmentData(tentName, true);
@@ -120,20 +120,20 @@ const ArchivedTents = () => {
       const matchesSearch = grow.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            grow.strain?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            grow.tent_name?.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const matchesFilter = filterBy === 'all' || grow.archive_reason === filterBy;
-      
+
       return matchesSearch && matchesFilter;
     })
     .sort((a, b) => {
       let aValue = a[sortBy];
       let bValue = b[sortBy];
-      
+
       if (sortBy === 'harvest_date' || sortBy === 'created_at') {
         aValue = new Date(aValue);
         bValue = new Date(bValue);
       }
-      
+
       if (sortOrder === 'asc') {
         return aValue > bValue ? 1 : -1;
       } else {
@@ -194,7 +194,7 @@ const ArchivedTents = () => {
       </header>
 
       {/* Controls */}
-      <div style={{ 
+      <div style={{
         background: 'rgba(255,255,255,0.02)',
         borderRadius: '16px',
         border: '1px solid var(--border)',
@@ -203,7 +203,7 @@ const ArchivedTents = () => {
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         animation: 'fadeInUp 0.8s ease-out 0.2s both',
-        display: 'flex', 
+        display: 'flex',
         flexDirection: 'column',
         gap: '1rem'
       }}>
@@ -289,7 +289,7 @@ const ArchivedTents = () => {
       {/* Tent Export Section */}
       {(() => {
         const uniqueTents = [...new Set(archivedGrows.map(grow => grow.grow_tent).filter(Boolean))];
-        
+
         return (
           <div style={{
             background: 'rgba(255,255,255,0.02)',
@@ -301,10 +301,10 @@ const ArchivedTents = () => {
             WebkitBackdropFilter: 'blur(20px)',
             animation: 'fadeInUp 0.8s ease-out 0.3s both'
           }}>
-            <h3 style={{ 
-              margin: '0 0 1rem 0', 
-              color: '#f8fafc', 
-              fontSize: '1.125rem', 
+            <h3 style={{
+              margin: '0 0 1rem 0',
+              color: '#f8fafc',
+              fontSize: '1.125rem',
               fontWeight: '600',
               display: 'flex',
               alignItems: 'center',
@@ -315,17 +315,17 @@ const ArchivedTents = () => {
             </h3>
             {uniqueTents.length > 0 ? (
               <>
-                <p style={{ 
-                  margin: '0 0 1rem 0', 
-                  color: '#94a3b8', 
-                  fontSize: '0.875rem' 
+                <p style={{
+                  margin: '0 0 1rem 0',
+                  color: '#94a3b8',
+                  fontSize: '0.875rem'
                 }}>
                   Export all plant activity and environment data for each tent
                 </p>
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '0.75rem', 
-                  flexWrap: 'wrap' 
+                <div style={{
+                  display: 'flex',
+                  gap: '0.75rem',
+                  flexWrap: 'wrap'
                 }}>
                   {uniqueTents.map(tentName => {
                     const tentGrowCount = archivedGrows.filter(grow => grow.grow_tent === tentName).length;
@@ -362,32 +362,32 @@ const ArchivedTents = () => {
                   );
                 })}
               </div>
-              
+
               {/* Tent Management Section */}
-              <div style={{ 
+              <div style={{
                 marginTop: '1.5rem',
                 paddingTop: '1.5rem',
                 borderTop: '1px solid rgba(100, 116, 139, 0.2)'
               }}>
-                <h4 style={{ 
-                  margin: '0 0 1rem 0', 
-                  color: 'var(--text-primary)', 
-                  fontSize: '1rem', 
-                  fontWeight: '600' 
+                <h4 style={{
+                  margin: '0 0 1rem 0',
+                  color: 'var(--text-primary)',
+                  fontSize: '1rem',
+                  fontWeight: '600'
                 }}>
                   Tent Management
                 </h4>
-                <p style={{ 
-                  margin: '0 0 1rem 0', 
-                  color: 'var(--text-secondary)', 
-                  fontSize: '0.875rem' 
+                <p style={{
+                  margin: '0 0 1rem 0',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.875rem'
                 }}>
                   Clear environment data from tents to start fresh grow cycles
                 </p>
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '0.75rem', 
-                  flexWrap: 'wrap' 
+                <div style={{
+                  display: 'flex',
+                  gap: '0.75rem',
+                  flexWrap: 'wrap'
                 }}>
                   {uniqueTents.map(tentName => (
                     <button
@@ -426,17 +426,17 @@ const ArchivedTents = () => {
               </>
             ) : (
               <div style={{ textAlign: 'center', padding: '2rem' }}>
-                <p style={{ 
-                  margin: '0 0 0.5rem 0', 
-                  color: '#94a3b8', 
-                  fontSize: '0.875rem' 
+                <p style={{
+                  margin: '0 0 0.5rem 0',
+                  color: '#94a3b8',
+                  fontSize: '0.875rem'
                 }}>
                   No tent data available for export
                 </p>
-                <p style={{ 
-                  margin: 0, 
-                  color: '#64748b', 
-                  fontSize: '0.75rem' 
+                <p style={{
+                  margin: 0,
+                  color: '#64748b',
+                  fontSize: '0.75rem'
                 }}>
                   Archive plants assigned to grow tents to enable tent-based exports
                 </p>
@@ -453,8 +453,8 @@ const ArchivedTents = () => {
 
       {/* Archived Grows Grid */}
       {filteredAndSortedGrows.length === 0 ? (
-        <div style={{ 
-          textAlign: 'center', 
+        <div style={{
+          textAlign: 'center',
           padding: '3rem',
           background: 'rgba(30, 41, 59, 0.3)',
           borderRadius: '12px',
@@ -466,16 +466,16 @@ const ArchivedTents = () => {
             No archived grows found
           </h3>
           <p style={{ margin: 0, color: '#64748b', fontSize: '0.875rem' }}>
-            {searchTerm || filterBy !== 'all' 
+            {searchTerm || filterBy !== 'all'
               ? 'Try adjusting your search or filter criteria'
               : 'Archive some plants to see them here'
             }
           </p>
         </div>
       ) : (
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', 
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
           gap: '1.5rem',
           animation: 'fadeInUp 0.8s ease-out 0.4s both'
         }}>
@@ -512,13 +512,13 @@ const ArchivedTents = () => {
 };
 
 // Archived Grow Card Component
-const ArchivedGrowCard = ({ 
-  grow, 
-  onExport, 
-  onViewDetails, 
-  calculateGrowDuration, 
-  getArchiveReasonColor, 
-  getArchiveReasonText 
+const ArchivedGrowCard = ({
+  grow,
+  onExport,
+  onViewDetails,
+  calculateGrowDuration,
+  getArchiveReasonColor,
+  getArchiveReasonText
 }) => {
   return (
     <div style={{
@@ -538,14 +538,14 @@ const ArchivedGrowCard = ({
       e.currentTarget.style.transform = 'translateY(0)';
       e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.25)';
     }}>
-      
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
         <div>
-          <h3 style={{ 
-            margin: 0, 
-            fontSize: '1.25rem', 
-            fontWeight: '700', 
+          <h3 style={{
+            margin: 0,
+            fontSize: '1.25rem',
+            fontWeight: '700',
             color: '#f1f5f9',
             marginBottom: '0.25rem'
           }}>
@@ -571,11 +571,11 @@ const ArchivedGrowCard = ({
       </div>
 
       {/* Stats Grid */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: '1fr 1fr', 
-        gap: '1rem', 
-        marginBottom: '1.5rem' 
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '1rem',
+        marginBottom: '1.5rem'
       }}>
         {/* Harvest Date */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -628,7 +628,7 @@ const ArchivedGrowCard = ({
 
       {/* Environment Summary */}
       {(grow.avg_temperature || grow.avg_humidity || grow.avg_light_intensity) && (
-        <div style={{ 
+        <div style={{
           padding: '1rem',
           background: 'rgba(15, 23, 42, 0.5)',
           borderRadius: '8px',
@@ -669,6 +669,7 @@ const ArchivedGrowCard = ({
       {/* Action Buttons */}
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         <button
+          data-testid="archivedtent-view-btn"
           onClick={(e) => {
             e.stopPropagation();
             onViewDetails(grow);
@@ -736,16 +737,16 @@ const ArchivedGrowCard = ({
 };
 
 // Grow Detail Modal Component
-const GrowDetailModal = ({ 
-  grow, 
-  onClose, 
-  onExport, 
-  calculateGrowDuration, 
-  getArchiveReasonColor, 
-  getArchiveReasonText 
+const GrowDetailModal = ({
+  grow,
+  onClose,
+  onExport,
+  calculateGrowDuration,
+  getArchiveReasonColor,
+  getArchiveReasonText
 }) => {
   return (
-    <div 
+    <div
       style={{
         position: 'fixed',
         top: 0,
@@ -802,9 +803,9 @@ const GrowDetailModal = ({
           </div>
 
           {/* Quick Stats */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', 
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
             gap: '1rem',
             padding: '1rem',
             background: 'rgba(15, 23, 42, 0.5)',
@@ -816,7 +817,7 @@ const GrowDetailModal = ({
                 {calculateGrowDuration(grow.created_at, grow.harvest_date)}
               </div>
             </div>
-            
+
             {grow.final_yield && (
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600' }}>YIELD</div>
@@ -850,9 +851,9 @@ const GrowDetailModal = ({
             <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '600', color: '#f1f5f9', marginBottom: '1rem' }}>
               Environment Summary
             </h3>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
               gap: '1rem'
             }}>
               {grow.avg_temperature && (
@@ -930,7 +931,7 @@ const GrowDetailModal = ({
             <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '600', color: '#f1f5f9', marginBottom: '1rem' }}>
               Additional Details
             </h3>
-            
+
             {grow.tent_name && (
               <div style={{ marginBottom: '1rem' }}>
                 <div style={{ fontSize: '0.875rem', color: '#94a3b8', fontWeight: '600', marginBottom: '0.25rem' }}>
@@ -947,8 +948,8 @@ const GrowDetailModal = ({
                 <div style={{ fontSize: '0.875rem', color: '#94a3b8', fontWeight: '600', marginBottom: '0.25rem' }}>
                   Notes
                 </div>
-                <div style={{ 
-                  fontSize: '0.875rem', 
+                <div style={{
+                  fontSize: '0.875rem',
                   color: '#f1f5f9',
                   padding: '0.75rem',
                   background: 'rgba(15, 23, 42, 0.5)',

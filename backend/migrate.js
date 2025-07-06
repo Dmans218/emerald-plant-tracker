@@ -3,6 +3,7 @@
 const { testConnection } = require('./config/database');
 const { init: initTables } = require('./migrations/init');
 const { migrateNutrientData, verifyMigration } = require('./migrations/migrate-nutrients');
+const { addGgsFields } = require('./migrations/add-ggs-fields');
 
 const runMigrations = async () => {
   console.log('🚀 Starting Emerald Plant Tracker database migration...');
@@ -23,6 +24,11 @@ const runMigrations = async () => {
     console.log('🔧 Creating database tables...');
     await initTables();
     console.log('✅ Tables created successfully');
+    
+    // Add GGS/SpiderFarmer device fields
+    console.log('🔧 Adding SpiderFarmer GGS device fields...');
+    await addGgsFields();
+    console.log('✅ GGS device fields added successfully');
     
     // Migrate nutrient data
     console.log('📦 Migrating nutrient vendor data...');

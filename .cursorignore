@@ -1,17 +1,6 @@
-# Cursor IDE Configuration and Secrets
-.cursor/
-
-# MCP Server configurations that may contain secrets
-.cursor/mcp_servers.json
-.cursor/mcp-config.json
-
 # Cursor AI chat history (may contain sensitive information)
 .cursor/chat/
 .cursor/history/
-
-# Cursor workspace settings (may contain API keys)
-.cursor/workspace.json
-.cursor/settings.json
 
 # Any Cursor cache or temporary files
 .cursor/cache/
@@ -45,11 +34,11 @@ logs/
 # Node modules (large and not needed for AI context)
 node_modules/
 
-# Build outputs
-dist/
-build/
-.next/
-.nuxt/
+# Frontend
+frontend/node_modules/
+
+# Backend
+backend/node_modules/
 
 # Cache directories
 .cache/
@@ -66,12 +55,3 @@ build/
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# Editor directories and files
-.vscode/settings.json
-.vscode/launch.json
-.vscode/extensions.json
-.idea/
-*.swp
-*.swo
-*~ 

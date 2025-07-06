@@ -1,0 +1,375 @@
+/* Mobile Form Optimization Styles */
+
+/* Base mobile form styles */
+.mobile-form-container {
+  padding: 1rem;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Touch-friendly inputs */
+.mobile-input {
+  min-height: 44px; /* WCAG minimum touch target */
+  font-size: 16px; /* Prevents zoom on iOS */
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: rgba(15, 23, 42, 0.6);
+  color: #f8fafc;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+  appearance: none;
+}
+
+.mobile-input:focus {
+  border-color: #4ade80;
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.1);
+  outline: none;
+}
+
+.mobile-input::placeholder {
+  color: #94a3b8;
+}
+
+/* Touch-friendly selects */
+.mobile-select {
+  min-height: 44px;
+  font-size: 16px;
+  padding: 0.75rem 3rem 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: rgba(15, 23, 42, 0.6);
+  color: #f8fafc;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  transition: all 0.2s ease;
+}
+
+.mobile-select:focus {
+  border-color: #4ade80;
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.1);
+  outline: none;
+}
+
+.mobile-select option {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  padding: 0.5rem;
+}
+
+/* Touch-friendly buttons */
+.mobile-button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.75rem 1.5rem;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.mobile-button-primary {
+  background: linear-gradient(135deg, #4ade80, #22c55e);
+  color: white;
+  box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
+}
+
+.mobile-button-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(74, 222, 128, 0.4);
+}
+
+.mobile-button-secondary {
+  background: rgba(100, 116, 139, 0.1);
+  color: #cbd5e1;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+.mobile-button-secondary:hover {
+  background: rgba(100, 116, 139, 0.2);
+  color: #f8fafc;
+}
+
+/* Voice input button */
+.voice-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  transition: all 0.2s ease;
+}
+
+.voice-button.listening {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+.voice-button:hover {
+  background: rgba(74, 222, 128, 0.2);
+}
+
+.voice-button.listening:hover {
+  background: #dc2626;
+}
+
+/* Form field container */
+.mobile-form-field {
+  margin-bottom: 1.5rem;
+}
+
+.mobile-form-label {
+  display: block;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  line-height: 1.25;
+}
+
+.mobile-form-error {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  line-height: 1.25;
+}
+
+.mobile-form-help {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  line-height: 1.25;
+}
+
+/* Cannabis-specific styling */
+.cannabis-input-ph .mobile-input {
+  border-left: 3px solid #f59e0b; /* Amber for pH */
+}
+
+.cannabis-input-temperature .mobile-input {
+  border-left: 3px solid #ef4444; /* Red for temperature */
+}
+
+.cannabis-input-humidity .mobile-input {
+  border-left: 3px solid #3b82f6; /* Blue for humidity */
+}
+
+.cannabis-input-ppm .mobile-input {
+  border-left: 3px solid #8b5cf6; /* Purple for PPM */
+}
+
+.cannabis-input-ppfd .mobile-input {
+  border-left: 3px solid #f59e0b; /* Amber for light */
+}
+
+.cannabis-input-co2 .mobile-input {
+  border-left: 3px solid #10b981; /* Green for CO2 */
+}
+
+/* Responsive grid for form fields */
+.mobile-form-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .mobile-form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .mobile-form-container {
+    padding: 2rem;
+  }
+
+  .mobile-form-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+}
+
+/* Animation keyframes */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Utility classes */
+.fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+/* Voice status indicator */
+.voice-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.voice-status::before {
+  content: '🎤';
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Mobile-specific textarea */
+.mobile-textarea {
+  min-height: 80px;
+  font-size: 16px;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+  background: rgba(15, 23, 42, 0.6);
+  color: #f8fafc;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.mobile-textarea:focus {
+  border-color: #4ade80;
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.1);
+  outline: none;
+}
+
+.mobile-textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* Image upload mobile optimization */
+.mobile-image-upload {
+  border: 2px dashed rgba(100, 116, 139, 0.3);
+  border-radius: 16px;
+  padding: 2rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: rgba(15, 23, 42, 0.3);
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-image-upload:hover {
+  border-color: #4ade80;
+  background: rgba(74, 222, 128, 0.05);
+  transform: translateY(-2px);
+}
+
+.mobile-image-upload input[type="file"] {
+  display: none;
+}
+
+/* Enhanced touch targets for small screens */
+@media (max-width: 480px) {
+  .mobile-input,
+  .mobile-select,
+  .mobile-button,
+  .mobile-textarea {
+    min-height: 48px; /* Larger touch targets on small screens */
+  }
+
+  .mobile-form-container {
+    padding: 0.75rem;
+  }
+
+  .voice-button {
+    min-width: 36px;
+    min-height: 36px;
+  }
+}
+
+/* Dark mode cannabis theme enhancements */
+.cannabis-theme {
+  --cannabis-primary: #4ade80;
+  --cannabis-secondary: #22c55e;
+  --cannabis-accent: #10b981;
+  --cannabis-warning: #f59e0b;
+  --cannabis-error: #ef4444;
+  --cannabis-surface: rgba(15, 23, 42, 0.6);
+  --cannabis-border: rgba(100, 116, 139, 0.3);
+  --cannabis-text-primary: #f8fafc;
+  --cannabis-text-secondary: #cbd5e1;
+  --cannabis-text-muted: #94a3b8;
+}
+
+/* Focus states for accessibility */
+.mobile-input:focus-visible,
+.mobile-select:focus-visible,
+.mobile-button:focus-visible,
+.mobile-textarea:focus-visible {
+  outline: 2px solid #4ade80;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .mobile-input,
+  .mobile-select,
+  .mobile-textarea {
+    border-width: 2px;
+  }
+
+  .mobile-button-primary {
+    background: #22c55e;
+    border: 2px solid #16a34a;
+  }
+}
