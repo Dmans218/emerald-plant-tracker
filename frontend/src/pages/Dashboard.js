@@ -11,13 +11,14 @@ import {
   Target,
   TrendingUp,
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { getStageColor } from '../utils/stageColors';
 
 import AnalyticsCard from '../components/AnalyticsCard';
 import AnalyticsChart from '../components/AnalyticsChart';
+import AnalyticsControlPanel from '../components/AnalyticsControlPanel';
 import RecommendationsPanel from '../components/RecommendationsPanel';
 import { analyticsAPI, processAnalyticsData } from '../utils/analytics';
 import { getTentOverview, getTents } from '../utils/analyticsApi';
@@ -41,6 +42,7 @@ const Dashboard = () => {
   const [recommendations, setRecommendations] = useState([]);
   const [tents, setTents] = useState([]);
   const [selectedTent, setSelectedTent] = useState('all');
+  const [selectedTrendPeriod, setSelectedTrendPeriod] = useState(14);
   const [tentOverview, setTentOverview] = useState(null);
 
   useEffect(() => {
@@ -49,6 +51,13 @@ const Dashboard = () => {
     fetchAnalyticsOverview();
     fetchTents();
   }, []);
+
+  // Refetch analytics when trend period changes
+  useEffect(() => {
+    if (selectedTent === 'all') {
+      fetchAnalyticsOverview();
+    }
+  }, [selectedTrendPeriod]);
 
   useEffect(() => {
     if (selectedTent !== 'all') {
@@ -157,13 +166,13 @@ const Dashboard = () => {
       // Fetch trend data
       try {
         const trends = await analyticsAPI.getTrendData(activePlant.id, {
-          days: 14,
+          days: selectedTrendPeriod,
         });
         if (trends && trends.success && trends.data) {
           const chartData = processAnalyticsData.formatTrendData(trends.data, 'yield');
           setTrendData(chartData);
         }
-      } catch (trendError) {
+      } catch (error) {
         console.log('No trend data available yet');
         setTrendData(null);
       }
@@ -657,6 +666,30 @@ const Dashboard = () => {
                 ))}
               </select>
             </div>
+
+            {/* Trend Period Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Period:</span>
+              <select
+                value={selectedTrendPeriod}
+                onChange={e => setSelectedTrendPeriod(Number(e.target.value))}
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  padding: '0.5rem 1rem',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                }}
+              >
+                <option value={7}>7 days</option>
+                <option value={14}>14 days</option>
+                <option value={30}>30 days</option>
+                <option value={90}>90 days</option>
+              </select>
+            </div>
+
             <span
               style={{
                 color: 'var(--text-secondary)',
@@ -764,7 +797,7 @@ const Dashboard = () => {
                 <AnalyticsChart
                   type="line"
                   data={trendData}
-                  title="14-Day Yield Prediction Trend"
+                  title={`${selectedTrendPeriod}-Day Yield Prediction Trend`}
                   height={300}
                   color="#10b981"
                   loading={!trendData}
@@ -779,6 +812,14 @@ const Dashboard = () => {
                 />
               </div>
             </div>
+
+            {/* Advanced Analytics Control Panel */}
+            <AnalyticsControlPanel
+              analyticsData={analyticsData}
+              environmentData={environmentData}
+              trendPeriod={selectedTrendPeriod}
+              onTrendPeriodChange={setSelectedTrendPeriod}
+            />
 
             {/* Analytics Summary */}
             <div
@@ -848,6 +889,150 @@ const Dashboard = () => {
                 </button>
               </div>
             </div>
+
+            {/* Enhanced Trend Insights */}
+            {trendData && selectedTent === 'all' && (
+              <div
+                style={{
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(100, 116, 139, 0.3)',
+                  padding: '1.5rem',
+                  marginTop: '1rem',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '1rem',
+                  }}
+                >
+                  <h4
+                    style={{
+                      color: 'var(--text-primary)',
+                      fontSize: '1.125rem',
+                      fontWeight: '600',
+                      margin: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <TrendingUp className="w-5 h-5" style={{ color: '#10b981' }} />
+                    Trend Insights ({selectedTrendPeriod} days)
+                  </h4>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                    {analyticsData?.plantName} • {analyticsData?.plantStrain}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '1rem',
+                  }}
+                >
+                  <div
+                    style={{
+                      background: 'rgba(16, 185, 129, 0.1)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      borderRadius: '8px',
+                      padding: '1rem',
+                    }}
+                  >
+                    <div style={{ color: '#10b981', fontSize: '0.875rem', fontWeight: '600' }}>
+                      Yield Progress
+                    </div>
+                    <div
+                      style={{
+                        color: 'var(--text-primary)',
+                        fontSize: '1.25rem',
+                        fontWeight: 'bold',
+                        marginTop: '0.25rem',
+                      }}
+                    >
+                      {analyticsData?.yieldPrediction?.value || 0}g
+                    </div>
+                    <div
+                      style={{
+                        color: 'var(--text-secondary)',
+                        fontSize: '0.75rem',
+                        marginTop: '0.25rem',
+                      }}
+                    >
+                      Current prediction
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      background: 'rgba(59, 130, 246, 0.1)',
+                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                      borderRadius: '8px',
+                      padding: '1rem',
+                    }}
+                  >
+                    <div style={{ color: '#3b82f6', fontSize: '0.875rem', fontWeight: '600' }}>
+                      Growth Rate
+                    </div>
+                    <div
+                      style={{
+                        color: 'var(--text-primary)',
+                        fontSize: '1.25rem',
+                        fontWeight: 'bold',
+                        marginTop: '0.25rem',
+                      }}
+                    >
+                      {analyticsData?.growthRate?.value || 0} cm/day
+                    </div>
+                    <div
+                      style={{
+                        color: 'var(--text-secondary)',
+                        fontSize: '0.75rem',
+                        marginTop: '0.25rem',
+                      }}
+                    >
+                      Current rate
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      background: 'rgba(245, 158, 11, 0.1)',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      borderRadius: '8px',
+                      padding: '1rem',
+                    }}
+                  >
+                    <div style={{ color: '#f59e0b', fontSize: '0.875rem', fontWeight: '600' }}>
+                      Environment Score
+                    </div>
+                    <div
+                      style={{
+                        color: 'var(--text-primary)',
+                        fontSize: '1.25rem',
+                        fontWeight: 'bold',
+                        marginTop: '0.25rem',
+                      }}
+                    >
+                      {analyticsData?.environmentalEfficiency?.value || 0}%
+                    </div>
+                    <div
+                      style={{
+                        color: 'var(--text-secondary)',
+                        fontSize: '0.75rem',
+                        marginTop: '0.25rem',
+                      }}
+                    >
+                      Overall efficiency
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <div

@@ -139,7 +139,7 @@ Generate a concise validation report:
    - What questions would you have?
    - What might cause delays or rework?
 
-Be pragmatic - perfect documentation doesn't exist. Focus on whether a competent developer can succeed with this story.]]
+Be pragmatic - perfect documentation doesn't exist, but it must be enough to provide the extreme context a dev agent needs to get the work down and not create a mess.]]
 
 | Category                             | Status | Issues |
 | ------------------------------------ | ------ | ------ |

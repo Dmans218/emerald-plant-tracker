@@ -1,0 +1,52 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "chat.agent.enabled": true,
+    "chat.agent.maxRequests": 15,
+    "github.copilot.chat.agent.runTasks": true,
+    "chat.mcp.discovery.enabled": true,
+    "chat.mcp.servers": {
+      "sequential-thinking": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+        "env": {}
+      },
+      "knowledge-graph": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-memory"],
+        "env": {}
+      }
+    },
+    "chat.mcp.timeout": 30000,
+    "chat.mcp.logging": true,
+    "github.copilot.chat.agent.autoFix": true,
+    "chat.tools.autoApprove": false,
+    "typescript.preferences.includePackageJsonAutoImports": "auto",
+    "git.confirmSync": false,
+    "terminal.integrated.defaultProfile.linux": "zsh",
+    "terminal.integrated.fontSize": 14,
+    "terminal.integrated.cursorBlinking": true,
+    "emmet.includeLanguages": {
+      "javascript": "javascriptreact",
+      "typescript": "typescriptreact"
+    },
+    "errorLens.enabledDiagnosticLevels": ["error", "warning"],
+    "todo-tree.general.tags": ["BUG", "HACK", "FIXME", "TODO", "XXX", "[ ]", "[x]"],
+    "peacock.favoriteColors": [
+      {
+        "name": "Emerald Plant Tracker",
+        "value": "#22c55e"
+      }
+    ],
+    "debug.allowBreakpointsEverywhere": true,
+    "debug.console.fontSize": 14,
+    "files.associations": {
+      "*.bmad": "markdown",
+      "*.story.md": "markdown"
+    }
+  }
+}

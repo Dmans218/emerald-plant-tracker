@@ -1,0 +1,16 @@
+{
+  "contextFileName": [
+    "agents/ux-expert.md",
+    "agents/sm.md",
+    "agents/qa.md",
+    "agents/po.md",
+    "agents/pm.md",
+    "agents/dev.md",
+    "agents/bmad-orchestrator.md",
+    "agents/bmad-master.md",
+    "agents/architect.md",
+    "agents/analyst.md",
+    "agents/infra-devops-platform.md",
+    "GEMINI.md"
+  ]
+}

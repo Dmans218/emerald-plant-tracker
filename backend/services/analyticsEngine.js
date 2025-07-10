@@ -25,7 +25,11 @@ class AnalyticsEngine {
     } = options;
 
     try {
-      console.log(`🔬 Processing analytics for plant ${plantId}...`);
+      console.log(
+        `🔬 Processing analytics for plant ${plantId} (${
+          startDate.toISOString().split('T')[0]
+        } to ${endDate.toISOString().split('T')[0]})...`
+      );
 
       // Check if we need to recalculate
       if (!forceRecalculation) {
@@ -36,11 +40,18 @@ class AnalyticsEngine {
         }
       }
 
-      // Get plant data
+      // Get plant data first to ensure plant exists
       const plantData = await this.getPlantData(plantId);
       if (!plantData) {
+        console.log(`❌ Plant ${plantId} not found in database`);
         throw new Error(`Plant ${plantId} not found`);
       }
+
+      console.log(
+        `🌱 Found plant: "${plantData.name}" (${plantData.strain || 'Unknown strain'}) in tent "${
+          plantData.grow_tent
+        }"`
+      );
 
       // Get historical data
       const historicalData = await this.getHistoricalData(plantId, startDate, endDate);
@@ -49,15 +60,17 @@ class AnalyticsEngine {
       const analytics = await this.calculateAnalytics(plantData, historicalData);
 
       // Save analytics to database
-      const savedAnalytics = await AnalyticsModel.create({
+      // Save analytics to database
+      await AnalyticsModel.create({
         plant_id: plantId,
         ...analytics,
       });
 
-      console.log(`✅ Analytics processed for plant ${plantId}`);
-      return AnalyticsModel.formatAnalyticsRecord(savedAnalytics);
+      console.log(`💾 Analytics saved for plant ${plantId}`);
+
+      return analytics;
     } catch (error) {
-      console.error(`❌ Error processing analytics for plant ${plantId}:`, error);
+      console.error(`❌ Error processing analytics for plant ${plantId}:`, error.message);
       throw error;
     }
   }
@@ -72,40 +85,129 @@ class AnalyticsEngine {
     const { growth_stage, strain, grow_medium, days_in_current_stage, total_days_growing } =
       plantData;
 
-    // Base yield estimates by strain type and growing method
-    const baseYieldEstimates = {
-      indica: { soil: 350, coco: 400, hydro: 450 },
-      sativa: { soil: 250, coco: 300, hydro: 350 },
-      hybrid: { soil: 300, coco: 350, coco: 400 },
-      auto: { soil: 150, coco: 175, hydro: 200 },
-    };
+    console.log(`🔮 Calculating yield prediction for plant "${plantData.name}" (${strain})`);
+    console.log(
+      `📈 Plant data: Stage=${growth_stage}, Days=${total_days_growing}, Medium=${grow_medium}`
+    );
+    console.log(`🌡️ Environment data points: ${historicalData.environmental.length}`);
 
-    // Determine strain type (simplified classification)
-    const strainType = this.classifyStrain(strain);
-    const medium = this.normalizeMedium(grow_medium);
+    // Check if we have any real environmental data
+    if (!historicalData.environmental || historicalData.environmental.length === 0) {
+      console.log(`⚠️ No environmental data available, using conservative estimate`);
+      return 0; // Return 0 if no environmental data to base prediction on
+    }
 
-    let baseYield = baseYieldEstimates[strainType]?.[medium] || 300;
+    // Get actual count of plants in this tent for realistic expectations
+    const plantCountResult = await query(
+      'SELECT COUNT(*) as count FROM plants WHERE grow_tent = $1 AND archived = false',
+      [plantData.grow_tent]
+    );
+    const plantsInTent = parseInt(plantCountResult.rows[0].count) || 1;
+    console.log(`🏠 Plants in tent "${plantData.grow_tent}": ${plantsInTent}`);
 
-    // Adjust based on environmental efficiency
-    const environmentalMultiplier = this.calculateEnvironmentalYieldMultiplier(
+    // Calculate average environmental conditions
+    const avgConditions = this.calculateAverageEnvironmentalConditions(
       historicalData.environmental
     );
+    console.log(`📊 Average conditions:`, avgConditions);
 
-    // Adjust based on growth stage progression
-    const stageMultiplier = this.calculateStageProgressionMultiplier(
-      growth_stage,
-      days_in_current_stage,
-      total_days_growing
+    // Conservative yield estimation based on actual data
+    let baseYieldPerPlant = 100; // Conservative base for indoor cannabis
+
+    // Adjust based on growth stage progress
+    if (growth_stage === 'flowering' && total_days_growing > 60) {
+      baseYieldPerPlant = 150; // Higher potential if in flowering stage
+    } else if (growth_stage === 'vegetative' && total_days_growing > 30) {
+      baseYieldPerPlant = 120; // Medium potential in vegetative
+    } else if (growth_stage === 'seedling') {
+      baseYieldPerPlant = 80; // Lower potential for seedlings
+    }
+
+    // Adjust for plant density (more plants = less yield per plant)
+    const densityMultiplier = Math.max(0.5, 1 - (plantsInTent - 1) * 0.1);
+
+    // Apply environmental efficiency if we have good conditions
+    const envMultiplier =
+      avgConditions.temperature > 0 ? Math.min(1.2, 0.8 + (avgConditions.efficiency || 0.3)) : 0.8;
+
+    const predictedYield = Math.round(baseYieldPerPlant * densityMultiplier * envMultiplier);
+
+    console.log(
+      `🎯 Yield prediction: ${predictedYield}g (base: ${baseYieldPerPlant}, density: ${densityMultiplier.toFixed(
+        2
+      )}, env: ${envMultiplier.toFixed(2)})`
     );
 
-    // Adjust based on training and care quality
-    const careMultiplier = this.calculateCareQualityMultiplier(historicalData.logs);
+    return Math.max(0, Math.min(500, predictedYield)); // Reasonable bounds for indoor cannabis
+  }
 
-    // Calculate final prediction
-    const predictedYield = baseYield * environmentalMultiplier * stageMultiplier * careMultiplier;
+  /**
+   * Calculate average environmental conditions from real data
+   * @param {Array} environmentalData - Array of environmental readings
+   * @returns {Object} Average conditions
+   */
+  static calculateAverageEnvironmentalConditions(environmentalData) {
+    if (!environmentalData || environmentalData.length === 0) {
+      return { temperature: 0, humidity: 0, vpd: 0, efficiency: 0 };
+    }
 
-    // Apply reasonable bounds (cannabis-specific)
-    return Math.max(10, Math.min(2000, Math.round(predictedYield)));
+    const totals = environmentalData.reduce(
+      (acc, reading) => {
+        acc.temperature += parseFloat(reading.temperature) || 0;
+        acc.humidity += parseFloat(reading.humidity) || 0;
+        acc.vpd += parseFloat(reading.vpd) || 0;
+        acc.count++;
+        return acc;
+      },
+      { temperature: 0, humidity: 0, vpd: 0, count: 0 }
+    );
+
+    const avg = {
+      temperature: totals.count > 0 ? totals.temperature / totals.count : 0,
+      humidity: totals.count > 0 ? totals.humidity / totals.count : 0,
+      vpd: totals.count > 0 ? totals.vpd / totals.count : 0,
+    };
+
+    // Calculate basic efficiency based on optimal ranges for cannabis
+    avg.efficiency = this.calculateBasicEfficiency(avg.temperature, avg.humidity, avg.vpd);
+
+    return avg;
+  }
+
+  /**
+   * Calculate basic environmental efficiency for cannabis cultivation
+   * @param {number} temp - Average temperature
+   * @param {number} humidity - Average humidity
+   * @param {number} vpd - Average VPD
+   * @returns {number} Efficiency score (0-1)
+   */
+  static calculateBasicEfficiency(temp, humidity, vpd) {
+    if (temp === 0 && humidity === 0) return 0;
+
+    let efficiency = 0;
+
+    // Temperature efficiency (optimal 70-80°F / 21-27°C)
+    if (temp >= 21 && temp <= 27) {
+      efficiency += 0.4;
+    } else if (temp >= 18 && temp <= 30) {
+      efficiency += 0.2;
+    }
+
+    // Humidity efficiency (optimal 40-60% for flowering, 50-70% for veg)
+    if (humidity >= 40 && humidity <= 70) {
+      efficiency += 0.3;
+    } else if (humidity >= 30 && humidity <= 80) {
+      efficiency += 0.1;
+    }
+
+    // VPD efficiency (optimal 0.8-1.2 kPa for cannabis)
+    if (vpd >= 0.8 && vpd <= 1.2) {
+      efficiency += 0.3;
+    } else if (vpd >= 0.5 && vpd <= 1.5) {
+      efficiency += 0.1;
+    }
+
+    return Math.min(1.0, efficiency);
   }
 
   /**
@@ -115,25 +217,34 @@ class AnalyticsEngine {
    * @returns {number} Growth rate in cm/day
    */
   static calculateGrowthRate(plantData, historicalData) {
+    console.log(`📏 Calculating growth rate for plant "${plantData.name}"`);
+
     const measurements = historicalData.logs
       .filter(log => log.height && log.logged_at)
       .sort((a, b) => new Date(a.logged_at) - new Date(b.logged_at));
 
+    console.log(`📊 Found ${measurements.length} height measurements`);
+
     if (measurements.length < 2) {
-      // Default growth rates by stage if no measurements
-      const defaultRates = {
-        seedling: 0.5,
-        vegetative: 2.0,
-        flowering: 0.8,
-        harvest: 0,
+      console.log(`⚠️ Insufficient height data, using stage-based estimate`);
+      // Stage-based growth rates (cm/day) for cannabis
+      const stageRates = {
+        seedling: 0.3, // Slow initial growth
+        vegetative: 1.5, // Rapid vegetative growth
+        flowering: 0.5, // Slower growth during flowering
+        harvested: 0, // No growth after harvest
       };
-      return defaultRates[plantData.growth_stage] || 1.0;
+      const rate = stageRates[plantData.growth_stage] || 0.8;
+      console.log(`📈 Using stage rate: ${rate} cm/day for ${plantData.growth_stage}`);
+      return rate;
     }
 
-    // Calculate average growth rate from recent measurements
+    // Calculate growth rate from actual measurements
     const recentMeasurements = measurements.slice(-5); // Last 5 measurements
     let totalGrowthRate = 0;
     let validPeriods = 0;
+
+    console.log(`📐 Analyzing ${recentMeasurements.length} recent measurements`);
 
     for (let i = 1; i < recentMeasurements.length; i++) {
       const current = recentMeasurements[i];
@@ -144,20 +255,32 @@ class AnalyticsEngine {
         (new Date(current.logged_at) - new Date(previous.logged_at)) / (1000 * 60 * 60 * 24); // days
 
       if (timeDiff > 0 && heightDiff >= 0) {
-        // Only positive growth
-        totalGrowthRate += heightDiff / timeDiff;
+        const periodRate = heightDiff / timeDiff;
+        totalGrowthRate += periodRate;
         validPeriods++;
+        console.log(
+          `📊 Period ${i}: ${heightDiff}cm over ${timeDiff.toFixed(1)} days = ${periodRate.toFixed(
+            2
+          )} cm/day`
+        );
       }
     }
 
     if (validPeriods === 0) {
-      return 1.0; // Default if no valid measurements
+      console.log(`⚠️ No valid growth periods found, using default`);
+      return 0.8; // Conservative default
     }
 
     const averageGrowthRate = totalGrowthRate / validPeriods;
+    const boundedRate = Math.max(0, Math.min(5, averageGrowthRate)); // Reasonable bounds for cannabis
 
-    // Apply reasonable bounds for cannabis growth rates
-    return Math.max(0, Math.min(10, averageGrowthRate));
+    console.log(
+      `🎯 Calculated growth rate: ${boundedRate.toFixed(
+        2
+      )} cm/day (from ${validPeriods} valid periods)`
+    );
+
+    return parseFloat(boundedRate.toFixed(2));
   }
 
   /**
@@ -251,6 +374,11 @@ class AnalyticsEngine {
    * @returns {Object} Complete analytics object
    */
   static async calculateAnalytics(plantData, historicalData) {
+    console.log(`🧮 Calculating comprehensive analytics for plant: "${plantData.name}"`);
+    console.log(
+      `🌱 Plant details: Stage=${plantData.growth_stage}, Tent="${plantData.grow_tent}", Age=${plantData.total_days_growing} days`
+    );
+
     // Calculate yield prediction
     const yield_prediction = await this.calculateYieldPrediction(plantData, historicalData);
 
@@ -269,9 +397,18 @@ class AnalyticsEngine {
       environmental_efficiency,
     };
 
+    console.log(`✅ Analytics calculated:`, {
+      yield_prediction: `${yield_prediction}g`,
+      growth_rate: `${growth_rate} cm/day`,
+      env_score: environmental_efficiency.overall_score,
+      data_points: historicalData.environmental.length,
+    });
+
     // Generate recommendations
     const recommendations = this.generateRecommendations(plantData, analytics, historicalData);
     analytics.recommendations = recommendations;
+
+    console.log(`💡 Generated ${recommendations.length} recommendations`);
 
     return analytics;
   }
@@ -312,25 +449,43 @@ class AnalyticsEngine {
    * @returns {Object} Historical data object
    */
   static async getHistoricalData(plantId, startDate, endDate) {
-    // Get environmental data
+    console.log(`📊 Getting historical data for plant ${plantId} from ${startDate} to ${endDate}`);
+
+    // First get the plant's grow tent
+    const plantResult = await query('SELECT grow_tent FROM plants WHERE id = $1', [plantId]);
+
+    if (!plantResult.rows.length) {
+      console.log(`❌ Plant ${plantId} not found`);
+      return { environmental: [], logs: [] };
+    }
+
+    const growTent = plantResult.rows[0].grow_tent;
+    console.log(`🏠 Plant ${plantId} is in tent: "${growTent}"`);
+
+    // Get environmental data for the plant's tent (tent-grouped, not plant-specific)
     const environmentalResult = await query(
       `
-                SELECT
+        SELECT
           temperature,
           humidity,
           vpd,
           co2_ppm as co2_level,
           ppfd,
-          logged_at
+          logged_at,
+          grow_tent
         FROM environment_logs
-        WHERE grow_tent = (SELECT grow_tent FROM plants WHERE id = $1)
+        WHERE grow_tent = $1
           AND logged_at BETWEEN $2 AND $3
         ORDER BY logged_at DESC
       `,
-      [plantId, startDate, endDate]
+      [growTent, startDate, endDate]
     );
 
-    // Get activity logs
+    console.log(
+      `🌿 Found ${environmentalResult.rows.length} environment readings for tent "${growTent}"`
+    );
+
+    // Get activity logs specific to this plant
     const logsResult = await query(
       `
         SELECT
@@ -346,9 +501,12 @@ class AnalyticsEngine {
       [plantId, startDate, endDate]
     );
 
+    console.log(`📝 Found ${logsResult.rows.length} activity logs for plant ${plantId}`);
+
     return {
       environmental: environmentalResult.rows,
       logs: logsResult.rows,
+      plantTent: growTent,
     };
   }
 
@@ -359,15 +517,140 @@ class AnalyticsEngine {
    * @returns {Object} Environmental efficiency scores
    */
   static calculateEnvironmentalEfficiency(growthStage, environmentalData) {
+    console.log(`🌡️ Calculating environmental efficiency for ${growthStage} stage`);
+    console.log(
+      `📊 Environmental data points: ${environmentalData ? environmentalData.length : 0}`
+    );
+
     if (!environmentalData || environmentalData.length === 0) {
-      return AnalyticsModel.validateEnvironmentalEfficiency({});
+      console.log(`⚠️ No environmental data available for efficiency calculation`);
+      return {
+        overall_score: 0,
+        temperature_efficiency: 0,
+        humidity_efficiency: 0,
+        vpd_efficiency: 0,
+        data_quality: 'insufficient',
+      };
     }
 
-    // Calculate average environmental conditions
-    const avgConditions = this.calculateAverageConditions(environmentalData);
+    // Calculate real averages from actual data
+    const avgConditions = this.calculateAverageEnvironmentalConditions(environmentalData);
+    console.log(`📈 Average conditions:`, avgConditions);
 
-    // Use the cannabis-specific efficiency calculation from the model
-    return AnalyticsModel.calculateStageEfficiency(growthStage, avgConditions);
+    // Calculate efficiency based on cannabis cultivation standards
+    const tempEfficiency = this.calculateTemperatureEfficiency(
+      avgConditions.temperature,
+      growthStage
+    );
+    const humidityEfficiency = this.calculateHumidityEfficiency(
+      avgConditions.humidity,
+      growthStage
+    );
+    const vpdEfficiency = this.calculateVPDEfficiency(avgConditions.vpd);
+
+    const overallScore = (tempEfficiency + humidityEfficiency + vpdEfficiency) / 3;
+
+    console.log(
+      `🎯 Efficiency scores: Temp=${tempEfficiency.toFixed(
+        3
+      )}, Humidity=${humidityEfficiency.toFixed(3)}, VPD=${vpdEfficiency.toFixed(
+        3
+      )}, Overall=${overallScore.toFixed(3)}`
+    );
+
+    return {
+      overall_score: parseFloat(overallScore.toFixed(3)),
+      temperature_efficiency: parseFloat(tempEfficiency.toFixed(3)),
+      humidity_efficiency: parseFloat(humidityEfficiency.toFixed(3)),
+      vpd_efficiency: parseFloat(vpdEfficiency.toFixed(3)),
+      data_quality: environmentalData.length >= 10 ? 'good' : 'limited',
+      average_conditions: avgConditions,
+    };
+  }
+
+  /**
+   * Calculate temperature efficiency for cannabis cultivation
+   * @param {number} avgTemp - Average temperature
+   * @param {string} growthStage - Current growth stage
+   * @returns {number} Efficiency score (0-1)
+   */
+  static calculateTemperatureEfficiency(avgTemp, growthStage) {
+    if (!avgTemp || avgTemp === 0) return 0;
+
+    // Cannabis optimal temperature ranges (Celsius)
+    const optimalRanges = {
+      seedling: { min: 20, max: 25, ideal: 22.5 },
+      vegetative: { min: 22, max: 28, ideal: 25 },
+      flowering: { min: 20, max: 26, ideal: 23 },
+    };
+
+    const range = optimalRanges[growthStage] || optimalRanges.vegetative;
+
+    if (avgTemp >= range.min && avgTemp <= range.max) {
+      // Calculate how close to ideal
+      const deviation = Math.abs(avgTemp - range.ideal);
+      const maxDeviation = (range.max - range.min) / 2;
+      return Math.max(0.7, 1 - (deviation / maxDeviation) * 0.3);
+    } else {
+      // Outside optimal range
+      const distanceFromRange = Math.min(
+        Math.abs(avgTemp - range.min),
+        Math.abs(avgTemp - range.max)
+      );
+      return Math.max(0, 0.5 - distanceFromRange * 0.05);
+    }
+  }
+
+  /**
+   * Calculate humidity efficiency for cannabis cultivation
+   * @param {number} avgHumidity - Average humidity percentage
+   * @param {string} growthStage - Current growth stage
+   * @returns {number} Efficiency score (0-1)
+   */
+  static calculateHumidityEfficiency(avgHumidity, growthStage) {
+    if (!avgHumidity || avgHumidity === 0) return 0;
+
+    // Cannabis optimal humidity ranges
+    const optimalRanges = {
+      seedling: { min: 65, max: 75, ideal: 70 },
+      vegetative: { min: 50, max: 70, ideal: 60 },
+      flowering: { min: 40, max: 50, ideal: 45 },
+    };
+
+    const range = optimalRanges[growthStage] || optimalRanges.vegetative;
+
+    if (avgHumidity >= range.min && avgHumidity <= range.max) {
+      const deviation = Math.abs(avgHumidity - range.ideal);
+      const maxDeviation = (range.max - range.min) / 2;
+      return Math.max(0.7, 1 - (deviation / maxDeviation) * 0.3);
+    } else {
+      const distanceFromRange = Math.min(
+        Math.abs(avgHumidity - range.min),
+        Math.abs(avgHumidity - range.max)
+      );
+      return Math.max(0, 0.5 - distanceFromRange * 0.02);
+    }
+  }
+
+  /**
+   * Calculate VPD efficiency for cannabis cultivation
+   * @param {number} avgVPD - Average VPD in kPa
+   * @returns {number} Efficiency score (0-1)
+   */
+  static calculateVPDEfficiency(avgVPD) {
+    if (!avgVPD || avgVPD === 0) return 0;
+
+    // Optimal VPD range for cannabis (0.8-1.2 kPa)
+    if (avgVPD >= 0.8 && avgVPD <= 1.2) {
+      const deviation = Math.abs(avgVPD - 1.0); // 1.0 is ideal
+      return Math.max(0.8, 1 - deviation * 2);
+    } else if (avgVPD >= 0.5 && avgVPD <= 1.5) {
+      // Acceptable range
+      return 0.6;
+    } else {
+      // Poor VPD
+      return Math.max(0, 0.3 - Math.abs(avgVPD - 1.0) * 0.1);
+    }
   }
 
   /**

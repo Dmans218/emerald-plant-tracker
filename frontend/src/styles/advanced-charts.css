@@ -1,0 +1,270 @@
+/* Advanced Analytics Chart Styles */
+.advanced-analytics-chart {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Advanced Loading Spinner */
+.advanced-loading-spinner {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto;
+}
+
+.spinner-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  animation: advanced-spin 2s linear infinite;
+}
+
+.spinner-ring:nth-child(1) {
+  border-top: 3px solid var(--primary-color);
+  animation-delay: 0s;
+}
+
+.spinner-ring:nth-child(2) {
+  border-right: 3px solid #4ade80;
+  animation-delay: 0.5s;
+  width: 80%;
+  height: 80%;
+  top: 10%;
+  left: 10%;
+}
+
+.spinner-ring:nth-child(3) {
+  border-bottom: 3px solid #f59e0b;
+  animation-delay: 1s;
+  width: 60%;
+  height: 60%;
+  top: 20%;
+  left: 20%;
+}
+
+@keyframes advanced-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Chart Container Enhancements */
+.advanced-analytics-chart canvas {
+  border-radius: 12px;
+}
+
+.advanced-analytics-chart:hover {
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+  transition: all 0.3s ease;
+}
+
+/* Responsive Chart Adjustments */
+@media (max-width: 768px) {
+  .advanced-analytics-chart {
+    padding: 1rem;
+  }
+
+  .advanced-loading-spinner {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* Chart Type Specific Styles */
+.chart-radar .advanced-analytics-chart {
+  background: radial-gradient(circle at center, rgba(16, 185, 129, 0.05) 0%, transparent 70%);
+}
+
+.chart-polar .advanced-analytics-chart {
+  background: conic-gradient(
+    from 0deg,
+    rgba(16, 185, 129, 0.1),
+    rgba(59, 130, 246, 0.1),
+    rgba(245, 158, 11, 0.1),
+    rgba(16, 185, 129, 0.1)
+  );
+}
+
+/* Multi-metric Chart Enhancements */
+.multi-metric-container {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+}
+
+@media (max-width: 768px) {
+  .multi-metric-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* Chart Controls */
+.chart-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.chart-control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chart-control-label {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.chart-control-select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chart-control-select:hover {
+  border-color: var(--primary-color);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.chart-control-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+/* Advanced Chart Legends */
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.chart-legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+/* Optimal Range Indicators */
+.optimal-range-legend {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-top: 1rem;
+}
+
+.optimal-range-items {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.optimal-range-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Cannabis-themed decorative elements */
+.chart-decoration::before {
+  content: '🌿';
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  font-size: 1.2rem;
+  opacity: 0.6;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Chart Animation Enhancements */
+.advanced-analytics-chart.animate-in {
+  animation: chart-slide-in 0.8s ease-out;
+}
+
+@keyframes chart-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Environmental Correlation Specific Styles */
+.correlation-matrix {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.correlation-cell {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.correlation-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.correlation-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.correlation-strong {
+  color: #10b981;
+}
+.correlation-moderate {
+  color: #f59e0b;
+}
+.correlation-weak {
+  color: #94a3b8;
+}
+.correlation-negative {
+  color: #ef4444;
+}

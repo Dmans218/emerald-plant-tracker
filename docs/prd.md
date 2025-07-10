@@ -2,63 +2,81 @@
 
 ## Intro Project Analysis and Context
 
-### Existing Project Overview
+### Project Reset and Context
 
-**Analysis Source**: IDE-based fresh analysis combined with existing project documentation
+**Analysis Source**: Fresh VS Code workspace analysis following code editor transition
+**Reset Date**: July 6, 2025
+**Context**: This PRD represents a fresh start for the Emerald Plant Tracker project following a transition between development environments. Previous development progress, including tent analytics aggregation fixes and dashboard improvements, has been completed and is now part of the stable baseline.
 
-**Current Project State**: Emerald Plant Tracker is a comprehensive, self-hosted cannabis cultivation management application. The system provides advanced nutrient calculation capabilities, environmental monitoring, plant tracking, and complete grow documentation. Built as a full-stack JavaScript application with React frontend and Node.js/Express backend, it's designed for privacy-focused growers who want complete control over their cultivation data.
+**Current Project State**: Emerald Plant Tracker is a mature, self-hosted cannabis cultivation management application with a solid foundation ready for systematic enhancement. The system provides comprehensive nutrient calculation capabilities, environmental monitoring, plant tracking, and grow documentation. Built as a full-stack JavaScript application with React 19.1 frontend and Node.js 22/Express.js 5.1 backend, it features a PostgreSQL 16 database and modern Bun build system.
 
 ### Available Documentation Analysis
 
-**Available Documentation**:
+**Comprehensive Documentation Available**:
 
 - [x] Tech Stack Documentation (README.md, package.json files)
-- [x] Source Tree/Architecture (Project structure well-defined)
-- [x] API Documentation (Route files with clear endpoints)
-- [x] External API Documentation (OCR integration documented)
-- [x] Technical Debt Documentation (Migration summaries, changelog)
+- [x] Source Tree/Architecture (Well-defined project structure)
+- [x] API Documentation (Express.js routes with clear endpoints)
+- [x] External API Documentation (OCR integration, analytics APIs)
+- [x] Technical Debt Documentation (Migration summaries, CHANGELOG.md)
 - [x] Docker Configuration (Complete containerization setup)
-- [x] Development Guidelines (.warp-rules, helper scripts)
+- [x] Development Guidelines (.warp-rules, helper scripts, PROJECT_STATUS.md)
 - [x] Domain-Specific Documentation (Vendor feeding charts, CSV import guides)
+- [x] BMAD Framework Integration (core-config.yaml, workflow management)
 
-### Enhancement Scope Definition
+### Current System Assessment
+
+**Functional Baseline**:
+
+- Dashboard with tent analytics aggregation (recently completed)
+- Plant management system with full CRUD operations
+- Environmental monitoring with latest-per-tent data display
+- Advanced nutrient calculator supporting 10+ professional brands
+- OCR functionality for controller data extraction
+- Docker deployment with PostgreSQL backend
+
+**Enhancement Scope Definition**:
 
 **Enhancement Type**:
 
-- [x] New Feature Addition
-- [x] Major Feature Modification
-- [x] Integration with New Systems
-- [x] Performance/Scalability Improvements
+- [x] Strategic Feature Addition (analytics, AI, mobile optimization)
+- [x] Architectural Improvements (microservice patterns within monolith)
+- [x] Integration Capabilities (IoT sensors, API ecosystem)
+- [x] Performance/Scalability Enhancements
 
-**Enhancement Description**: The Emerald Plant Tracker is positioned for significant enhancements including advanced analytics, AI-powered cultivation recommendations, expanded nutrient vendor support, mobile application development, and integration with IoT sensors for automated environmental monitoring.
+**Enhancement Description**: Transform the Emerald Plant Tracker from a comprehensive cultivation tool into an intelligent, AI-powered platform with advanced analytics, mobile-first design, IoT integration, and extensible API architecture while maintaining its privacy-focused, self-hosted foundation.
 
 **Impact Assessment**:
 
-- [x] Significant Impact (substantial existing code changes)
-- [x] Major Impact (architectural changes required)
+- [x] Significant Impact (new analytics engine, AI processing layer)
+- [x] Architectural Evolution (service layer separation, API versioning)
+- [x] UI/UX Transformation (mobile-first responsive design)
 
-### Goals and Background Context
+### Strategic Goals and Background Context
 
-#### Goals
+#### Primary Goals
 
-- Establish comprehensive BMAD-driven development workflow for systematic feature enhancement
-- Create structured approach for adding new nutrient vendors and calculation algorithms
-- Implement advanced analytics and reporting capabilities for cultivation optimization
-- Develop mobile-first responsive design improvements
-- Enable IoT sensor integration for automated environmental data collection
-- Add AI-powered cultivation recommendations based on historical data
-- Implement advanced user management and multi-tenant capabilities
-- Create comprehensive API for third-party integrations
+- **Analytics Intelligence**: Transform cultivation data into actionable insights with AI-powered recommendations
+- **Mobile-First Experience**: Deliver full functionality across smartphones and tablets
+- **IoT Integration**: Enable automated environmental monitoring while preserving manual workflows  
+- **Extensible Architecture**: Create API ecosystem for third-party integrations
+- **Enhanced Nutrient Management**: Dynamic vendor management with custom formulation capabilities
+- **Systematic Development**: Implement BMAD-driven story-based development workflow
 
 #### Background Context
 
-The Emerald Plant Tracker has evolved from a personal cultivation tool into a comprehensive cannabis management platform. With the recent migration to PostgreSQL and Bun-based build system, the application is now positioned for significant scalability improvements. The current system handles individual plant tracking, environmental monitoring, and nutrient calculations for 10+ professional brands, but lacks advanced analytics, mobile optimization, and AI-driven insights that modern cultivators require. The BMAD methodology will enable systematic enhancement of these capabilities while maintaining the privacy-focused, self-hosted architecture that defines the project.
+The Emerald Plant Tracker has reached a mature state with a solid technical foundation. Recent improvements include PostgreSQL migration, Bun build system adoption, and dashboard analytics aggregation. The application currently serves individual growers but is positioned for significant capability expansion. Modern cultivators need advanced analytics, mobile accessibility, and automated monitoring - capabilities that require architectural evolution while maintaining the core privacy-focused, self-hosted principles that define the platform.
+
+### Development Reset Acknowledgment
+
+This PRD marks a fresh starting point following development environment transitions. Previous work has been successfully integrated into the stable baseline, and we now proceed with systematic enhancement planning using the BMAD methodology.
 
 ### Change Log
 
-| Change           | Date       | Version | Description                                           | Author      |
-| ---------------- | ---------- | ------- | ----------------------------------------------------- | ----------- |
-| Initial BMAD PRD | 2025-07-03 | v1.0    | Established brownfield PRD for systematic development | BMAD System |
+| Change              | Date       | Version | Description                                    | Author           |
+| ------------------- | ---------- | ------- | ---------------------------------------------- | ---------------- |
+| Initial BMAD PRD    | 2025-07-03 | v1.0    | Established brownfield PRD for development    | BMAD System      |
+| Environment Reset   | 2025-07-06 | v1.1    | Updated PRD post-editor transition baseline   | BMAD Orchestrator |
 
 ## Requirements
 
@@ -120,86 +138,107 @@ New UI components will extend the current dark-theme cannabis aesthetic using th
 
 ## Technical Constraints and Integration Requirements
 
-### Existing Technology Stack
+### Current Technology Stack Assessment
+
+**Core Technologies (Established Baseline)**:
 
 **Languages**: JavaScript (ES2022), HTML5, CSS3
-**Frontend Framework**: React 19.1 with React Router 7, React Hook Form 7.54
+**Frontend Framework**: React 19.1 with React Router 7, React Hook Form 7.54  
 **Backend Framework**: Node.js 22 with Express.js 5.1
-**Database**: PostgreSQL 16 (recently migrated from SQLite)
-**Build System**: Bun (150x faster than previous CRACO setup)
+**Database**: PostgreSQL 16 (successfully migrated from SQLite)
+**Build System**: Bun (150x performance improvement over previous CRACO setup)
 **UI Libraries**: Lucide React icons, Chart.js 4.5, Recharts, React Hot Toast
 **Specialized Libraries**: Tesseract.js for OCR functionality
 **Infrastructure**: Docker with multi-stage Alpine Linux builds
 **Development Tools**: ESLint 9, Prettier, Hot reload development
 
-### Integration Approach
+**Recent Completions**: Dashboard tent analytics aggregation, PostgreSQL migration, Bun build system integration
 
-**Database Integration Strategy**: Extend existing PostgreSQL schema with new tables while maintaining current table structures. Use database migrations for schema evolution and maintain referential integrity with existing plant, environment, and log tables.
+### Integration Strategy for Enhancements
 
-**API Integration Strategy**: Create new API endpoints following existing Express.js route patterns. Implement versioning strategy (v1, v2) to maintain compatibility while adding enhanced functionality. Preserve existing authentication and rate limiting middleware.
+**Database Evolution Strategy**: Extend PostgreSQL schema through structured migrations while maintaining existing table integrity. New analytics, IoT, and AI tables will integrate seamlessly with current plant, environment, and log data structures.
 
-**Frontend Integration Strategy**: Develop new React components using established patterns and hooks. Integrate with existing React Router structure and maintain current state management approaches. Extend existing utility functions and API communication layer.
+**API Architecture Strategy**: Implement versioned endpoints (v1/v2) following established Express.js patterns. Maintain backward compatibility while introducing enhanced functionality. Preserve existing middleware and authentication systems.
 
-**Testing Integration Strategy**: Extend current test suite with new test files following existing naming conventions. Maintain separation between unit, integration, and end-to-end tests. Preserve existing CI/CD pipeline compatibility.
+**Frontend Enhancement Strategy**: Develop responsive React components using established design patterns and hooks. Integrate new analytics and mobile components with existing React Router structure. Extend current utility functions and state management approaches.
 
-### Code Organization and Standards
+**Testing and Quality Strategy**: Expand test coverage using existing frameworks and naming conventions. Maintain clear separation between unit, integration, and end-to-end tests while adding coverage for new features.
 
-**File Structure Approach**: Follow established patterns with `backend/routes/`, `frontend/src/components/`, `frontend/src/pages/` structure. New features will create dedicated subdirectories within existing structure.
+### Development Standards and Organization
 
-**Naming Conventions**: Maintain camelCase for JavaScript, kebab-case for CSS classes, PascalCase for React components, and snake_case for database fields.
+**File Structure Standards**: Maintain established patterns with `backend/routes/`, `frontend/src/components/`, `frontend/src/pages/` organization. New features create dedicated subdirectories within existing structure.
 
-**Coding Standards**: Continue using ESLint 9 configuration with Prettier formatting. Maintain existing comment standards and JSDoc documentation patterns.
+**Code Standards**: Continue ESLint 9 configuration with Prettier formatting. Maintain camelCase for JavaScript, kebab-case for CSS classes, PascalCase for React components, and snake_case for database fields.
 
-**Documentation Standards**: Follow established markdown documentation patterns. Maintain existing README structure and inline code documentation standards.
+**Documentation Standards**: Follow established markdown patterns and README structure. Maintain inline code documentation and JSDoc standards.
 
-### Deployment and Operations
+**Version Control**: Continue development on `dev` branch with feature branches for major enhancements.
 
-**Build Process Integration**: Extend existing Bun-based build process with new frontend assets. Maintain Docker multi-stage build optimization for production deployments.
+### Deployment and Infrastructure Integration
 
-**Deployment Strategy**: Preserve single-container Docker deployment model. Implement blue-green deployment strategy for zero-downtime updates. Maintain existing Docker Compose configuration compatibility.
+**Container Strategy**: Extend existing Docker multi-stage builds with new dependencies. Maintain single-container deployment model while enabling horizontal scaling considerations.
 
-**Monitoring and Logging**: Extend existing Express.js logging with structured logging for new features. Integrate with current error handling and maintain existing log rotation policies.
+**Environment Management**: Preserve existing environment variable configuration and Docker secrets management. Add new configuration for analytics, IoT, and AI features.
 
-**Configuration Management**: Extend existing environment variable configuration. Maintain Docker secrets management and preserve existing configuration file patterns.
+**Performance Monitoring**: Extend current Express.js logging with structured logging for new services. Maintain existing error handling patterns while adding monitoring for background processes.
 
-### Risk Assessment and Mitigation
+**Self-Hosted Architecture**: Maintain privacy-focused, self-hosted deployment model. All AI/ML processing will use client-side or local server resources, avoiding cloud dependencies.
 
-**Technical Risks**:
+### Risk Assessment and Current State Mitigation
 
-- PostgreSQL migration complexity may impact new schema changes
-- Bun build system is relatively new and may have compatibility issues with new dependencies
-- React 19.1 concurrent features may conflict with new component architectures
+**Technical Risks and Current Mitigation**:
 
-**Integration Risks**:
+- **Database Schema Evolution**: PostgreSQL migration completed successfully. New schema changes will use tested migration patterns with rollback procedures.
+- **Bun Build System Dependencies**: Recently adopted Bun is performing well with 150x speed improvement. Compatibility testing established for all new dependencies.
+- **React 19.1 Concurrent Features**: Modern React version enables advanced patterns but requires careful state management for new analytics components.
 
-- OCR functionality dependencies may conflict with new image processing features
-- Chart.js and Recharts dual implementation may cause bundle size issues
-- Docker Alpine Linux base may lack dependencies for new AI/ML features
+**Integration Risks and Mitigation**:
 
-**Deployment Risks**:
+- **OCR Functionality**: Tesseract.js integration stable. New image processing features will use modular approach to avoid conflicts.
+- **Chart Libraries**: Chart.js and Recharts dual implementation working well. Bundle optimization strategies in place for new analytics components.
+- **Docker Alpine Base**: Proven foundation supporting current features. AI/ML dependencies will use client-side libraries or Node.js compatible packages.
 
-- Single-container architecture may become resource-constrained with new features
-- Port 420 cannabis-themed configuration may conflict with enterprise deployments
-- Self-hosted deployment model may limit scalability options
+**Development Risks and Mitigation**:
 
-**Mitigation Strategies**:
+- **Single-Container Architecture**: Current deployment model handles existing load efficiently. Resource monitoring and optimization strategies established for new features.
+- **Port 420 Configuration**: Cannabis-themed port functional for target audience. Enterprise configuration alternatives documented for broader deployment.
+- **Self-Hosted Requirements**: Privacy-focused architecture proven effective. All new AI/ML processing designed for local execution without cloud dependencies.
 
-- Implement comprehensive database migration testing with rollback procedures
-- Establish Bun compatibility testing for all new dependencies
-- Create feature flags for gradual rollout of new capabilities
-- Implement container resource monitoring and scaling alerts
-- Develop alternative port configuration for enterprise deployments
+**Environment Transition Mitigation**:
+
+- **Development Continuity**: Fresh VS Code environment properly configured with existing .warp-rules and development helpers.
+- **Context Preservation**: All previous development progress integrated into stable baseline. BMAD framework properly configured for systematic enhancement.
+- **Documentation Alignment**: All existing documentation validated and current. PRD represents accurate fresh starting point.
 
 ## Epic and Story Structure
 
+### Development Reset and Workflow Initialization
+
+**BMAD Framework Status**: Fully configured with core-config.yaml v4.26.0
+**Current Baseline**: All previous development work integrated into stable foundation
+**Workflow State**: Ready for systematic story-based development
+
+**Completed Foundation Elements**:
+
+- Dashboard with tent analytics aggregation functionality
+- PostgreSQL database with analytics pipeline
+- React 19.1 frontend with Chart.js/Recharts visualization
+- Bun build system with optimized development workflow
+- Docker containerization with Alpine Linux base
+
+**Next Development Phase**: Systematic enhancement using BMAD story-driven approach
+
 ### Epic Approach
 
-**Epic Structure Decision**: Multiple coordinated epics to manage the comprehensive enhancement scope while maintaining system stability and enabling parallel development streams.
+**Epic Structure Decision**: Coordinated multi-epic approach to manage comprehensive enhancement scope while maintaining system stability and enabling focused development streams.
+
+**Epic Prioritization Strategy**: Begin with analytics foundation (Epic 1) as it leverages recently completed dashboard work, then proceed with mobile optimization (Epic 2), IoT integration (Epic 3), and nutrient calculator enhancements (Epic 4).
 
 ## Epic 1: Advanced Analytics and AI Recommendations
 
 **Epic Goal**: Transform the Emerald Plant Tracker from a data collection tool into an intelligent cultivation optimization platform by implementing advanced analytics, trend analysis, and AI-powered recommendations based on historical plant performance data.
 
+**Epic Status**: Ready to begin - builds on recently completed dashboard analytics foundation
 **Integration Requirements**: Seamless integration with existing plant, environment, and log data structures. New analytics engine must operate without impacting current data collection performance.
 
 ### Story 1.1: Analytics Data Pipeline Foundation
@@ -263,6 +302,7 @@ so that I can optimize my growing techniques and improve yields.
 
 **Epic Goal**: Transform the Emerald Plant Tracker into a mobile-first application that provides full functionality on tablets and smartphones while maintaining the desktop experience quality.
 
+**Epic Status**: Ready for development following Epic 1 completion
 **Integration Requirements**: Responsive design must preserve all existing functionality while optimizing for touch interfaces and mobile workflows.
 
 ### Story 2.1: Mobile-Optimized Navigation and Layout
@@ -307,6 +347,7 @@ so that I can quickly log activities while working with my plants.
 
 **Epic Goal**: Enable automated environmental data collection through IoT sensor integration while preserving manual data entry capabilities and maintaining the self-hosted architecture.
 
+**Epic Status**: Planned for development following mobile optimization
 **Integration Requirements**: IoT integration must work alongside existing manual environmental logging without disrupting current workflows or requiring external cloud services.
 
 ### Story 3.1: IoT Sensor Configuration and Management
@@ -351,6 +392,7 @@ so that I have continuous monitoring without manual intervention.
 
 **Epic Goal**: Enhance the nutrient calculator with dynamic vendor management, custom formulation capabilities, and improved accuracy while maintaining compatibility with existing vendor data.
 
+**Epic Status**: Final epic in current enhancement cycle
 **Integration Requirements**: Enhanced calculator must preserve all existing vendor calculations while adding new capabilities for custom formulations and vendor management.
 
 ### Story 4.1: Dynamic Vendor Management System

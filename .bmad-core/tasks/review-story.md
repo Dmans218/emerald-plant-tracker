@@ -17,11 +17,19 @@ When a developer marks a story as "Ready for Review", perform a comprehensive se
    - Understand the dev notes and requirements
    - Note any completion notes from the developer
 
-2. **Focus on the File List**
+2. **Verify Implementation Against Dev Notes Guidance**
+   - Review the "Dev Notes" section for specific technical guidance provided to the developer
+   - Verify the developer's implementation follows the architectural patterns specified in Dev Notes
+   - Check that file locations match the project structure guidance in Dev Notes
+   - Confirm any specified libraries, frameworks, or technical approaches were used correctly
+   - Validate that security considerations mentioned in Dev Notes were implemented
+
+3. **Focus on the File List**
    - Verify all files listed were actually created/modified
    - Check for any missing files that should have been updated
+   - Ensure file locations align with the project structure guidance from Dev Notes
 
-3. **Senior Developer Code Review**
+4. **Senior Developer Code Review**
    - Review code with the eye of a senior developer
    - If changes form a cohesive whole, review them together
    - If changes are independent, review incrementally file by file
@@ -33,7 +41,7 @@ When a developer marks a story as "Ready for Review", perform a comprehensive se
      - Security concerns
      - Best practices and patterns
 
-4. **Active Refactoring**
+5. **Active Refactoring**
    - As a senior developer, you CAN and SHOULD refactor code where improvements are needed
    - When refactoring:
      - Make the changes directly in the files
@@ -42,30 +50,32 @@ When a developer marks a story as "Ready for Review", perform a comprehensive se
      - Ensure all tests still pass after refactoring
      - Update the File List if you modify additional files
 
-5. **Standards Compliance Check**
+6. **Standards Compliance Check**
    - Verify adherence to `docs/coding-standards.md`
    - Check compliance with `docs/unified-project-structure.md`
    - Validate testing approach against `docs/testing-strategy.md`
    - Ensure all guidelines mentioned in the story are followed
 
-6. **Acceptance Criteria Validation**
+7. **Acceptance Criteria Validation**
    - Verify each AC is fully implemented
    - Check for any missing functionality
    - Validate edge cases are handled
 
-7. **Test Coverage Review**
+8. **Test Coverage Review**
    - Ensure unit tests cover edge cases
    - Add missing tests if critical coverage is lacking
    - Verify integration tests (if required) are comprehensive
    - Check that test assertions are meaningful
    - Look for missing test scenarios
 
-8. **Documentation and Comments**
+9. **Documentation and Comments**
    - Verify code is self-documenting where possible
    - Add comments for complex logic if missing
    - Ensure any API changes are documented
 
-## Append Results to Story File
+## Update Story File - QA Results Section ONLY
+
+**CRITICAL**: You are ONLY authorized to update the "QA Results" section of the story file. DO NOT modify any other sections.
 
 After review and any refactoring, append your results to the story file in the QA Results section:
 

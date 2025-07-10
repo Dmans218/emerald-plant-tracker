@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { Eye, Play, Target, TrendingUp, X, Zap } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { X, Target, Calendar, TrendingUp, Zap, Play, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
@@ -12,8 +12,8 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
       dateTo: '',
       onlyEmpty: true,
       temperatureMin: '',
-      temperatureMax: ''
-    }
+      temperatureMax: '',
+    },
   });
 
   const [stats, setStats] = useState(null);
@@ -31,7 +31,9 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
 
   const fetchBulkStats = async () => {
     try {
-      const response = await fetch(`/api/environment/bulk-stats${selectedTent ? `?grow_tent=${selectedTent}` : ''}`);
+      const response = await fetch(
+        `/api/environment/bulk-stats${selectedTent ? `?grow_tent=${selectedTent}` : ''}`
+      );
       const data = await response.json();
       setStats(data);
     } catch (error) {
@@ -40,7 +42,7 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
     }
   };
 
-  const handlePreview = async (data) => {
+  const handlePreview = async data => {
     setIsLoading(true);
     try {
       const conditions = {
@@ -49,7 +51,7 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
         dateTo: data.dateTo || null,
         onlyEmpty: data.onlyEmpty,
         temperatureMin: data.temperatureMin ? parseFloat(data.temperatureMin) : undefined,
-        temperatureMax: data.temperatureMax ? parseFloat(data.temperatureMax) : undefined
+        temperatureMax: data.temperatureMax ? parseFloat(data.temperatureMax) : undefined,
       };
 
       const response = await fetch('/api/environment/bulk-update', {
@@ -58,8 +60,8 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
         body: JSON.stringify({
           stage: data.stage,
           conditions,
-          dryRun: true
-        })
+          dryRun: true,
+        }),
       });
 
       if (!response.ok) throw new Error('Preview failed');
@@ -75,7 +77,7 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
     }
   };
 
-  const handleBulkUpdate = async (data) => {
+  const handleBulkUpdate = async data => {
     if (!previewResult || previewResult.wouldUpdate === 0) {
       toast.error('Please run a preview first to see what will be updated');
       return;
@@ -95,7 +97,7 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
         dateTo: data.dateTo || null,
         onlyEmpty: data.onlyEmpty,
         temperatureMin: data.temperatureMin ? parseFloat(data.temperatureMin) : undefined,
-        temperatureMax: data.temperatureMax ? parseFloat(data.temperatureMax) : undefined
+        temperatureMax: data.temperatureMax ? parseFloat(data.temperatureMax) : undefined,
       };
 
       const response = await fetch('/api/environment/bulk-update', {
@@ -104,8 +106,8 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
         body: JSON.stringify({
           stage: data.stage,
           conditions,
-          dryRun: false
-        })
+          dryRun: false,
+        }),
       });
 
       if (!response.ok) throw new Error('Bulk update failed');
@@ -128,7 +130,7 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
   const handleSmartAssignment = async () => {
     const confirmed = window.confirm(
       'This will automatically assign growth stages based on chronological patterns.\n\n' +
-      'Are you sure you want to proceed with smart assignment?'
+        'Are you sure you want to proceed with smart assignment?'
     );
 
     if (!confirmed) return;
@@ -140,8 +142,8 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           grow_tent: selectedTent || null,
-          dryRun: false
-        })
+          dryRun: false,
+        }),
       });
 
       if (!response.ok) throw new Error('Smart assignment failed');
@@ -170,34 +172,54 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
   if (!isOpen) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0, 0, 0, 0.8)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '1rem'
-    }}>
-      <div className="card" style={{
-        background: 'var(--surface)',
-        borderRadius: '16px',
-        border: '1px solid var(--border)',
-        padding: '2rem',
-        width: '100%',
-        maxWidth: '800px',
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        animation: 'modalSlideIn 0.3s ease-out'
-      }}>
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: '1rem',
+      }}
+    >
+      <div
+        className="card"
+        style={{
+          background: 'var(--surface)',
+          borderRadius: '16px',
+          border: '1px solid var(--border)',
+          padding: '2rem',
+          width: '100%',
+          maxWidth: '800px',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          animation: 'modalSlideIn 0.3s ease-out',
+        }}
+      >
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '2rem',
+          }}
+        >
           <div>
-            <h2 style={{ color: 'var(--text-primary)', fontSize: '1.5rem', fontWeight: 'bold', margin: 0, marginBottom: '0.5rem' }}>
+            <h2
+              style={{
+                color: 'var(--text-primary)',
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                margin: 0,
+                marginBottom: '0.5rem',
+              }}
+            >
               🎯 Bulk Edit Environment Stages
             </h2>
             <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
@@ -215,7 +237,7 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
             }}
             data-testid="bulkedit-close-btn"
           >
@@ -225,47 +247,74 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
 
         {/* Statistics Summary */}
         {stats && (
-          <div style={{
-            background: 'var(--surface-elevated)',
-            borderRadius: '12px',
-            padding: '1.5rem',
-            marginBottom: '2rem',
-            border: '1px solid var(--border)'
-          }}>
-            <h3 style={{ color: 'var(--text-primary)', margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: '600' }}>
+          <div
+            style={{
+              background: 'var(--surface-elevated)',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              marginBottom: '2rem',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <h3
+              style={{
+                color: 'var(--text-primary)',
+                margin: '0 0 1rem 0',
+                fontSize: '1.1rem',
+                fontWeight: '600',
+              }}
+            >
               📊 Current Data Overview
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: '1rem',
+              }}
+            >
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>
+                <div
+                  style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary-color)' }}
+                >
                   {stats.stats.total_logs}
                 </div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Total Records</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  Total Records
+                </div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>
                   {stats.stats.logs_with_stage}
                 </div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>With Stages</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  With Stages
+                </div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>
                   {stats.stats.logs_without_stage}
                 </div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Need Stages</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  Need Stages
+                </div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#6366f1' }}>
                   {stats.stats.tent_count}
                 </div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Grow Tents</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  Grow Tents
+                </div>
               </div>
             </div>
           </div>
         )}
 
         {/* Tab Navigation */}
-        <div style={{ display: 'flex', marginBottom: '2rem', borderBottom: '1px solid var(--border)' }}>
+        <div
+          style={{ display: 'flex', marginBottom: '2rem', borderBottom: '1px solid var(--border)' }}
+        >
           <button
             onClick={() => setActiveTab('manual')}
             style={{
@@ -279,7 +328,7 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
               fontWeight: '600',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem'
+              gap: '0.5rem',
             }}
           >
             <Target className="w-4 h-4" />
@@ -298,7 +347,7 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
               fontWeight: '600',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem'
+              gap: '0.5rem',
             }}
           >
             <TrendingUp className="w-4 h-4" />
@@ -309,9 +358,24 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
         {/* Manual Tab */}
         {activeTab === 'manual' && (
           <form onSubmit={handleSubmit(handlePreview)}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '1rem',
+                marginBottom: '2rem',
+              }}
+            >
               <div style={{ gridColumn: 'span 2' }}>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: 'var(--text-primary)',
+                    marginBottom: '0.5rem',
+                  }}
+                >
                   Target Growth Stage *
                 </label>
                 <select
@@ -323,7 +387,7 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
                     borderRadius: '8px',
                     background: 'var(--surface)',
                     color: 'var(--text-primary)',
-                    fontSize: '0.875rem'
+                    fontSize: '0.875rem',
                   }}
                 >
                   <option value="">Select Stage to Apply</option>
@@ -339,7 +403,15 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: 'var(--text-primary)',
+                    marginBottom: '0.5rem',
+                  }}
+                >
                   Date From
                 </label>
                 <input
@@ -352,13 +424,21 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
                     borderRadius: '8px',
                     background: 'var(--surface)',
                     color: 'var(--text-primary)',
-                    fontSize: '0.875rem'
+                    fontSize: '0.875rem',
                   }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: 'var(--text-primary)',
+                    marginBottom: '0.5rem',
+                  }}
+                >
                   Date To
                 </label>
                 <input
@@ -371,20 +451,36 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
                     borderRadius: '8px',
                     background: 'var(--surface)',
                     color: 'var(--text-primary)',
-                    fontSize: '0.875rem'
+                    fontSize: '0.875rem',
                   }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: 'var(--text-primary)',
+                    marginBottom: '0.5rem',
+                  }}
+                >
                   Min Temperature (°F)
                 </label>
                 <input
                   type="number"
                   step="0.1"
                   {...register('temperatureMin')}
-                  style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: '0.875rem' }}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    background: 'var(--surface)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.875rem',
+                  }}
                   placeholder="e.g., 70"
                   inputMode="decimal"
                   autoComplete="off"
@@ -392,7 +488,15 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: 'var(--text-primary)',
+                    marginBottom: '0.5rem',
+                  }}
+                >
                   Max Temperature (°F)
                 </label>
                 <input
@@ -406,7 +510,7 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
                     borderRadius: '8px',
                     background: 'var(--surface)',
                     color: 'var(--text-primary)',
-                    fontSize: '0.875rem'
+                    fontSize: '0.875rem',
                   }}
                   placeholder="e.g., 85"
                 />
@@ -414,7 +518,9 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
             </div>
 
             <div style={{ marginBottom: '2rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+              <label
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}
+              >
                 <input
                   type="checkbox"
                   {...register('onlyEmpty')}
@@ -428,21 +534,32 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
 
             {/* Preview Result */}
             {previewResult && (
-              <div style={{
-                background: previewResult.wouldUpdate > 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                border: `1px solid ${previewResult.wouldUpdate > 0 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
-                borderRadius: '8px',
-                padding: '1rem',
-                marginBottom: '2rem'
-              }}>
-                <h4 style={{ color: 'var(--text-primary)', margin: '0 0 0.5rem 0', fontSize: '1rem', fontWeight: '600' }}>
+              <div
+                style={{
+                  background:
+                    previewResult.wouldUpdate > 0
+                      ? 'rgba(16, 185, 129, 0.1)'
+                      : 'rgba(245, 158, 11, 0.1)',
+                  border: `1px solid ${previewResult.wouldUpdate > 0 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  marginBottom: '2rem',
+                }}
+              >
+                <h4
+                  style={{
+                    color: 'var(--text-primary)',
+                    margin: '0 0 0.5rem 0',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                  }}
+                >
                   Preview Result
                 </h4>
                 <p style={{ color: 'var(--text-primary)', margin: 0 }}>
                   {previewResult.wouldUpdate > 0
                     ? `✅ ${previewResult.wouldUpdate} records would be updated to "${previewResult.stage}"`
-                    : '⚠️ No records match the specified conditions'
-                  }
+                    : '⚠️ No records match the specified conditions'}
                 </p>
               </div>
             )}
@@ -463,10 +580,14 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
                   fontWeight: '600',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem'
+                  gap: '0.5rem',
                 }}
               >
-                {isLoading ? <div className="loading" style={{ width: '16px', height: '16px' }} /> : <Eye className="w-4 h-4" />}
+                {isLoading ? (
+                  <div className="loading" style={{ width: '16px', height: '16px' }} />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
                 Preview Changes
               </button>
 
@@ -486,10 +607,14 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
                     fontWeight: '600',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5rem'
+                    gap: '0.5rem',
                   }}
                 >
-                  {isLoading ? <div className="loading" style={{ width: '16px', height: '16px' }} /> : <Play className="w-4 h-4" />}
+                  {isLoading ? (
+                    <div className="loading" style={{ width: '16px', height: '16px' }} />
+                  ) : (
+                    <Play className="w-4 h-4" />
+                  )}
                   Apply Changes
                 </button>
               )}
@@ -500,23 +625,49 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
         {/* Smart Assignment Tab */}
         {activeTab === 'smart' && (
           <div>
-            <div style={{
-              background: 'rgba(99, 102, 241, 0.1)',
-              border: '1px solid rgba(99, 102, 241, 0.3)',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              marginBottom: '2rem'
-            }}>
-              <h3 style={{ color: 'var(--text-primary)', margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: '600' }}>
+            <div
+              style={{
+                background: 'rgba(99, 102, 241, 0.1)',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                marginBottom: '2rem',
+              }}
+            >
+              <h3
+                style={{
+                  color: 'var(--text-primary)',
+                  margin: '0 0 1rem 0',
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                }}
+              >
                 🧠 Smart Chronological Assignment
               </h3>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', lineHeight: '1.6' }}>
-                This will automatically assign growth stages based on chronological patterns and typical cannabis grow cycles:
+              <p
+                style={{ color: 'var(--text-secondary)', marginBottom: '1rem', lineHeight: '1.6' }}
+              >
+                This will automatically assign growth stages based on chronological patterns and
+                typical cannabis grow cycles:
               </p>
-              <ul style={{ color: 'var(--text-secondary)', paddingLeft: '1.5rem', margin: 0, lineHeight: '1.6' }}>
-                <li><strong>Short periods (≤30 days):</strong> All records assigned to Vegetative</li>
-                <li><strong>Medium periods (30-90 days):</strong> 40% Vegetative, 60% Flower</li>
-                <li><strong>Long periods (>90 days):</strong> 30% Vegetative, 55% Flower, 15% Late Flower</li>
+              <ul
+                style={{
+                  color: 'var(--text-secondary)',
+                  paddingLeft: '1.5rem',
+                  margin: 0,
+                  lineHeight: '1.6',
+                }}
+              >
+                <li>
+                  <strong>Short periods (≤30 days):</strong> All records assigned to Vegetative
+                </li>
+                <li>
+                  <strong>Medium periods (30-90 days):</strong> 40% Vegetative, 60% Flower
+                </li>
+                <li>
+                  <strong>Long periods (&gt;90 days):</strong> 30% Vegetative, 55% Flower, 15% Late
+                  Flower
+                </li>
               </ul>
             </div>
 
@@ -536,10 +687,14 @@ const BulkEditModal = ({ isOpen, onClose, selectedTent, onSuccess }) => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.75rem',
-                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
                 }}
               >
-                {isLoading ? <div className="loading" style={{ width: '20px', height: '20px' }} /> : <Zap className="w-5 h-5" />}
+                {isLoading ? (
+                  <div className="loading" style={{ width: '20px', height: '20px' }} />
+                ) : (
+                  <Zap className="w-5 h-5" />
+                )}
                 Run Smart Assignment
               </button>
             </div>

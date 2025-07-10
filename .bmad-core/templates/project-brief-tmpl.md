@@ -1,6 +1,8 @@
-# Project Brief: {{Project Name}}
+---
+defaultOutput: docs/brief.md
+---
 
-[[LLM: The default path and filename unless specified is docs/brief.md]]
+# Project Brief: {{Project Name}}
 
 [[LLM: This template guides creation of a comprehensive Project Brief that serves as the foundational input for product development.
 
