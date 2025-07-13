@@ -40,6 +40,15 @@ build/
 # Development resources
 /dev-resources/
 
+# BMAD (Build My AI Developer) files - exclude from version control
+web-bundles/
+*.txt
+agents/
+teams/
+expansion-packs/
+bmad-*.txt
+team-*.txt
+
 # Logs
 logs/
 *.log

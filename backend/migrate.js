@@ -4,6 +4,7 @@ const { testConnection } = require('./config/database');
 const { init: initTables } = require('./migrations/init');
 const { migrateNutrientData, verifyMigration } = require('./migrations/migrate-nutrients');
 const { addGgsFields } = require('./migrations/add-ggs-fields');
+const { up: addAiRecommendations } = require('./migrations/add-ai-recommendations');
 
 const runMigrations = async () => {
   console.log('🚀 Starting Emerald Plant Tracker database migration...');
@@ -34,6 +35,11 @@ const runMigrations = async () => {
     console.log('📦 Migrating nutrient vendor data...');
     await migrateNutrientData();
     console.log('✅ Nutrient data migrated successfully');
+    
+    // Add AI recommendation tables
+    console.log('🤖 Creating AI recommendation tables...');
+    await addAiRecommendations();
+    console.log('✅ AI recommendation tables created successfully');
     
     // Verify migration
     console.log('🔍 Verifying migration...');

@@ -13,6 +13,7 @@ const environmentRouter = require('./routes/environment');
 const nutrientsRouter = require('./routes/nutrients');
 const tentsRouter = require('./routes/tents');
 const analyticsRouter = require("./routes/analytics");
+const recommendationsRouter = require("./routes/recommendations");
 const BackgroundProcessor = require("./services/backgroundProcessor");
 
 const app = express();
@@ -102,6 +103,7 @@ app.use("/api/environment", environmentRouter);
 app.use("/api/nutrients", nutrientsRouter);
 app.use("/api/tents", tentsRouter);
 app.use("/api/analytics", analyticsRouter);
+app.use("/api/recommendations", recommendationsRouter);
 
 // Health check with database connectivity
 app.get("/api/health", async (req, res) => {
