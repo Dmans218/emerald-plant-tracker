@@ -18,36 +18,83 @@ lerna-debug.log*
 build/
 *.tsbuildinfo
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Environment variables and secrets
+.env*
+!.env.example
+!.env.template
+*.env
+*.env.*
+.env.backup
+.env.development
+.env.staging
 .env.production
+.env.test
+.env.local
+
+# API Keys and credentials
+*api-key*
+*api_key*
+*secret*
+*secrets*
+*credential*
+*credentials*
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+auth.json
+service-account*.json
+gcp-key*.json
+aws-credentials*
+.aws/
+.gcp/
 
 # CSV files (may contain device serial numbers or personal data)
 *.csv
 
-# Backend data and uploads
+# Backend data and uploads - may contain personal cultivation data
 /backend/uploads/*
 !/backend/uploads/.gitkeep
 /backend/data/*.db
 /backend/data/*.sqlite
 /backend/data/*.sqlite3
 !/backend/data/.gitkeep
+/backend/backups/
+/backend/exports/
+/backend/logs/
+*.backup
+*.dump
+*.sql
+plant-data-*.json
+cultivation-*.csv
+grow-*.csv
+harvest-*.csv
+personal-data*
 
 # Development resources
 /dev-resources/
 
-# BMAD (Build My AI Developer) files - exclude from version control
+# AI/BMAD sensitive files - contain prompts, strategies, and potentially sensitive data
+.bmad-core/
+.bmad-infrastructure-devops/
+.claude/
+.gemini/
+.cursor/
+.vscode/settings.json
+.vscode/launch.json
 web-bundles/
-*.txt
-agents/
-teams/
-expansion-packs/
 bmad-*.txt
 team-*.txt
+*-prompt.txt
+*-strategy.txt
+*-template.txt
+ai-*.json
+prompts/
+strategies/
+agent-configs/
+ai-instructions*
 
 # Logs
 logs/
@@ -69,20 +116,21 @@ coverage/
 # nyc test coverage
 .nyc_output/
 
-# IDE and editor folders
+# IDE and editor folders - may contain personal settings and workspace configs
 .idea/
-.vscode/
-.cursor/
 *.swp
 *.swo
 *~
 .DS_Store
 .DS_Store?
-._*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
 Thumbs.db
+.fleet/
+.nova/
+*.sublime-project
+*.sublime-workspace
 
 # OS generated files
 *.tmp
@@ -126,7 +174,95 @@ docker-compose.override.yml
 tmp/
 temp/
 
-# Shell scripts (to prevent accidental pushes to live)
+# Security-critical additions
+# Cannabis cultivation data protection
+cultivation-logs/
+grow-journals/
+harvest-reports/
+strain-data/
+patient-data/
+medical-records/
+compliance-reports/
+license-info*
+regulatory-*
+legal-*
+
+# Network and infrastructure
+*.pcap
+*.cap
+network-config*
+vpn-config*
+firewall-*
+nginx-*.conf
+apache-*.conf
+ssl-*.conf
+
+# CI/CD and deployment secrets
+.github/secrets/
+.gitlab-ci-local/
+jenkins-*
+ansible-vault*
+terraform.tfstate*
+.terraform/
+k8s-secrets*
+helm-secrets*
+
+# Development and testing data
+test-*.json
+mock-*.json
+fixture-*.json
+seed-*.json
+sample-*.sql
+test-*.csv
+dev-*.csv
+
+# Application-specific sensitive files
+user-uploads/
+session-data/
+cache-data/
+analytics-data/
+metrics-data/
+monitoring-data/
+
+# Security-sensitive files
 *.sh
+!install.sh
+!setup.sh
 docker-push*.sh
 deploy*.sh
+*.bat
+*.ps1
+*.script
+run-*.sh
+start-*.sh
+setup-*.sh
+config-*.sh
+
+# Personal/private files
+personal-*
+private-*
+my-*
+local-*
+test-data*
+sample-data*
+dev-data*
+
+# Docker secrets and configs
+docker-compose.override.yml
+docker-compose.local.yml
+docker-compose.prod.yml
+docker-compose.staging.yml
+.docker/
+docker-secrets/
+
+# Backup and temporary files
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+*.tmp
+*.temp
+*~
+._*
+.~*
