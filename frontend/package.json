@@ -15,10 +15,10 @@
     "react": "^19.1.1",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.1.1",
-    "react-hook-form": "^7.62.0",
+    "react-hook-form": "^7.63.0",
     "react-hot-toast": "^2.6.0",
     "react-router-dom": "^7.9.1",
-    "recharts": "^3.2.0",
+    "recharts": "^3.2.1",
     "tesseract.js": "^6.0.1",
     "web-vitals": "^5.1.0"
   },
@@ -51,7 +51,7 @@
   "proxy": "http://localhost:5000",
   "devDependencies": {
     "@craco/craco": "^5.9.0",
-    "@eslint/js": "^9.35.0",
+    "@eslint/js": "^9.36.0",
     "eslint": "^9.28.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
