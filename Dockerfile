@@ -1,5 +1,5 @@
 # ---- Build frontend ----
-FROM node:24 AS frontend-build
+FROM node:25 AS frontend-build
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm install
@@ -7,13 +7,13 @@ COPY frontend/ ./
 RUN npm run build
 
 # ---- Build backend ----
-FROM node:24 AS backend-build
+FROM node:25 AS backend-build
 WORKDIR /app
 COPY backend/package*.json ./backend/
 RUN cd backend && npm ci --only=production
 
 # ---- Final unified container ----
-FROM node:24
+FROM node:25
 WORKDIR /app
 
 # Copy backend code
