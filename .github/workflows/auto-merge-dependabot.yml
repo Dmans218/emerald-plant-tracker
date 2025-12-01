@@ -17,7 +17,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Auto-merge Dependabot PRs for minor/patch updates
         if: contains(github.event.pull_request.title, 'bump') && !contains(github.event.pull_request.title, 'major')
