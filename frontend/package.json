@@ -15,9 +15,9 @@
     "react": "^19.2.3",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.3",
-    "react-hook-form": "^7.69.0",
+    "react-hook-form": "^7.71.0",
     "react-hot-toast": "^2.6.0",
-    "react-router-dom": "^7.11.0",
+    "react-router-dom": "^7.12.0",
     "recharts": "^3.6.0",
     "tesseract.js": "^7.0.0",
     "web-vitals": "^5.1.0"
