@@ -18,6 +18,8 @@ import {
 import { format } from 'date-fns';
 import { plantsApi } from '../utils/api';
 import { toast } from 'react-hot-toast';
+import { useSettings } from '../contexts/SettingsContext';
+import { formatTemperature } from '../utils/temperatureConverter';
 
 const ArchivedTents = () => {
   const [archivedGrows, setArchivedGrows] = useState([]);
@@ -28,6 +30,7 @@ const ArchivedTents = () => {
   const [filterBy, setFilterBy] = useState('all');
   const [selectedGrow, setSelectedGrow] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const { temperatureUnit } = useSettings();
 
   useEffect(() => {
     fetchArchivedGrows();
@@ -642,7 +645,7 @@ const ArchivedGrowCard = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <Thermometer className="w-3 h-3" style={{ color: '#ef4444' }} />
                 <span style={{ fontSize: '0.75rem', color: '#f1f5f9' }}>
-                  {grow.avg_temperature.toFixed(1)}°C
+                  {formatTemperature(grow.avg_temperature, temperatureUnit, 1)}
                 </span>
               </div>
             )}
@@ -867,11 +870,11 @@ const GrowDetailModal = ({
                     <span style={{ fontSize: '0.875rem', color: '#cbd5e1', fontWeight: '600' }}>Temperature</span>
                   </div>
                   <div style={{ fontSize: '1.25rem', color: '#ef4444', fontWeight: '700' }}>
-                    {grow.avg_temperature.toFixed(1)}°C
+                    {formatTemperature(grow.avg_temperature, temperatureUnit, 1)}
                   </div>
                   {grow.min_temperature && grow.max_temperature && (
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                      Range: {grow.min_temperature.toFixed(1)}° - {grow.max_temperature.toFixed(1)}°
+                      Range: {formatTemperature(grow.min_temperature, temperatureUnit, 1)} - {formatTemperature(grow.max_temperature, temperatureUnit, 1)}
                     </div>
                   )}
                 </div>
