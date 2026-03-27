@@ -8,24 +8,29 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { environmentApi, plantsApi } from '../utils/api';
 import ImageUpload from '../components/ImageUpload';
 import { getStageColor } from '../utils/stageColors';
+import { useSettings } from '../contexts/SettingsContext';
+import { formatTemperature, convertTemperature, celsiusToFahrenheit } from '../utils/temperatureConverter';
 
 // CSV Export utility function
-function exportToCSV(logs) {
+function exportToCSV(logs, temperatureUnit) {
   if (!logs || logs.length === 0) return;
   const headers = [
-    'Date', 'Time', 'Tent', 'Stage', 'Temperature (°F)', 'Humidity (%)', 'pH', 'Light (h)', 'VPD (kPa)'
+    'Date', 'Time', 'Tent', 'Stage', `Temperature (°${temperatureUnit})`, 'Humidity (%)', 'pH', 'Light (h)', 'VPD (kPa)'
   ];
-  const rows = logs.map(log => [
-    format(new Date(log.logged_at), 'MMM dd'),
-    format(new Date(log.logged_at), 'HH:mm'),
-    log.grow_tent || '',
-    log.stage || '',
-    log.temperature || '',
-    log.humidity || '',
-    log.ph_level || '',
-    log.light_hours || '',
-    log.vpd || ''
-  ]);
+  const rows = logs.map(log => {
+    const temp = convertTemperature(log.temperature, temperatureUnit);
+    return [
+      format(new Date(log.logged_at), 'MMM dd'),
+      format(new Date(log.logged_at), 'HH:mm'),
+      log.grow_tent || '',
+      log.stage || '',
+      temp !== null ? temp.toFixed(1) : '',
+      log.humidity || '',
+      log.ph_level || '',
+      log.light_hours || '',
+      log.vpd || ''
+    ];
+  });
   const csvContent = [headers, ...rows].map(r => r.join(',')).join('\n');
   const blob = new Blob([csvContent], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
@@ -219,6 +224,7 @@ const Environment = () => {
   const [selectedTent, setSelectedTent] = useState('');
   const [editingLog, setEditingLog] = useState(null);
   const [selectedChart, setSelectedChart] = useState(null);
+  const { temperatureUnit } = useSettings();
 
   const { register, handleSubmit, reset, formState: { isSubmitting, errors } } = useForm();
 
@@ -280,10 +286,16 @@ const Environment = () => {
 
   const onSubmit = async (data) => {
     try {
+      // Convert temperature to Fahrenheit if user is using Celsius
+      let temperature = data.temperature ? parseFloat(data.temperature) : null;
+      if (temperature !== null && temperatureUnit === 'C') {
+        temperature = celsiusToFahrenheit(temperature);
+      }
+
       // Convert form data to proper types
       const environmentData = {
         ...data,
-        temperature: data.temperature ? parseFloat(data.temperature) : null,
+        temperature: temperature,
         humidity: data.humidity ? parseFloat(data.humidity) : null,
         ph_level: data.ph_level ? parseFloat(data.ph_level) : null,
         light_hours: data.light_hours ? parseFloat(data.light_hours) : null,
@@ -318,10 +330,13 @@ const Environment = () => {
     // Format the logged_at date for the datetime-local input
     const formattedDate = format(new Date(log.logged_at), "yyyy-MM-dd'T'HH:mm");
     
+    // Convert temperature from Fahrenheit to user's selected unit
+    const temperature = convertTemperature(log.temperature, temperatureUnit);
+    
     // Populate form with existing data
     reset({
       grow_tent: log.grow_tent || '',
-      temperature: log.temperature || '',
+      temperature: temperature !== null ? temperature : '',
       humidity: log.humidity || '',
       ph_level: log.ph_level || '',
       light_hours: log.light_hours || '',
@@ -572,7 +587,7 @@ const Environment = () => {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Temp (°F)</label>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Temp (°{temperatureUnit})</label>
                   <input
                     type="number"
                     step="0.1"
@@ -814,7 +829,7 @@ const Environment = () => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div className="text-center">
                       <div style={{ fontWeight: '600', color: '#ef4444' }}>
-                        {week.avg_temperature ? `${week.avg_temperature.toFixed(1)}°F` : 'N/A'}
+                        {formatTemperature(week.avg_temperature, temperatureUnit, 1)}
                       </div>
                       <div style={{ color: 'var(--text-secondary)' }}>Avg Temp</div>
                     </div>
@@ -898,7 +913,7 @@ const Environment = () => {
               </button>
               <button
                 className="btn btn-outline"
-                onClick={() => exportToCSV(sortedLogsForGraphs)}
+                onClick={() => exportToCSV(sortedLogsForGraphs, temperatureUnit)}
                 style={{borderColor: '#ffffff', color: '#ffffff'}}
               >
                 <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
@@ -1203,7 +1218,7 @@ const Environment = () => {
                             fontWeight: '600',
                             fontSize: '0.875rem'
                           }}>
-                            {log.temperature ? `${log.temperature}°F` : '-'}
+                            {formatTemperature(log.temperature, temperatureUnit)}
                           </span>
                         </td>
                         <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
@@ -1957,8 +1972,11 @@ const Environment = () => {
                                  selectedChart === 'ph' ? '#bef264' : '#f87171',
                           fontWeight: '600'
                         }}>
-                          {value}{
-                            selectedChart === 'temperature' ? '°F' : 
+                          {selectedChart === 'temperature' 
+                            ? convertTemperature(value, temperatureUnit).toFixed(1)
+                            : value
+                          }{
+                            selectedChart === 'temperature' ? `°${temperatureUnit}` : 
                             selectedChart === 'humidity' ? '%' : 
                             selectedChart === 'vpd' ? ' kPa' : ''
                           }

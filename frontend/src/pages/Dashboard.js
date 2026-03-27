@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 import { getStageColor } from '../utils/stageColors';
 
 import { plantsApi } from '../utils/api';
+import { useSettings } from '../contexts/SettingsContext';
+import { formatTemperature } from '../utils/temperatureConverter';
 
 const STAGE_CONFIG = {
   seedling: { emoji: '🌱', label: 'Seedling' },
@@ -19,6 +21,7 @@ const Dashboard = () => {
   const [plants, setPlants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [environmentData, setEnvironmentData] = useState([]);
+  const { temperatureUnit } = useSettings();
 
   useEffect(() => {
     fetchPlants();
@@ -652,7 +655,7 @@ const Dashboard = () => {
                               fontWeight: '600',
                               fontSize: '0.875rem'
                             }}>
-                              {log.temperature ? `${log.temperature}°F` : '-'}
+                              {formatTemperature(log.temperature, temperatureUnit)}
                             </span>
                           </td>
                           <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
