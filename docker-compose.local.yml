@@ -1,0 +1,15 @@
+services:
+  emerald-plant-tracker:
+    build: .
+    container_name: emerald-tracker-dev
+    ports:
+      - "420:420"
+    volumes:
+      # Nur diese beiden Mounts nutzen:
+      - ./data:/app/backend/data
+      - ./uploads:/app/backend/uploads
+      # ENTFERNE oder kommentiere diese Zeile:
+      # - ./backend:/app/backend 
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=/app/backend/data/emerald-plant-tracker.db

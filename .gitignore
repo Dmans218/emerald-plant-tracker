@@ -116,3 +116,4 @@ temp/
 *.sh
 docker-push*.sh
 deploy*.sh
+docker-compose.local.yml
