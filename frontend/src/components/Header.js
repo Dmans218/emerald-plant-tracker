@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Sprout, Calculator, Home, Thermometer } from 'lucide-react';
+import { Sprout, Calculator, Home, Thermometer, Settings } from 'lucide-react';
 
 const Header = () => {
   const location = useLocation();
@@ -10,6 +10,7 @@ const Header = () => {
     { path: '/plants', label: 'Plants', icon: Sprout },
     { path: '/calculator', label: 'Nutrient Calculator', icon: Calculator },
     { path: '/environment', label: 'Environment', icon: Thermometer },
+    { path: '/settings', label: 'Settings', icon: Settings },
   ];
 
   return (
