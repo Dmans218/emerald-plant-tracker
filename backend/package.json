@@ -14,7 +14,7 @@
     "axios": "^1.18.1",
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.5.2",
+    "express-rate-limit": "^8.6.0",
     "jimp": "^1.6.1",
     "joi": "^18.2.3",
     "morgan": "^1.11.0",
