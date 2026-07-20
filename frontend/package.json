@@ -75,7 +75,7 @@
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint-config-react-app": "^7.1.0-next.26",
-    "brace-expansion": "^2.0.1",
+    "brace-expansion": "^2.1.2",
     "minimatch": "^9.0.0",
     "glob": "^10.0.0",
     "tailwindcss": "^4.1.8"
