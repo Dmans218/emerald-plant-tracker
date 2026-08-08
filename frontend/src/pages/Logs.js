@@ -1,15 +1,157 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Plus, Save, X, Droplets, Thermometer, Eye, 
-  Scissors, Leaf, Bug, FlaskConical, Ruler, Camera, 
-  Activity, Home, Edit, Trash2, Search
+import {
+  Plus, Save, X, Droplets, Thermometer, Eye,
+  Scissors, Leaf, Bug, FlaskConical, Ruler, Camera,
+  Activity, Home, Edit, Trash2, Search, ArrowLeft, Sprout, MoreVertical,
 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
+import { createPortal } from 'react-dom';
 
 import { plantsApi, logsApi } from '../utils/api';
+import PageHeader from '../components/PageHeader';
+
+const LOG_TYPES = [
+  { id: 'watering', label: 'Watering', short: 'Water', icon: Droplets, color: '#60a5fa', fields: ['water_amount', 'ph_level', 'ec_tds', 'notes'] },
+  { id: 'feeding', label: 'Nutrient Feeding', short: 'Feed', icon: FlaskConical, color: '#4ade80', fields: ['nutrient_info', 'ph_level', 'ec_tds', 'water_amount', 'notes'] },
+  { id: 'environmental', label: 'Environmental Check', short: 'Env', icon: Thermometer, color: '#fbbf24', fields: ['temperature', 'humidity', 'light_intensity', 'co2_level', 'notes'] },
+  { id: 'observation', label: 'Plant Observation', short: 'Observe', icon: Eye, color: '#94a3b8', fields: ['height_cm', 'notes'] },
+  { id: 'training', label: 'Training/Pruning', short: 'Train', icon: Scissors, color: '#f87171', fields: ['notes'] },
+  { id: 'transplant', label: 'Transplant', short: 'Move', icon: Home, color: '#2dd4bf', fields: ['notes'] },
+  { id: 'pest_disease', label: 'Pest/Disease', short: 'Pest', icon: Bug, color: '#f87171', fields: ['notes'] },
+  { id: 'deficiency', label: 'Nutrient Issue', short: 'Defic.', icon: Leaf, color: '#fb923c', fields: ['notes'] },
+  { id: 'measurement', label: 'Growth Measurement', short: 'Measure', icon: Ruler, color: '#34d399', fields: ['height_cm', 'notes'] },
+  { id: 'photo', label: 'Photo Documentation', short: 'Photo', icon: Camera, color: '#a78bfa', fields: ['notes'] },
+];
+
+const getLogTypeConfig = (type) => {
+  const found = LOG_TYPES.find((t) => t.id === type);
+  if (found) {
+    const Icon = found.icon;
+    return { ...found, iconEl: <Icon size={14} strokeWidth={2} /> };
+  }
+  return {
+    id: type,
+    label: type || 'Log',
+    short: type || 'Log',
+    iconEl: <Activity size={14} strokeWidth={2} />,
+    color: '#94a3b8',
+    fields: ['notes'],
+  };
+};
+
+const formatLogMetrics = (log) => {
+  const parts = [];
+  if (log.height_cm != null && log.height_cm !== '') parts.push(`${log.height_cm} cm`);
+  if (log.water_amount != null && log.water_amount !== '') parts.push(`${log.water_amount} L`);
+  if (log.ph_level != null && log.ph_level !== '') parts.push(`pH ${log.ph_level}`);
+  if (log.ec_tds != null && log.ec_tds !== '') parts.push(`${log.ec_tds} ppm`);
+  if (log.temperature != null && log.temperature !== '') parts.push(`${log.temperature}°`);
+  if (log.humidity != null && log.humidity !== '') parts.push(`${log.humidity}%`);
+  if (log.light_intensity != null && log.light_intensity !== '') parts.push(`${log.light_intensity} PPFD`);
+  if (log.co2_level != null && log.co2_level !== '') parts.push(`CO₂ ${log.co2_level}`);
+  return parts;
+};
+
+const safeLogTime = (value) => {
+  const d = value ? new Date(value) : null;
+  if (!d || !isValid(d)) return '—';
+  return format(d, 'HH:mm');
+};
+
+const METRIC_FIELD_META = {
+  water_amount: { label: 'Water', unit: 'L', type: 'number', step: '0.1' },
+  ph_level: { label: 'pH', unit: '', type: 'number', step: '0.1', min: '0', max: '14' },
+  ec_tds: { label: 'EC / TDS', unit: 'ppm', type: 'number', step: '1' },
+  temperature: { label: 'Temp', unit: '°C', type: 'number', step: '0.1' },
+  humidity: { label: 'Humidity', unit: '%', type: 'number', step: '1', min: '0', max: '100' },
+  light_intensity: { label: 'Light', unit: 'PPFD', type: 'number', step: '1' },
+  co2_level: { label: 'CO₂', unit: 'ppm', type: 'number', step: '1' },
+  height_cm: { label: 'Height', unit: 'cm', type: 'number', step: '0.1' },
+  nutrient_info: { label: 'Nutrients / mix', unit: '', type: 'text', wide: true },
+};
+
+const RECENT_PLANTS_KEY = 'logsRecentPlantIds';
+const readRecentPlantIds = () => {
+  try {
+    const raw = localStorage.getItem(RECENT_PLANTS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+};
+
+const LogRowMenu = ({ onEdit, onDelete }) => {
+  const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const triggerRef = React.useRef(null);
+  const menuRef = React.useRef(null);
+
+  React.useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return undefined;
+    const place = () => {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const w = 132;
+      const h = 96;
+      let left = rect.right - w;
+      let top = rect.bottom + 4;
+      if (left < 8) left = 8;
+      if (top + h > window.innerHeight - 8) top = Math.max(8, rect.top - h - 4);
+      setCoords({ top, left });
+    };
+    place();
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    return () => {
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    };
+  }, [open]);
+
+  React.useEffect(() => {
+    if (!open) return undefined;
+    const onDoc = (e) => {
+      if (triggerRef.current?.contains(e.target) || menuRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        className="journal-row-menu-btn"
+        aria-label="Log actions"
+        aria-expanded={open}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+      >
+        <MoreVertical size={15} />
+      </button>
+      {open && createPortal(
+        (
+          <div ref={menuRef} className="plants-row-menu-dropdown" style={{ top: coords.top, left: coords.left }} role="menu">
+            <button type="button" role="menuitem" onClick={() => { setOpen(false); onEdit(); }}>
+              <Edit className="w-4 h-4" /> Edit
+            </button>
+            <button type="button" role="menuitem" className="is-danger" onClick={() => { setOpen(false); onDelete(); }}>
+              <Trash2 className="w-4 h-4" /> Delete
+            </button>
+          </div>
+        ),
+        document.body
+      )}
+    </>
+  );
+};
 
 const Logs = () => {
   const [plants, setPlants] = useState([]);
@@ -17,1397 +159,707 @@ const Logs = () => {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingLog, setEditingLog] = useState(null);
-  const [selectedPlant, setSelectedPlant] = useState('');
-  const [selectedType, setSelectedType] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [recentPlantIds, setRecentPlantIds] = useState(readRecentPlantIds);
+  const [visibleDayCount, setVisibleDayCount] = useState(7);
 
   const location = useLocation();
   const navigate = useNavigate();
   const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm();
 
-  // Parse URL parameters for editing
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const editId = params.get('editId');
-    const plantId = params.get('plantId');
-    
-    if (editId && plantId) {
-      setShowAddForm(true);
-      // Will set editing log after logs are loaded
-    }
-    if (plantId) {
-      setSelectedPlant(plantId);
-    }
-  }, [location.search]);
+  const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const plantId = params.get('plantId') || '';
+  const typeFromUrl = params.get('type') || '';
+  const addFromUrl = params.get('add') === '1';
+  const editId = params.get('editId');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const [selectedType, setSelectedType] = useState(typeFromUrl);
+
+  const selectedPlant = useMemo(
+    () => plants.find((p) => String(p.id) === String(plantId)) || null,
+    [plants, plantId]
+  );
+
+  const activePlants = useMemo(
+    () => plants.filter((p) => !p.archived),
+    [plants]
+  );
+
+  const updateUrl = useCallback((next) => {
+    const p = new URLSearchParams();
+    if (next.plantId) p.set('plantId', next.plantId);
+    if (next.type) p.set('type', next.type);
+    if (next.add) p.set('add', '1');
+    if (next.editId) p.set('editId', String(next.editId));
+    const qs = p.toString();
+    navigate(qs ? `/logs?${qs}` : '/logs', { replace: next.replace !== false });
+  }, [navigate]);
 
   const populateForm = useCallback((log) => {
-    Object.keys(log).forEach(key => {
+    Object.keys(log).forEach((key) => {
       if (key === 'logged_at') {
-        setValue(key, format(parseISO(log[key]), "yyyy-MM-dd'T'HH:mm"));
+        setValue(key, format(new Date(log[key]), "yyyy-MM-dd'T'HH:mm"));
       } else {
-        setValue(key, log[key] || '');
+        setValue(key, log[key] ?? '');
       }
     });
   }, [setValue]);
 
-  const fetchData = async () => {
+  const fetchPlants = useCallback(async () => {
     try {
-      const [plantsResponse, logsResponse] = await Promise.all([
-        plantsApi.getAll(),
-        logsApi.getAll()
-      ]);
-      setPlants(plantsResponse.data);
-      setLogs(logsResponse.data);
+      const plantsData = await plantsApi.getAll();
+      setPlants(Array.isArray(plantsData) ? plantsData : []);
     } catch {
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
+      toast.error('Failed to load plants');
     }
-  };
+  }, []);
+
+  const fetchLogs = useCallback(async () => {
+    if (!plantId) {
+      setLogs([]);
+      return;
+    }
+    try {
+      const query = { plant_id: plantId, limit: 500 };
+      if (selectedType) query.type = selectedType;
+      const logsData = await logsApi.getAll(query);
+      setLogs(Array.isArray(logsData) ? logsData : []);
+    } catch {
+      toast.error('Failed to load logs');
+      setLogs([]);
+    }
+  }, [plantId, selectedType]);
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const editId = params.get('editId');
-    
+    setVisibleDayCount(7);
+  }, [plantId, selectedType, searchTerm, dateFilter]);
+
+  useEffect(() => {
+    setSelectedType(typeFromUrl);
+  }, [typeFromUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      await fetchPlants();
+      if (cancelled) return;
+      if (plantId) {
+        await fetchLogs();
+      } else {
+        setLogs([]);
+      }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [fetchPlants, fetchLogs, plantId]);
+
+  useEffect(() => {
+    if (plantId && addFromUrl && !editId) {
+      setShowAddForm(true);
+      setEditingLog(null);
+      reset({
+        plant_id: plantId,
+        logged_at: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+        type: '',
+      });
+    }
+  }, [plantId, addFromUrl, editId, reset]);
+
+  useEffect(() => {
     if (editId && logs.length > 0) {
-      const logToEdit = logs.find(log => log.id === parseInt(editId));
+      const logToEdit = logs.find((log) => log.id === parseInt(editId, 10));
       if (logToEdit) {
         setEditingLog(logToEdit);
+        setShowAddForm(true);
         populateForm(logToEdit);
       }
     }
-  }, [logs, location.search, setValue, populateForm]);
+  }, [logs, editId, populateForm]);
 
-  const logTypes = [
-    { 
-      id: 'watering', 
-      label: 'Watering', 
-      icon: <Droplets className="w-4 h-4" />, 
-      color: '#3b82f6',
-      fields: ['water_amount', 'ph_level', 'ec_tds', 'notes']
-    },
-    { 
-      id: 'feeding', 
-      label: 'Nutrient Feeding', 
-      icon: <FlaskConical className="w-4 h-4" />, 
-      color: '#10b981',
-      fields: ['nutrient_info', 'ph_level', 'ec_tds', 'water_amount', 'notes']
-    },
-    { 
-      id: 'environmental', 
-      label: 'Environmental Check', 
-      icon: <Thermometer className="w-4 h-4" />, 
-      color: '#f59e0b',
-      fields: ['temperature', 'humidity', 'light_intensity', 'co2_level', 'notes']
-    },
-    { 
-      id: 'observation', 
-      label: 'Plant Observation', 
-      icon: <Eye className="w-4 h-4" />, 
-      color: '#8b5cf6',
-      fields: ['height_cm', 'notes']
-    },
-    { 
-      id: 'training', 
-      label: 'Training/Pruning', 
-      icon: <Scissors className="w-4 h-4" />, 
-      color: '#ef4444',
-      fields: ['notes']
-    },
-    { 
-      id: 'transplant', 
-      label: 'Transplant', 
-      icon: <Home className="w-4 h-4" />, 
-      color: '#06b6d4',
-      fields: ['notes']
-    },
-    { 
-      id: 'pest_disease', 
-      label: 'Pest/Disease', 
-      icon: <Bug className="w-4 h-4" />, 
-      color: '#dc2626',
-      fields: ['notes']
-    },
-    { 
-      id: 'deficiency', 
-      label: 'Nutrient Issue', 
-      icon: <Leaf className="w-4 h-4" />, 
-      color: '#ea580c',
-      fields: ['notes']
-    },
-    { 
-      id: 'measurement', 
-      label: 'Growth Measurement', 
-      icon: <Ruler className="w-4 h-4" />, 
-      color: '#059669',
-      fields: ['height_cm', 'notes']
-    },
-    { 
-      id: 'photo', 
-      label: 'Photo Documentation', 
-      icon: <Camera className="w-4 h-4" />, 
-      color: '#7c3aed',
-      fields: ['notes']
+  useEffect(() => {
+    if (showAddForm && plantId && !editingLog) {
+      setValue('plant_id', plantId);
     }
-  ];
+  }, [showAddForm, plantId, editingLog, setValue]);
 
-  const getLogTypeConfig = (type) => {
-    return logTypes.find(t => t.id === type) || { 
-      id: type, 
-      label: type, 
-      icon: <Activity className="w-4 h-4" />, 
-      color: '#64748b',
-      fields: ['notes']
-    };
-  };
-
-  const selectedTypeConfig = watch('type') ? getLogTypeConfig(watch('type')) : null;
-
-  const onSubmit = async (data) => {
-    try {
-      const formData = {
-        ...data,
-        plant_id: parseInt(data.plant_id),
-        logged_at: data.logged_at || new Date().toISOString()
-      };
-
-      if (editingLog) {
-        await logsApi.update(editingLog.id, formData);
-        toast.success('Log updated successfully!');
-      } else {
-        await logsApi.create(formData);
-        toast.success('Log added successfully!');
-      }
-
-      await fetchData();
-      handleCancel();
-    } catch {
-      toast.error(editingLog ? 'Failed to update log' : 'Failed to add log');
-    }
+  const journalPath = (overrides = {}) => {
+    updateUrl({
+      plantId: overrides.plantId !== undefined ? overrides.plantId : plantId,
+      type: overrides.type !== undefined ? overrides.type : selectedType,
+      add: overrides.add,
+      editId: overrides.editId,
+      replace: overrides.replace,
+    });
   };
 
   const handleCancel = () => {
     setShowAddForm(false);
     setEditingLog(null);
     reset();
-    navigate('/logs');
+    journalPath({ add: false, editId: undefined, replace: true });
   };
 
-  const handleDelete = async (logId) => {
-    if (window.confirm('Are you sure you want to delete this log?')) {
-      try {
-        await logsApi.delete(logId);
-        toast.success('Log deleted successfully!');
-        await fetchData();
-      } catch {
-        toast.error('Failed to delete log');
+  const openAddForm = () => {
+    setEditingLog(null);
+    reset({
+      plant_id: plantId,
+      logged_at: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+      type: '',
+    });
+    setShowAddForm(true);
+    journalPath({ add: true, editId: undefined, replace: false });
+  };
+
+  const openEditForm = (log) => {
+    setEditingLog(log);
+    populateForm(log);
+    setShowAddForm(true);
+    journalPath({ add: false, editId: log.id, replace: false });
+  };
+
+  const onSubmit = async (data) => {
+    try {
+      const formData = {
+        ...data,
+        plant_id: parseInt(data.plant_id || plantId, 10),
+        logged_at: data.logged_at || new Date().toISOString(),
+      };
+
+      if (editingLog) {
+        await logsApi.update(editingLog.id, formData);
+        toast.success('Log updated');
+      } else {
+        await logsApi.create(formData);
+        toast.success('Log added');
       }
+
+      await fetchLogs();
+      handleCancel();
+    } catch {
+      toast.error(editingLog ? 'Failed to update log' : 'Failed to add log');
     }
   };
 
-  const filteredLogs = logs.filter(log => {
-    const matchesPlant = !selectedPlant || log.plant_id === parseInt(selectedPlant);
-    const matchesType = !selectedType || log.type === selectedType;
-    const matchesSearch = !searchTerm || 
-      log.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      plants.find(p => p.id === log.plant_id)?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDate = !dateFilter || 
-      format(parseISO(log.logged_at), 'yyyy-MM-dd') === dateFilter;
-    
-    return matchesPlant && matchesType && matchesSearch && matchesDate;
+  const handleDelete = async (logId) => {
+    if (!window.confirm('Delete this log entry?')) return;
+    try {
+      await logsApi.delete(logId);
+      toast.success('Log deleted');
+      await fetchLogs();
+    } catch {
+      toast.error('Failed to delete log');
+    }
+  };
+
+  const selectPlant = (id) => {
+    const idStr = String(id);
+    setRecentPlantIds((prev) => {
+      const next = [idStr, ...prev.filter((x) => x !== idStr)].slice(0, 8);
+      try {
+        localStorage.setItem(RECENT_PLANTS_KEY, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+    navigate(`/logs?plantId=${id}`);
+  };
+
+  const changePlant = () => navigate('/logs');
+
+  const handleTypeFilterChange = (value) => {
+    setSelectedType(value);
+    journalPath({ type: value, add: showAddForm && !editingLog, editId: editingLog?.id, replace: true });
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setDateFilter('');
+    handleTypeFilterChange('');
+  };
+
+  const filteredLogs = logs.filter((log) => {
+    const q = searchTerm.toLowerCase();
+    const matchesSearch = !q
+      || log.description?.toLowerCase().includes(q)
+      || log.notes?.toLowerCase().includes(q)
+      || log.nutrient_info?.toLowerCase().includes(q);
+    const matchesDate = !dateFilter
+      || format(new Date(log.logged_at), 'yyyy-MM-dd') === dateFilter;
+    return matchesSearch && matchesDate;
   });
+
+  const groupedLogs = useMemo(() => {
+    const groups = [];
+    const map = new Map();
+    filteredLogs.forEach((log) => {
+      const dayKey = format(new Date(log.logged_at), 'yyyy-MM-dd');
+      const dayLabel = format(new Date(log.logged_at), 'EEE, MMM d, yyyy');
+      if (!map.has(dayKey)) {
+        const group = { key: dayKey, label: dayLabel, logs: [] };
+        map.set(dayKey, group);
+        groups.push(group);
+      }
+      map.get(dayKey).logs.push(log);
+    });
+    return groups;
+  }, [filteredLogs]);
+
+  const visibleGroups = useMemo(
+    () => groupedLogs.slice(0, visibleDayCount),
+    [groupedLogs, visibleDayCount]
+  );
+
+  const visibleEntryCount = useMemo(
+    () => visibleGroups.reduce((n, g) => n + g.logs.length, 0),
+    [visibleGroups]
+  );
+
+  const olderDayCount = Math.max(0, groupedLogs.length - visibleDayCount);
+
+  const hasFilters = Boolean(searchTerm || selectedType || dateFilter);
+
+  const typeWatch = watch('type');
+  const selectedTypeConfig = typeWatch ? getLogTypeConfig(typeWatch) : null;
+  const metricFields = (selectedTypeConfig?.fields || []).filter((f) => f !== 'notes');
+  const showNotesField = !selectedTypeConfig || selectedTypeConfig.fields.includes('notes');
 
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'var(--background)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{
-          padding: '2rem',
-          background: 'rgba(30, 41, 59, 0.6)',
-          borderRadius: '16px',
-          border: '1px solid rgba(100, 116, 139, 0.2)',
-          textAlign: 'center'
-        }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '3px solid rgba(74, 222, 128, 0.3)',
-            borderTop: '3px solid #4ade80',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 1rem'
-          }}></div>
-          <p style={{ color: '#f8fafc', margin: 0 }}>Loading logs...</p>
+      <div className="journal-page">
+        <div className="flex items-center justify-center min-h-64">
+          <div className="loading" />
         </div>
       </div>
     );
   }
 
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--background)',
-      padding: '2rem'
-    }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Header */}
-        <div 
-          style={{
-            background: 'rgba(30, 41, 59, 0.6)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderRadius: '20px',
-            border: '1px solid rgba(100, 116, 139, 0.2)',
-            padding: '2rem',
-            marginBottom: '2rem',
-            boxShadow: '0 8px 20px -6px rgba(0, 0, 0, 0.3)',
-            animation: 'fadeInUp 0.6s ease-out',
-            transition: 'all 0.3s ease',
-            cursor: 'pointer'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-4px)';
-            e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
-            e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 8px 20px -6px rgba(0, 0, 0, 0.3)';
-            e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.2)';
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <Link to="/dashboard" className="btn btn-secondary">
-                <ArrowLeft className="w-4 h-4" />
-                Dashboard
-              </Link>
-            </div>
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="btn btn-primary"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-            >
-              <Plus className="w-4 h-4" />
-              Add Log Entry
-            </button>
-          </div>
-          
-          <div>
-            <h1 style={{ 
-              fontSize: '2rem', 
-              fontWeight: '700', 
-              color: '#f8fafc', 
-              marginBottom: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem'
-            }}>
-              📋 Cultivation Logs
-            </h1>
-            <p style={{ color: '#94a3b8', fontSize: '1rem', margin: 0 }}>
-              Track and monitor your plant care activities
-            </p>
+  // ——— Plant picker ———
+  if (!plantId) {
+    const largeGrow = activePlants.length > 8;
+    const pickerQuery = pickerSearch.trim().toLowerCase();
+    const filteredPickerPlants = !pickerQuery
+      ? activePlants
+      : activePlants.filter((plant) => (
+        plant.name?.toLowerCase().includes(pickerQuery)
+          || plant.strain?.toLowerCase().includes(pickerQuery)
+          || plant.grow_tent?.toLowerCase().includes(pickerQuery)
+          || plant.stage?.toLowerCase().includes(pickerQuery)
+      ));
+
+    const recentPlants = recentPlantIds
+      .map((id) => activePlants.find((p) => String(p.id) === String(id)))
+      .filter(Boolean)
+      .slice(0, 8);
+
+    const pickerGrouped = filteredPickerPlants.reduce((groups, plant) => {
+      const tent = plant.grow_tent || 'Unassigned';
+      if (!groups[tent]) groups[tent] = [];
+      groups[tent].push(plant);
+      return groups;
+    }, {});
+    const pickerTentEntries = Object.entries(pickerGrouped).sort(([a], [b]) => a.localeCompare(b));
+    const useGrouped = largeGrow || pickerTentEntries.length > 1;
+
+    const renderPickerRow = (plant) => (
+      <button key={plant.id} type="button" className="logs-picker-row" onClick={() => selectPlant(plant.id)}>
+        <div className="logs-picker-row-icon">
+          <Sprout className="w-5 h-5" style={{ color: '#4ade80' }} />
+        </div>
+        <div className="logs-picker-row-body">
+          <div className="logs-picker-row-name">{plant.name}</div>
+          <div className="logs-picker-row-meta">
+            {[plant.strain || 'Unknown strain', plant.stage, !useGrouped ? plant.grow_tent : null]
+              .filter(Boolean)
+              .join(' · ')}
           </div>
         </div>
+        {plant.log_count != null && (
+          <div className="logs-picker-row-side">{plant.log_count} logs</div>
+        )}
+      </button>
+    );
 
-        {/* Add/Edit Form */}
-        {showAddForm && (
-          <div 
-            style={{
-              background: 'rgba(30, 41, 59, 0.6)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              borderRadius: '20px',
-              border: '1px solid rgba(100, 116, 139, 0.2)',
-              padding: '2rem',
-              marginBottom: '2rem',
-              boxShadow: '0 8px 20px -6px rgba(0, 0, 0, 0.3)',
-              animation: 'fadeInUp 0.8s ease-out 0.2s both',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
-              e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 8px 20px -6px rgba(0, 0, 0, 0.3)';
-              e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.2)';
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-              <h2 style={{ 
-                fontSize: '1.5rem', 
-                fontWeight: '700', 
-                color: '#f8fafc', 
-                margin: 0,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}>
-                {editingLog ? '✏️ Edit Log Entry' : '➕ Add New Log Entry'}
-              </h2>
-              <button
-                onClick={handleCancel}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#94a3b8',
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  borderRadius: '8px',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(100, 116, 139, 0.2)';
-                  e.currentTarget.style.color = '#f8fafc';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = '#94a3b8';
-                }}
-              >
-                <X className="w-5 h-5" />
-              </button>
+    return (
+      <div className="journal-page">
+        <PageHeader
+          icon={Activity}
+          title="Care Journal"
+          subtitle="Choose a plant to open its care journal"
+        />
+
+        <div className="page-panel journal-picker-panel">
+          {activePlants.length === 0 ? (
+            <div className="journal-empty">
+              <Sprout className="plants-empty-icon" />
+              <h3>No active plants</h3>
+              <p>Add a plant first, then come back to log care.</p>
+              <Link to="/" className="btn btn-primary">Go to Plants</Link>
             </div>
-
-            <form onSubmit={handleSubmit(onSubmit)}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                {/* Plant Selection */}
-                <div>
-                  <label style={{ 
-                    display: 'block', 
-                    color: '#e2e8f0', 
-                    fontSize: '0.875rem', 
-                    fontWeight: '600', 
-                    marginBottom: '0.5rem' 
-                  }}>
-                    Plant *
-                  </label>
-                  <select
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem 1rem',
-                      background: 'rgba(15, 23, 42, 0.6)',
-                      border: '1px solid rgba(100, 116, 139, 0.3)',
-                      borderRadius: '12px',
-                      color: '#f8fafc',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                    {...register('plant_id', { required: 'Please select a plant' })}
-                  >
-                    <option value="">Select a plant...</option>
-                    {plants.filter(p => !p.archived).map(plant => (
-                      <option key={plant.id} value={plant.id}>
-                        {plant.name} ({plant.strain || 'Unknown strain'})
-                      </option>
-                    ))}
-                  </select>
-                  {errors.plant_id && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>{errors.plant_id.message}</p>}
-                </div>
-
-                {/* Log Type */}
-                <div>
-                  <label style={{ 
-                    display: 'block', 
-                    color: '#e2e8f0', 
-                    fontSize: '0.875rem', 
-                    fontWeight: '600', 
-                    marginBottom: '0.5rem' 
-                  }}>
-                    Activity Type *
-                  </label>
-                  <select
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem 1rem',
-                      background: 'rgba(15, 23, 42, 0.6)',
-                      border: '1px solid rgba(100, 116, 139, 0.3)',
-                      borderRadius: '12px',
-                      color: '#f8fafc',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                    {...register('type', { required: 'Please select an activity type' })}
-                  >
-                    <option value="">Select activity type...</option>
-                    {logTypes.map(type => (
-                      <option key={type.id} value={type.id}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.type && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>{errors.type.message}</p>}
-                </div>
-
-                {/* Date/Time */}
-                <div>
-                  <label style={{ 
-                    display: 'block', 
-                    color: '#e2e8f0', 
-                    fontSize: '0.875rem', 
-                    fontWeight: '600', 
-                    marginBottom: '0.5rem' 
-                  }}>
-                    Date & Time
-                  </label>
-                  <input
-                    type="datetime-local"
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem 1rem',
-                      background: 'rgba(15, 23, 42, 0.6)',
-                      border: '1px solid rgba(100, 116, 139, 0.3)',
-                      borderRadius: '12px',
-                      color: '#f8fafc',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                    {...register('logged_at')}
-                    defaultValue={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
-                  />
-                </div>
-
-                {/* Description */}
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ 
-                    display: 'block', 
-                    color: '#e2e8f0', 
-                    fontSize: '0.875rem', 
-                    fontWeight: '600', 
-                    marginBottom: '0.5rem' 
-                  }}>
-                    Description
-                  </label>
+          ) : (
+            <>
+              {(largeGrow || activePlants.length > 3) && (
+                <div className="logs-picker-search plants-search-wrap">
+                  <Search className="plants-search-icon" />
                   <input
                     type="text"
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem 1rem',
-                      background: 'rgba(15, 23, 42, 0.6)',
-                      border: '1px solid rgba(100, 116, 139, 0.3)',
-                      borderRadius: '12px',
-                      color: '#f8fafc',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                    {...register('description')}
-                    placeholder="Brief description of the activity..."
+                    className="plants-filter-input"
+                    placeholder="Search name, strain, or tent…"
+                    value={pickerSearch}
+                    onChange={(e) => setPickerSearch(e.target.value)}
+                    aria-label="Search plants"
                   />
                 </div>
-              </div>
+              )}
 
-              {/* Dynamic Fields Based on Type */}
-              {selectedTypeConfig && selectedTypeConfig.fields.length > 0 && (
-                <div style={{ marginBottom: '2rem' }}>
-                  <h3 style={{ 
-                    color: '#f8fafc', 
-                    fontSize: '1.125rem', 
-                    fontWeight: '600', 
-                    marginBottom: '1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}>
-                    {selectedTypeConfig.icon}
-                    {selectedTypeConfig.label} Details
-                  </h3>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
-                    {selectedTypeConfig.fields.includes('water_amount') && (
-                      <div>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
-                        }}>
-                          Water Amount (L)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            background: 'rgba(15, 23, 42, 0.6)',
-                            border: '1px solid rgba(100, 116, 139, 0.3)',
-                            borderRadius: '12px',
-                            color: '#f8fafc',
-                            fontSize: '0.875rem',
-                            outline: 'none'
-                          }}
-                          {...register('water_amount')}
-                          placeholder="0.0"
-                        />
-                      </div>
-                    )}
-
-                    {selectedTypeConfig.fields.includes('ph_level') && (
-                      <div>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
-                        }}>
-                          pH Level
-                        </label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          max="14"
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            background: 'rgba(15, 23, 42, 0.6)',
-                            border: '1px solid rgba(100, 116, 139, 0.3)',
-                            borderRadius: '12px',
-                            color: '#f8fafc',
-                            fontSize: '0.875rem',
-                            outline: 'none'
-                          }}
-                          {...register('ph_level')}
-                          placeholder="6.0"
-                        />
-                      </div>
-                    )}
-
-                    {selectedTypeConfig.fields.includes('ec_tds') && (
-                      <div>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
-                        }}>
-                          EC/TDS (ppm)
-                        </label>
-                        <input
-                          type="number"
-                          step="1"
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            background: 'rgba(15, 23, 42, 0.6)',
-                            border: '1px solid rgba(100, 116, 139, 0.3)',
-                            borderRadius: '12px',
-                            color: '#f8fafc',
-                            fontSize: '0.875rem',
-                            outline: 'none'
-                          }}
-                          {...register('ec_tds')}
-                          placeholder="800"
-                        />
-                      </div>
-                    )}
-
-                    {selectedTypeConfig.fields.includes('temperature') && (
-                      <div>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
-                        }}>
-                          Temperature (°C)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            background: 'rgba(15, 23, 42, 0.6)',
-                            border: '1px solid rgba(100, 116, 139, 0.3)',
-                            borderRadius: '12px',
-                            color: '#f8fafc',
-                            fontSize: '0.875rem',
-                            outline: 'none'
-                          }}
-                          {...register('temperature')}
-                          placeholder="24.0"
-                        />
-                      </div>
-                    )}
-
-                    {selectedTypeConfig.fields.includes('humidity') && (
-                      <div>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
-                        }}>
-                          Humidity (%)
-                        </label>
-                        <input
-                          type="number"
-                          step="1"
-                          min="0"
-                          max="100"
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            background: 'rgba(15, 23, 42, 0.6)',
-                            border: '1px solid rgba(100, 116, 139, 0.3)',
-                            borderRadius: '12px',
-                            color: '#f8fafc',
-                            fontSize: '0.875rem',
-                            outline: 'none'
-                          }}
-                          {...register('humidity')}
-                          placeholder="60"
-                        />
-                      </div>
-                    )}
-
-                    {selectedTypeConfig.fields.includes('light_intensity') && (
-                      <div>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
-                        }}>
-                          Light Intensity (PPFD)
-                        </label>
-                        <input
-                          type="number"
-                          step="1"
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            background: 'rgba(15, 23, 42, 0.6)',
-                            border: '1px solid rgba(100, 116, 139, 0.3)',
-                            borderRadius: '12px',
-                            color: '#f8fafc',
-                            fontSize: '0.875rem',
-                            outline: 'none'
-                          }}
-                          {...register('light_intensity')}
-                          placeholder="800"
-                        />
-                      </div>
-                    )}
-
-                    {selectedTypeConfig.fields.includes('co2_level') && (
-                      <div>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
-                        }}>
-                          CO2 Level (ppm)
-                        </label>
-                        <input
-                          type="number"
-                          step="1"
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            background: 'rgba(15, 23, 42, 0.6)',
-                            border: '1px solid rgba(100, 116, 139, 0.3)',
-                            borderRadius: '12px',
-                            color: '#f8fafc',
-                            fontSize: '0.875rem',
-                            outline: 'none'
-                          }}
-                          {...register('co2_level')}
-                          placeholder="1200"
-                        />
-                      </div>
-                    )}
-
-                    {selectedTypeConfig.fields.includes('height_cm') && (
-                      <div>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
-                        }}>
-                          Plant Height (cm)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            background: 'rgba(15, 23, 42, 0.6)',
-                            border: '1px solid rgba(100, 116, 139, 0.3)',
-                            borderRadius: '12px',
-                            color: '#f8fafc',
-                            fontSize: '0.875rem',
-                            outline: 'none'
-                          }}
-                          {...register('height_cm')}
-                          placeholder="25.0"
-                        />
-                      </div>
-                    )}
-
-                    {selectedTypeConfig.fields.includes('nutrient_info') && (
-                      <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
-                        }}>
-                          Nutrient Information
-                        </label>
-                        <input
-                          type="text"
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            background: 'rgba(15, 23, 42, 0.6)',
-                            border: '1px solid rgba(100, 116, 139, 0.3)',
-                            borderRadius: '12px',
-                            color: '#f8fafc',
-                            fontSize: '0.875rem',
-                            outline: 'none'
-                          }}
-                          {...register('nutrient_info')}
-                          placeholder="e.g., NPK 10-5-14, Cal-Mag 2ml/L"
-                        />
-                      </div>
-                    )}
-
-                    {selectedTypeConfig.fields.includes('notes') && (
-                      <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ 
-                          display: 'block', 
-                          color: '#e2e8f0', 
-                          fontSize: '0.875rem', 
-                          fontWeight: '600', 
-                          marginBottom: '0.5rem' 
-                        }}>
-                          Notes
-                        </label>
-                        <textarea
-                          rows="4"
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            background: 'rgba(15, 23, 42, 0.6)',
-                            border: '1px solid rgba(100, 116, 139, 0.3)',
-                            borderRadius: '12px',
-                            color: '#f8fafc',
-                            fontSize: '0.875rem',
-                            outline: 'none',
-                            resize: 'vertical',
-                            minHeight: '100px'
-                          }}
-                          {...register('notes')}
-                          placeholder="Additional observations, thoughts, or details..."
-                        />
-                      </div>
-                    )}
+              {recentPlants.length > 0 && !pickerQuery && (
+                <div className="logs-picker-section">
+                  <h3 className="logs-picker-section-title">Recent</h3>
+                  <div className={largeGrow ? 'logs-picker-list' : 'logs-picker-grid'}>
+                    {recentPlants.map(renderPickerRow)}
                   </div>
                 </div>
               )}
 
-              {/* Form Actions */}
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    background: 'transparent',
-                    border: '1px solid rgba(100, 116, 139, 0.3)',
-                    borderRadius: '12px',
-                    color: '#94a3b8',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                    border: 'none',
-                    borderRadius: '12px',
-                    color: 'white',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                    opacity: isSubmitting ? 0.7 : 1,
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  <Save className="w-4 h-4" />
-                  {isSubmitting ? 'Saving...' : (editingLog ? 'Update Log' : 'Save Log')}
-                </button>
-              </div>
-            </form>
+              {filteredPickerPlants.length === 0 ? (
+                <div className="journal-empty-inline">No plants match “{pickerSearch}”</div>
+              ) : useGrouped ? (
+                pickerTentEntries.map(([tentName, tentPlants]) => (
+                  <div key={tentName} className="logs-picker-section">
+                    <h3 className="logs-picker-section-title">{tentName} · {tentPlants.length}</h3>
+                    <div className="logs-picker-list">{tentPlants.map(renderPickerRow)}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="logs-picker-grid">{filteredPickerPlants.map(renderPickerRow)}</div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ——— Plant journal ———
+  return (
+    <div className="journal-page">
+      <PageHeader
+        icon={Activity}
+        title={selectedPlant ? selectedPlant.name : 'Care Journal'}
+        subtitle={
+          selectedPlant
+            ? [selectedPlant.strain || 'Unknown strain', selectedPlant.grow_tent, selectedPlant.stage]
+              .filter(Boolean)
+              .join(' · ')
+            : 'Plant care history'
+        }
+        badge={<span className="journal-header-badge">Journal</span>}
+        actions={(
+          <div className="journal-header-actions">
+            <button type="button" onClick={changePlant} className="btn btn-outline flex items-center gap-1.5">
+              <ArrowLeft className="w-4 h-4" />
+              Plants
+            </button>
+            {selectedPlant && (
+              <Link to={`/plants/${selectedPlant.id}`} className="btn btn-outline flex items-center gap-1.5">
+                Profile
+              </Link>
+            )}
+            <button type="button" onClick={openAddForm} className="btn btn-primary flex items-center gap-1.5">
+              <Plus className="w-4 h-4" />
+              Add log
+            </button>
           </div>
         )}
+      />
 
-        {/* Filters */}
-        <div 
-          style={{
-            background: 'rgba(30, 41, 59, 0.6)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderRadius: '20px',
-            border: '1px solid rgba(100, 116, 139, 0.2)',
-            padding: '1.5rem',
-            marginBottom: '2rem',
-            boxShadow: '0 8px 20px -6px rgba(0, 0, 0, 0.3)',
-            animation: 'fadeInUp 0.8s ease-out 0.4s both',
-            transition: 'all 0.3s ease',
-            cursor: 'pointer'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-4px)';
-            e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
-            e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 8px 20px -6px rgba(0, 0, 0, 0.3)';
-            e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.2)';
-          }}
-        >
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+      {showAddForm && (
+        <form className="page-panel journal-form" onSubmit={handleSubmit(onSubmit)}>
+          <div className="journal-form-head">
             <div>
-              <label style={{ 
-                display: 'block', 
-                color: '#e2e8f0', 
-                fontSize: '0.75rem', 
-                fontWeight: '600', 
-                marginBottom: '0.5rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em'
-              }}>
-                Search Logs
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Search className="w-4 h-4" style={{ 
-                  position: 'absolute', 
-                  left: '1rem', 
-                  top: '50%', 
-                  transform: 'translateY(-50%)', 
-                  color: '#94a3b8' 
-                }} />
+              <h2 className="journal-form-title">{editingLog ? 'Edit log' : 'New log'}</h2>
+              {selectedPlant && (
+                <p className="journal-form-plant">{selectedPlant.name}</p>
+              )}
+            </div>
+            <button type="button" className="journal-form-close" onClick={handleCancel} aria-label="Close">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <input type="hidden" {...register('plant_id', { required: true })} />
+
+          <div className="journal-form-section">
+            <div className="journal-form-core">
+              <div className="plant-detail-field">
+                <label htmlFor="log-type">Type *</label>
+                <select
+                  id="log-type"
+                  className="plants-filter-input"
+                  {...register('type', { required: 'Required' })}
+                >
+                  <option value="">Select type…</option>
+                  {LOG_TYPES.map((type) => (
+                    <option key={type.id} value={type.id}>{type.label}</option>
+                  ))}
+                </select>
+                {errors.type && <span className="plants-field-error">{errors.type.message}</span>}
+              </div>
+              <div className="plant-detail-field">
+                <label htmlFor="log-when">When</label>
                 <input
+                  id="log-when"
+                  type="datetime-local"
+                  className="plants-filter-input"
+                  {...register('logged_at')}
+                />
+              </div>
+              <div className="plant-detail-field journal-form-summary">
+                <label htmlFor="log-desc">Summary</label>
+                <input
+                  id="log-desc"
                   type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search descriptions, notes..."
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem 1rem 0.75rem 2.5rem',
-                    background: 'rgba(15, 23, 42, 0.6)',
-                    border: '1px solid rgba(100, 116, 139, 0.3)',
-                    borderRadius: '12px',
-                    color: '#f8fafc',
-                    fontSize: '0.875rem',
-                    outline: 'none'
-                  }}
+                  className="plants-filter-input"
+                  {...register('description')}
+                  placeholder="Short label (e.g. Week 2 veg feed)"
                 />
               </div>
             </div>
+          </div>
 
-            <div>
-              <label style={{ 
-                display: 'block', 
-                color: '#e2e8f0', 
-                fontSize: '0.75rem', 
-                fontWeight: '600', 
-                marginBottom: '0.5rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em'
-              }}>
-                Filter by Plant
-              </label>
-              <select
-                value={selectedPlant}
-                onChange={(e) => setSelectedPlant(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  border: '1px solid rgba(100, 116, 139, 0.3)',
-                  borderRadius: '12px',
-                  color: '#f8fafc',
-                  fontSize: '0.875rem',
-                  outline: 'none'
-                }}
-              >
-                <option value="">All plants</option>
-                {plants.filter(p => !p.archived).map(plant => (
-                  <option key={plant.id} value={plant.id}>
-                    {plant.name}
-                  </option>
-                ))}
-              </select>
+          {metricFields.length > 0 && (
+            <div className="journal-form-section">
+              <div className="journal-form-section-label">
+                {selectedTypeConfig?.label || 'Details'}
+              </div>
+              <div className="journal-form-metrics">
+                {metricFields.map((fieldKey) => {
+                  const meta = METRIC_FIELD_META[fieldKey];
+                  if (!meta) return null;
+                  const label = meta.unit ? `${meta.label} (${meta.unit})` : meta.label;
+                  if (meta.type === 'text' || meta.wide) {
+                    return (
+                      <div key={fieldKey} className="plant-detail-field journal-form-metric-wide">
+                        <label htmlFor={`log-${fieldKey}`}>{label}</label>
+                        <input
+                          id={`log-${fieldKey}`}
+                          type="text"
+                          className="plants-filter-input"
+                          {...register(fieldKey)}
+                          placeholder={fieldKey === 'nutrient_info' ? 'Mix, products, strength…' : ''}
+                        />
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={fieldKey} className="plant-detail-field">
+                      <label htmlFor={`log-${fieldKey}`}>{label}</label>
+                      <input
+                        id={`log-${fieldKey}`}
+                        type="number"
+                        step={meta.step}
+                        min={meta.min}
+                        max={meta.max}
+                        className="plants-filter-input"
+                        {...register(fieldKey)}
+                        inputMode="decimal"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
+          )}
 
-            <div>
-              <label style={{ 
-                display: 'block', 
-                color: '#e2e8f0', 
-                fontSize: '0.75rem', 
-                fontWeight: '600', 
-                marginBottom: '0.5rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em'
-              }}>
-                Filter by Type
-              </label>
-              <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  border: '1px solid rgba(100, 116, 139, 0.3)',
-                  borderRadius: '12px',
-                  color: '#f8fafc',
-                  fontSize: '0.875rem',
-                  outline: 'none'
-                }}
-              >
-                <option value="">All types</option>
-                {logTypes.map(type => (
-                  <option key={type.id} value={type.id}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
+          {showNotesField && (
+            <div className="journal-form-section">
+              <div className="plant-detail-field">
+                <label htmlFor="log-notes">Notes</label>
+                <textarea
+                  id="log-notes"
+                  rows={2}
+                  className="plants-filter-input plants-textarea journal-form-notes"
+                  {...register('notes')}
+                  placeholder="Optional observations…"
+                />
+              </div>
             </div>
+          )}
 
-            <div>
-              <label style={{ 
-                display: 'block', 
-                color: '#e2e8f0', 
-                fontSize: '0.75rem', 
-                fontWeight: '600', 
-                marginBottom: '0.5rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em'
-              }}>
-                Filter by Date
-              </label>
+          {!typeWatch && (
+            <p className="journal-form-hint">Choose an activity type to show the relevant fields.</p>
+          )}
+
+          <div className="journal-form-actions">
+            <button type="button" onClick={handleCancel} className="btn btn-outline">Cancel</button>
+            <button type="submit" disabled={isSubmitting || !typeWatch} className="btn btn-primary flex items-center gap-1.5">
+              <Save className="w-4 h-4" />
+              {isSubmitting ? 'Saving…' : (editingLog ? 'Update' : 'Save')}
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="plants-filters journal-filters">
+        <div className="plants-filters-grid">
+          <div className="plants-filter-field">
+            <label htmlFor="journal-search">Search</label>
+            <div className="plants-search-wrap">
+              <Search className="plants-search-icon" />
               <input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  border: '1px solid rgba(100, 116, 139, 0.3)',
-                  borderRadius: '12px',
-                  color: '#f8fafc',
-                  fontSize: '0.875rem',
-                  outline: 'none'
-                }}
+                id="journal-search"
+                type="text"
+                className="plants-filter-input"
+                placeholder="Notes, description…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
-
-          {(searchTerm || selectedPlant || selectedType || dateFilter) && (
-            <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <p style={{ color: '#94a3b8', fontSize: '0.875rem', margin: 0 }}>
-                Showing {filteredLogs.length} of {logs.length} logs
-              </p>
-              <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setSelectedPlant('');
-                  setSelectedType('');
-                  setDateFilter('');
-                }}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: 'transparent',
-                  border: '1px solid rgba(100, 116, 139, 0.3)',
-                  borderRadius: '8px',
-                  color: '#94a3b8',
-                  fontSize: '0.75rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                Clear Filters
-              </button>
-            </div>
-          )}
+          <div className="plants-filter-field">
+            <label htmlFor="journal-type">Type</label>
+            <select
+              id="journal-type"
+              className="plants-filter-input"
+              value={selectedType}
+              onChange={(e) => handleTypeFilterChange(e.target.value)}
+            >
+              <option value="">All types</option>
+              {LOG_TYPES.map((type) => (
+                <option key={type.id} value={type.id}>{type.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="plants-filter-field">
+            <label htmlFor="journal-date">Date</label>
+            <input
+              id="journal-date"
+              type="date"
+              className="plants-filter-input"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+            />
+          </div>
         </div>
+        {logs.length > 0 && (
+          <div className="plants-result-summary">
+            <span>
+              {hasFilters
+                ? `${filteredLogs.length} match · ${visibleEntryCount} shown`
+                : `${visibleEntryCount} of ${filteredLogs.length} entries · ${Math.min(visibleDayCount, groupedLogs.length)} of ${groupedLogs.length} days`}
+            </span>
+            {hasFilters && (
+              <button type="button" className="plants-clear-filters" onClick={clearFilters}>
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
-        {/* Logs Table */}
-        <div 
-          style={{
-            background: 'rgba(30, 41, 59, 0.6)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderRadius: '20px',
-            border: '1px solid rgba(100, 116, 139, 0.2)',
-            overflow: 'hidden',
-            boxShadow: '0 8px 20px -6px rgba(0, 0, 0, 0.3)',
-            animation: 'fadeInUp 0.8s ease-out 0.6s both',
-            transition: 'all 0.3s ease',
-            cursor: 'pointer'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-4px)';
-            e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
-            e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 8px 20px -6px rgba(0, 0, 0, 0.3)';
-            e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.2)';
-          }}
-        >
-          {filteredLogs.length === 0 ? (
-            <div style={{ 
-              textAlign: 'center', 
-              padding: '4rem 2rem',
-              background: 'rgba(15, 23, 42, 0.4)'
-            }}>
-              <div style={{
-                width: '80px',
-                height: '80px',
-                background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 1.5rem',
-                opacity: 0.8
-              }}>
-                <Activity className="w-10 h-10" style={{ color: 'white' }} />
-              </div>
-              <h3 style={{ 
-                color: '#f8fafc', 
-                fontSize: '1.25rem', 
-                fontWeight: '600', 
-                marginBottom: '0.75rem'
-              }}>
-                {searchTerm || selectedPlant || selectedType || dateFilter 
-                  ? 'No logs match your filters' 
-                  : 'No logs yet'
-                }
-              </h3>
-              <p style={{ 
-                color: '#94a3b8', 
-                marginBottom: '2rem',
-                fontSize: '0.95rem'
-              }}>
-                {searchTerm || selectedPlant || selectedType || dateFilter 
-                  ? 'Try adjusting your search criteria or filters.'
-                  : 'Start tracking your cultivation activities by adding your first log entry.'
-                }
-              </p>
-              {!(searchTerm || selectedPlant || selectedType || dateFilter) && (
-                <button
-                  onClick={() => setShowAddForm(true)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.75rem 1.5rem',
-                    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                    color: 'white',
-                    borderRadius: '12px',
-                    border: 'none',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <Plus className="w-4 h-4" />
-                  Add First Log
-                </button>
-              )}
-            </div>
-          ) : (
-            <div style={{ overflowX: 'auto', minWidth: '100%' }}>
-              <table style={{ width: '100%', fontSize: '0.875rem', textAlign: 'left', borderCollapse: 'collapse', minWidth: '900px' }}>
+      <div className="page-panel journal-list-panel">
+        {filteredLogs.length === 0 ? (
+          <div className="journal-empty">
+            <Activity className="plants-empty-icon" />
+            <h3>{hasFilters ? 'No matching logs' : 'No logs yet'}</h3>
+            <p>
+              {hasFilters
+                ? 'Try adjusting search or filters.'
+                : 'Start this plant’s journal with a watering, feeding, or observation.'}
+            </p>
+            {!hasFilters && (
+              <button type="button" onClick={openAddForm} className="btn btn-primary flex items-center gap-1.5">
+                <Plus className="w-4 h-4" />
+                Add first log
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="journal-table-scroll">
+              <table className="journal-table">
                 <thead>
-                  <tr style={{ 
-                    background: 'rgba(15, 23, 42, 0.8)', 
-                    borderBottom: '1px solid rgba(100, 116, 139, 0.3)' 
-                  }}>
-                    <th style={{ 
-                      padding: '1rem 1.25rem', 
-                      fontWeight: '600', 
-                      color: '#e2e8f0',
-                      fontSize: '0.8rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      textAlign: 'left',
-                      width: '15%'
-                    }}>Date/Time</th>
-                    <th style={{ 
-                      padding: '1rem 1.25rem', 
-                      fontWeight: '600', 
-                      color: '#e2e8f0',
-                      fontSize: '0.8rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      textAlign: 'left',
-                      width: '15%'
-                    }}>Plant</th>
-                    <th style={{ 
-                      padding: '1rem 1.25rem', 
-                      fontWeight: '600', 
-                      color: '#e2e8f0',
-                      fontSize: '0.8rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      textAlign: 'center',
-                      width: '12%'
-                    }}>Type</th>
-                    <th style={{ 
-                      padding: '1rem 1.25rem', 
-                      fontWeight: '600', 
-                      color: '#e2e8f0',
-                      fontSize: '0.8rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      textAlign: 'left',
-                      width: '20%'
-                    }}>Description</th>
-                    <th style={{ 
-                      padding: '1rem 1.25rem', 
-                      fontWeight: '600', 
-                      color: '#e2e8f0',
-                      fontSize: '0.8rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      textAlign: 'left',
-                      width: '25%'
-                    }}>Notes</th>
-                    <th style={{ 
-                      padding: '1rem 1.25rem', 
-                      fontWeight: '600', 
-                      color: '#e2e8f0',
-                      fontSize: '0.8rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      textAlign: 'center',
-                      width: '13%'
-                    }}>Actions</th>
+                  <tr>
+                    <th className="journal-th-time">When</th>
+                    <th className="journal-th-type">Type</th>
+                    <th className="journal-th-data">Data</th>
+                    <th className="journal-th-notes">Notes</th>
+                    <th className="journal-th-actions" aria-label="Actions" />
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLogs.map((log, index) => {
-                    const plant = plants.find(p => p.id === log.plant_id);
-                    const typeConfig = getLogTypeConfig(log.type);
-                    
-                    return (
-                      <tr 
-                        key={log.id} 
-                        style={{ 
-                          borderBottom: index < filteredLogs.length - 1 ? '1px solid rgba(100, 116, 139, 0.2)' : 'none',
-                          transition: 'all 0.2s ease',
-                          background: index % 2 === 0 ? 'rgba(15, 23, 42, 0.3)' : 'transparent'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'rgba(30, 41, 59, 0.7)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = index % 2 === 0 ? 'rgba(15, 23, 42, 0.3)' : 'transparent';
-                        }}
-                      >
-                        <td style={{ padding: '1rem 1.25rem', whiteSpace: 'nowrap', textAlign: 'left' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
-                            <span style={{ color: '#f8fafc', fontWeight: '600', fontSize: '0.875rem' }}>
-                              {format(parseISO(log.logged_at), 'MMM dd, yyyy')}
-                            </span>
-                            <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: '500' }}>
-                              {format(parseISO(log.logged_at), 'HH:mm:ss')}
-                            </span>
-                          </div>
-                        </td>
-                        
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'left' }}>
-                          <Link
-                            to={`/plants/${plant?.id}`}
-                            style={{
-                              color: '#4ade80',
-                              textDecoration: 'none',
-                              fontWeight: '600',
-                              fontSize: '0.875rem',
-                              display: 'block',
-                              marginBottom: '0.25rem'
-                            }}
-                          >
-                            {plant?.name || 'Unknown Plant'}
-                          </Link>
-                          {plant?.strain && (
-                            <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>
-                              {plant.strain}
-                            </span>
-                          )}
-                        </td>
-                        
-                        <td style={{ 
-                          padding: '1rem 1.25rem', 
-                          whiteSpace: 'nowrap', 
-                          textAlign: 'center',
-                          verticalAlign: 'middle'
-                        }}>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '0.375rem 0.75rem',
-                            borderRadius: '100px',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            background: `${typeConfig.color}20`,
-                            color: typeConfig.color,
-                            border: `1px solid ${typeConfig.color}40`,
-                            gap: '0.375rem',
-                            textTransform: 'capitalize',
-                            letterSpacing: '0.015em',
-                            whiteSpace: 'nowrap',
-                            minWidth: 'fit-content'
-                          }}>
-                            {typeConfig.icon}
-                            {typeConfig.label}
-                          </span>
-                        </td>
-                        
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'left' }}>
-                          <span style={{ 
-                            color: '#f8fafc', 
-                            fontWeight: '500',
-                            fontSize: '0.875rem',
-                            lineHeight: '1.4',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden'
-                          }}>
-                            {log.description || 'No description provided'}
-                          </span>
-                        </td>
-                        
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'left' }}>
-                          <span style={{ 
-                            color: '#cbd5e1', 
-                            fontWeight: '400',
-                            fontSize: '0.875rem',
-                            lineHeight: '1.4',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 3,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden'
-                          }}>
-                            {log.notes || 'No notes provided'}
-                          </span>
-                        </td>
-                        
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
-                            <button
-                              onClick={() => {
-                                setEditingLog(log);
-                                populateForm(log);
-                                setShowAddForm(true);
-                              }}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                padding: '0.5rem',
-                                background: 'rgba(59, 130, 246, 0.1)',
-                                color: '#3b82f6',
-                                borderRadius: '8px',
-                                border: '1px solid rgba(59, 130, 246, 0.2)',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)';
-                              }}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(log.id)}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                padding: '0.5rem',
-                                background: 'rgba(239, 68, 68, 0.1)',
-                                color: '#ef4444',
-                                borderRadius: '8px',
-                                border: '1px solid rgba(239, 68, 68, 0.2)',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                  {visibleGroups.map((group) => (
+                    <React.Fragment key={group.key}>
+                      <tr className="journal-day-row">
+                        <td colSpan={5}>
+                          <div className="journal-day-head-inline">
+                            <span className="journal-day-label">{group.label}</span>
+                            <span className="journal-day-count">{group.logs.length}</span>
                           </div>
                         </td>
                       </tr>
-                    );
-                  })}
+                      {group.logs.map((log) => {
+                        const typeConfig = getLogTypeConfig(log.type);
+                        const metrics = formatLogMetrics(log);
+                        const primary = log.description || typeConfig.label;
+                        const secondary = [
+                          log.notes,
+                          log.nutrient_info && !log.description?.includes(log.nutrient_info) ? log.nutrient_info : null,
+                        ].filter(Boolean).join(' · ');
+
+                        return (
+                          <tr key={log.id} className="journal-data-row">
+                            <td className="journal-td-time">{safeLogTime(log.logged_at)}</td>
+                            <td className="journal-td-type">
+                              <span
+                                className="journal-type-pill"
+                                style={{ color: typeConfig.color, borderColor: `${typeConfig.color}55` }}
+                                title={typeConfig.label}
+                              >
+                                {typeConfig.iconEl}
+                                {typeConfig.short}
+                              </span>
+                            </td>
+                            <td className="journal-td-data">
+                              <div className="journal-td-primary">{primary}</div>
+                              {metrics.length > 0 && (
+                                <div className="journal-metrics">{metrics.join(' · ')}</div>
+                              )}
+                            </td>
+                            <td className="journal-td-notes" title={secondary || undefined}>
+                              {secondary || <span className="plant-detail-muted">—</span>}
+                            </td>
+                            <td className="journal-td-actions">
+                              <LogRowMenu
+                                onEdit={() => openEditForm(log)}
+                                onDelete={() => handleDelete(log.id)}
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
+
+            {olderDayCount > 0 && (
+              <div className="journal-load-more">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setVisibleDayCount((n) => n + 7)}
+                >
+                  Show older days ({olderDayCount} more)
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

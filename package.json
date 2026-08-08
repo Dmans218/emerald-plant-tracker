@@ -15,9 +15,10 @@
     "audit": "npm audit || true",
     "audit-fix": "npm audit fix"
   },
-  "devDependencies": {
+  "dependencies": {
     "concurrently": "^10.0.4"
   },
+  "devDependencies": {},
   "keywords": [
     "cannabis",
     "grow",
@@ -26,13 +27,8 @@
   ],
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "chart.js": "^4.5.1",
-    "react-chartjs-2": "^5.3.1",
-    "tesseract.js": "^7.0.0"
-  },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
   }
 }

@@ -18,6 +18,7 @@ import {
 import { format } from 'date-fns';
 import { plantsApi } from '../utils/api';
 import { toast } from 'react-hot-toast';
+import PageHeader from '../components/PageHeader';
 
 const ArchivedTents = () => {
   const [archivedGrows, setArchivedGrows] = useState([]);
@@ -33,11 +34,22 @@ const ArchivedTents = () => {
     fetchArchivedGrows();
   }, []);
 
+  const downloadBlob = (blob, filename) => {
+    const url = window.URL.createObjectURL(blob instanceof Blob ? blob : new Blob([blob]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
   const fetchArchivedGrows = async () => {
     try {
       setLoading(true);
-      const response = await plantsApi.getArchivedGrows();
-      setArchivedGrows(response.data);
+      const data = await plantsApi.getArchivedGrows();
+      setArchivedGrows(Array.isArray(data) ? data : []);
     } catch {
       toast.error('Failed to fetch archived grows');
     } finally {
@@ -48,7 +60,8 @@ const ArchivedTents = () => {
   const handleExportGrow = async (grow) => {
     try {
       toast.loading('Preparing export...');
-      await plantsApi.exportArchivedGrow(grow.id);
+      const blob = await plantsApi.exportArchivedGrow(grow.id);
+      downloadBlob(blob, `${grow.plant_name || 'grow'}_grow_data.csv`);
       toast.dismiss();
       toast.success('Export downloaded successfully');
     } catch {
@@ -60,18 +73,8 @@ const ArchivedTents = () => {
   const handleExportTent = async (tentName) => {
     try {
       toast.loading('Preparing tent export...');
-      const response = await plantsApi.exportArchivedTent(tentName);
-      
-      // Create download link
-      const url = window.URL.createObjectURL(new Blob([response]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${tentName}_complete_grow_data.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      
+      const blob = await plantsApi.exportArchivedTent(tentName);
+      downloadBlob(blob, `${tentName}_complete_grow_data.csv`);
       toast.dismiss();
       toast.success('Tent data exported successfully');
     } catch {
@@ -106,8 +109,8 @@ const ArchivedTents = () => {
 
   const handleViewDetails = async (grow) => {
     try {
-      const response = await plantsApi.getArchivedGrow(grow.id);
-      setSelectedGrow(response.data);
+      const data = await plantsApi.getArchivedGrow(grow.id);
+      setSelectedGrow(data);
       setShowDetailModal(true);
     } catch {
       toast.error('Failed to load grow details');
@@ -117,9 +120,12 @@ const ArchivedTents = () => {
   // Filter and sort archived grows
   const filteredAndSortedGrows = archivedGrows
     .filter(grow => {
-      const matchesSearch = grow.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           grow.strain?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           grow.tent_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const name = grow.plant_name || grow.name || '';
+      const tent = grow.grow_tent || grow.tent_name || '';
+      const matchesSearch =
+        name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (grow.strain || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tent.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesFilter = filterBy === 'all' || grow.archive_reason === filterBy;
       
@@ -178,35 +184,14 @@ const ArchivedTents = () => {
 
   return (
     <div className="dashboard-page">
-      {/* Header */}
-      <header className="dashboard-header" style={{ animation: 'fadeInUp 0.6s ease-out' }}>
-        <div className="header-content">
-          <div className="header-text">
-            <h1 className="dashboard-title">
-              <Archive className="w-8 h-8" style={{ display: 'inline-block', marginRight: '0.75rem', verticalAlign: 'middle' }} />
-              Archived Grows
-            </h1>
-            <p className="dashboard-subtitle">
-              View and export data from completed grows
-            </p>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        icon={Archive}
+        title="Archive"
+        subtitle="View and export data from completed grows"
+      />
 
       {/* Controls */}
-      <div style={{ 
-        background: 'rgba(255,255,255,0.02)',
-        borderRadius: '16px',
-        border: '1px solid var(--border)',
-        padding: '1.5rem',
-        marginBottom: '2rem',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        animation: 'fadeInUp 0.8s ease-out 0.2s both',
-        display: 'flex', 
-        flexDirection: 'column',
-        gap: '1rem'
-      }}>
+      <div className="page-panel" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {/* Search */}
         <div style={{ position: 'relative' }}>
           <Search className="w-5 h-5" style={{
@@ -298,8 +283,7 @@ const ArchivedTents = () => {
             padding: '1.5rem',
             marginBottom: '2rem',
             backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            animation: 'fadeInUp 0.8s ease-out 0.3s both'
+            WebkitBackdropFilter: 'blur(20px)'
           }}>
             <h3 style={{ 
               margin: '0 0 1rem 0', 
@@ -458,8 +442,7 @@ const ArchivedTents = () => {
           padding: '3rem',
           background: 'rgba(30, 41, 59, 0.3)',
           borderRadius: '12px',
-          border: '1px solid rgba(148, 163, 184, 0.1)',
-          animation: 'fadeInUp 0.8s ease-out 0.4s both'
+          border: '1px solid rgba(148, 163, 184, 0.1)'
         }}>
           <Archive className="w-12 h-12 mx-auto mb-4" style={{ color: '#64748b' }} />
           <h3 style={{ margin: 0, color: '#94a3b8', fontSize: '1.125rem', marginBottom: '0.5rem' }}>
@@ -476,8 +459,7 @@ const ArchivedTents = () => {
         <div style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', 
-          gap: '1.5rem',
-          animation: 'fadeInUp 0.8s ease-out 0.4s both'
+          gap: '1.5rem'
         }}>
           {filteredAndSortedGrows.map((grow) => (
             <ArchivedGrowCard
@@ -521,34 +503,12 @@ const ArchivedGrowCard = ({
   getArchiveReasonText 
 }) => {
   return (
-    <div style={{
-      background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
-      borderRadius: '16px',
-      padding: '1.5rem',
-      border: '1px solid rgba(148, 163, 184, 0.2)',
-      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.25)',
-      transition: 'all 0.2s ease-in-out',
-      cursor: 'pointer'
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.transform = 'translateY(-2px)';
-      e.currentTarget.style.boxShadow = '0 20px 40px -10px rgba(0, 0, 0, 0.3)';
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.transform = 'translateY(0)';
-      e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.25)';
-    }}>
+    <div className="page-panel" style={{ cursor: 'pointer' }}>
       
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
         <div>
-          <h3 style={{ 
-            margin: 0, 
-            fontSize: '1.25rem', 
-            fontWeight: '700', 
-            color: '#f1f5f9',
-            marginBottom: '0.25rem'
-          }}>
+          <h3 className="page-panel-title" style={{ marginBottom: '0.25rem' }}>
             {grow.name}
           </h3>
           {grow.strain && (

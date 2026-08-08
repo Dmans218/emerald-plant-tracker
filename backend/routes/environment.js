@@ -34,7 +34,7 @@ router.get('/', (req, res) => {
       GROUP_CONCAT(DISTINCT p.stage) as plant_stages,
       COUNT(DISTINCT p.id) as plant_count
     FROM environment_logs e
-    LEFT JOIN plants p ON (p.grow_tent = e.grow_tent AND p.archived_at IS NULL)
+    LEFT JOIN plants p ON (p.grow_tent = e.grow_tent AND (p.archived = 0 OR p.archived IS NULL))
     WHERE 1=1
   `;
   const params = [];
@@ -106,7 +106,7 @@ router.get('/latest', (req, res) => {
       GROUP_CONCAT(DISTINCT p.stage) as plant_stages,
       COUNT(DISTINCT p.id) as plant_count
     FROM environment_logs e
-    LEFT JOIN plants p ON (p.grow_tent = e.grow_tent AND p.archived_at IS NULL)
+    LEFT JOIN plants p ON (p.grow_tent = e.grow_tent AND (p.archived = 0 OR p.archived IS NULL))
   `;
   const params = [];
   
@@ -158,7 +158,7 @@ router.get('/latest-per-tent', (req, res) => {
       GROUP_CONCAT(DISTINCT p.stage) as plant_stages,
       COUNT(DISTINCT p.id) as plant_count
     FROM environment_logs e1
-    LEFT JOIN plants p ON (p.grow_tent = e1.grow_tent AND p.archived_at IS NULL)
+    LEFT JOIN plants p ON (p.grow_tent = e1.grow_tent AND (p.archived = 0 OR p.archived IS NULL))
     INNER JOIN (
       SELECT grow_tent, MAX(logged_at) as max_logged_at
       FROM environment_logs 
@@ -309,44 +309,62 @@ router.post('/', (req, res) => {
   });
 });
 
-// POST /api/environment/spider-farmer - Endpoint for Spider Farmer GGS integration
+// POST /api/environment/spider-farmer — requires INTEGRATION_SECRET or APP_AUTH_TOKEN
 router.post('/spider-farmer', (req, res) => {
-  const { temperature, humidity, ph, light_duration, vpd, timestamp } = req.body;
-  
-  // Convert Spider Farmer format to our format
+  const expected =
+    process.env.INTEGRATION_SECRET || process.env.APP_AUTH_TOKEN || '';
+  if (!expected) {
+    return res.status(503).json({
+      error: 'Integration endpoint disabled. Set INTEGRATION_SECRET to enable.'
+    });
+  }
+
+  const provided =
+    req.get('X-Integration-Secret') ||
+    req.get('X-API-Token') ||
+    (req.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+
+  if (provided !== expected) {
+    return res.status(401).json({ error: 'Invalid integration credentials' });
+  }
+
+  const { temperature, humidity, ph, light_duration, vpd, timestamp, grow_tent } = req.body;
+
   const environmentData = {
-    temperature: temperature,
-    humidity: humidity,
+    temperature,
+    humidity,
     ph_level: ph,
-    light_hours: light_duration ? light_duration / 3600 : null, // Convert seconds to hours
-    notes: vpd ? `VPD: ${vpd}` : 'Auto-logged from Spider Farmer GGS',
+    light_hours: light_duration ? light_duration / 3600 : null,
+    vpd: vpd ?? null,
+    grow_tent: grow_tent || null,
+    notes: vpd != null ? `VPD: ${vpd}` : 'Auto-logged from Spider Farmer GGS',
     logged_at: timestamp ? new Date(timestamp).toISOString() : new Date().toISOString()
   };
-  
+
   const { error, value } = environmentSchema.validate(environmentData);
-  
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }
 
   const database = db.getDb();
-  const { temperature: temp, humidity: hum, ph_level, light_hours, notes, logged_at } = value;
-  
+  const { temperature: temp, humidity: hum, ph_level, light_hours, vpd: vpdVal, grow_tent: tent, notes, logged_at } =
+    value;
+
   const sql = `
-    INSERT INTO environment_logs (temperature, humidity, ph_level, light_hours, notes, logged_at)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO environment_logs (temperature, humidity, ph_level, light_hours, vpd, grow_tent, notes, logged_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
-  
-  database.run(sql, [temp, hum, ph_level, light_hours, notes, logged_at], function(err) {
+
+  database.run(sql, [temp, hum, ph_level, light_hours, vpdVal, tent, notes, logged_at], function (err) {
     if (err) {
       console.error('Error creating Spider Farmer environment log:', err);
       return res.status(500).json({ error: 'Failed to create environment log' });
     }
-    
-    res.status(201).json({ 
+
+    res.status(201).json({
       id: this.lastID,
       message: 'Environment data received from Spider Farmer GGS',
-      logged_at: logged_at
+      logged_at
     });
   });
 });

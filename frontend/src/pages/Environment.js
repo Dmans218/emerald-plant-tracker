@@ -1,32 +1,39 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Thermometer, Droplets, TestTube, Sun, Trash2, TrendingUp, Camera, Wind, Beaker, Edit, Sprout } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Plus, Thermometer, Droplets, TestTube, Sun, Trash2, TrendingUp,
+  Camera, Wind, Beaker, Edit, ArrowLeft, Home, ChevronDown, ChevronUp, ChevronRight
+} from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { format } from 'date-fns';
+import { format, subDays, startOfDay } from 'date-fns';
 import toast from 'react-hot-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-import { environmentApi, plantsApi } from '../utils/api';
+import { environmentApi, plantsApi, tentsApi } from '../utils/api';
 import ImageUpload from '../components/ImageUpload';
-import { getStageColor } from '../utils/stageColors';
+import PageHeader from '../components/PageHeader';
 
-// CSV Export utility function
 function exportToCSV(logs) {
   if (!logs || logs.length === 0) return;
   const headers = [
-    'Date', 'Time', 'Tent', 'Stage', 'Temperature (°F)', 'Humidity (%)', 'pH', 'Light (h)', 'VPD (kPa)'
+    'Date', 'Time', 'Tent', 'Current Tent Stage', 'Temperature (°F)', 'Humidity (%)',
+    'pH', 'Light (h)', 'VPD (kPa)', 'CO2 (ppm)', 'PPFD', 'Notes'
   ];
-  const rows = logs.map(log => [
+  const rows = logs.map((log) => [
     format(new Date(log.logged_at), 'MMM dd'),
     format(new Date(log.logged_at), 'HH:mm'),
     log.grow_tent || '',
     log.stage || '',
-    log.temperature || '',
-    log.humidity || '',
-    log.ph_level || '',
-    log.light_hours || '',
-    log.vpd || ''
+    log.temperature ?? '',
+    log.humidity ?? '',
+    log.ph_level ?? '',
+    log.light_hours ?? '',
+    log.vpd ?? '',
+    log.co2_ppm ?? '',
+    log.ppfd ?? '',
+    (log.notes || '').replace(/"/g, '""')
   ]);
-  const csvContent = [headers, ...rows].map(r => r.join(',')).join('\n');
+  const csvContent = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
   const blob = new Blob([csvContent], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -38,342 +45,209 @@ function exportToCSV(logs) {
   URL.revokeObjectURL(url);
 }
 
-// Add CSS animations inline with ultra-modern enhancements
-const modalStyles = `
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  
-  @keyframes modalSlideIn {
-    from { 
-      opacity: 0;
-      transform: scale(0.95) translateY(-10px);
-    }
-    to { 
-      opacity: 1;
-      transform: scale(1) translateY(0);
-    }
-  }
-  
-  @keyframes chartHover {
-    from { transform: translateY(0px); }
-    to { transform: translateY(-2px); }
-  }
+const fieldStyle = {
+  width: '100%',
+  padding: '0.5rem',
+  border: '1px solid var(--border)',
+  borderRadius: '6px',
+  background: 'var(--surface)',
+  color: 'var(--text-primary)',
+  fontSize: '0.875rem'
+};
 
-  @keyframes gradientShift {
-    0% { 
-      background-position: 0% 50%;
-      transform: scale(1) rotate(0deg);
-    }
-    25% { 
-      background-position: 25% 75%;
-      transform: scale(1.05) rotate(0.5deg);
-    }
-    50% { 
-      background-position: 100% 50%;
-      transform: scale(1.1) rotate(0deg);
-    }
-    75% { 
-      background-position: 75% 25%;
-      transform: scale(1.05) rotate(-0.5deg);
-    }
-    100% { 
-      background-position: 0% 50%;
-      transform: scale(1) rotate(0deg);
-    }
-  }
+const labelStyle = {
+  display: 'block',
+  fontSize: '0.875rem',
+  fontWeight: '600',
+  color: 'var(--text-primary)',
+  marginBottom: '0.25rem'
+};
 
-  @keyframes floatingParticles {
-    0% { 
-      transform: translateY(0px) translateX(0px) scale(1);
-      opacity: 0.7;
-    }
-    25% { 
-      transform: translateY(-20px) translateX(10px) scale(1.1);
-      opacity: 1;
-    }
-    50% { 
-      transform: translateY(-30px) translateX(-5px) scale(0.9);
-      opacity: 0.8;
-    }
-    75% { 
-      transform: translateY(-10px) translateX(-15px) scale(1.05);
-      opacity: 0.9;
-    }
-    100% { 
-      transform: translateY(0px) translateX(0px) scale(1);
-      opacity: 0.7;
-    }
-  }
+const chipStyle = (bg, border, color) => ({
+  padding: '0.15rem 0.4rem',
+  background: bg,
+  border: `1px solid ${border}`,
+  borderRadius: '5px',
+  color,
+  fontSize: '0.7rem',
+  fontWeight: 600
+});
 
-  @keyframes slideUp {
-    from { 
-      opacity: 0;
-      transform: translateY(60px) scale(0.9);
-    }
-    to { 
-      opacity: 1;
-      transform: translateY(0px) scale(1);
-    }
-  }
+const CHARTS = [
+  { id: 'temperature', label: 'Temperature', dataKey: 'temperature', color: '#f87171', domain: [60, 90], unit: '°F', Icon: Thermometer },
+  { id: 'humidity', label: 'Humidity', dataKey: 'humidity', color: '#60a5fa', domain: [0, 100], unit: '%', Icon: Droplets },
+  { id: 'vpd', label: 'VPD', dataKey: 'vpd', color: '#22d3ee', domain: [0, 3], unit: ' kPa', Icon: Wind },
+  { id: 'ph', label: 'pH Level', dataKey: 'ph_level', color: '#bef264', domain: [4, 9], unit: '', Icon: TestTube },
+  { id: 'co2', label: 'CO₂', dataKey: 'co2_ppm', color: '#fbbf24', domain: [300, 1500], unit: 'ppm', Icon: Wind },
+  { id: 'ppfd', label: 'PPFD', dataKey: 'ppfd', color: '#a78bfa', domain: [0, 2000], unit: '', Icon: Sun }
+];
 
-  @keyframes iconPulse {
-    0%, 100% { 
-      transform: scale(1);
-      box-shadow: 0 15px 30px -10px rgba(0,0,0,0.3);
-    }
-    50% { 
-      transform: scale(1.05);
-      box-shadow: 0 20px 40px -10px rgba(0,0,0,0.4);
-    }
+const MetricChips = ({ log }) => {
+  const chips = [];
+  if (log.temperature != null && log.temperature !== '') {
+    chips.push(<span key="t" style={chipStyle('rgba(239, 68, 68, 0.12)', 'rgba(239, 68, 68, 0.25)', '#f87171')}>{log.temperature}°F</span>);
   }
-
-  @keyframes iconGlow {
-    0% { 
-      opacity: 0.3;
-      transform: scale(1);
-    }
-    100% { 
-      opacity: 0.6;
-      transform: scale(1.2);
-    }
+  if (log.humidity != null && log.humidity !== '') {
+    chips.push(<span key="h" style={chipStyle('rgba(59, 130, 246, 0.12)', 'rgba(59, 130, 246, 0.25)', '#60a5fa')}>{log.humidity}%</span>);
   }
-
-  @keyframes chartGlow {
-    0% { 
-      opacity: 0.6;
-      transform: scale(1);
-    }
-    100% { 
-      opacity: 1;
-      transform: scale(1.02);
-    }
+  if (log.vpd != null && log.vpd !== '') {
+    chips.push(<span key="v" style={chipStyle('rgba(6, 182, 212, 0.12)', 'rgba(6, 182, 212, 0.25)', '#22d3ee')}>{log.vpd} kPa</span>);
   }
-
-  @keyframes activeDotPulse {
-    0%, 100% { 
-      transform: scale(1);
-      box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
-    }
-    50% { 
-      transform: scale(1.2);
-      box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
-    }
+  if (log.ph_level != null && log.ph_level !== '') {
+    chips.push(<span key="p" style={chipStyle('rgba(132, 204, 22, 0.12)', 'rgba(132, 204, 22, 0.25)', '#bef264')}>pH {log.ph_level}</span>);
   }
-
-  @keyframes shimmer {
-    0% { 
-      background-position: -200% 0;
-    }
-    100% { 
-      background-position: 200% 0;
-    }
+  if (log.co2_ppm != null && log.co2_ppm !== '') {
+    chips.push(<span key="c" style={chipStyle('rgba(251, 191, 36, 0.12)', 'rgba(251, 191, 36, 0.25)', '#fbbf24')}>{log.co2_ppm} ppm</span>);
   }
-
-  @keyframes textGlow {
-    0%, 100% { 
-      text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-    }
-    50% { 
-      text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 30px rgba(255, 255, 255, 0.4);
-    }
+  if (log.ppfd != null && log.ppfd !== '') {
+    chips.push(<span key="pp" style={chipStyle('rgba(168, 85, 247, 0.12)', 'rgba(168, 85, 247, 0.25)', '#a78bfa')}>{log.ppfd} PPFD</span>);
   }
-
-  .gradient-text {
-    background: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 1) 0%,
-      rgba(255, 255, 255, 0.8) 25%,
-      rgba(255, 255, 255, 1) 50%,
-      rgba(255, 255, 255, 0.8) 75%,
-      rgba(255, 255, 255, 1) 100%
-    );
-    background-size: 200% 100%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: shimmer 3s ease-in-out infinite;
+  if (log.light_hours != null && log.light_hours !== '') {
+    chips.push(<span key="l" style={chipStyle('rgba(245, 158, 11, 0.12)', 'rgba(245, 158, 11, 0.25)', '#fbbf24')}>{log.light_hours}h light</span>);
   }
-`;
-
-// Inject styles safely
-// Add modal styles to document head
-if (typeof document !== 'undefined') {
-  const styleElement = document.createElement('style');
-  styleElement.textContent = modalStyles; // Use textContent instead of innerHTML for security
-  if (!document.head.querySelector('style[data-modal-styles]')) {
-    styleElement.setAttribute('data-modal-styles', 'true');
-    document.head.appendChild(styleElement);
-  }
-}
+  if (chips.length === 0) return <span style={{ color: '#64748b', fontSize: '0.75rem' }}>—</span>;
+  return <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>{chips}</div>;
+};
 
 const Environment = () => {
   const [environmentLogs, setEnvironmentLogs] = useState([]);
+  const [latestReading, setLatestReading] = useState(null);
   const [weeklyData, setWeeklyData] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showWeekly, setShowWeekly] = useState(false);
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [growTents, setGrowTents] = useState([]);
-  const [selectedTent, setSelectedTent] = useState('');
+  const [latestPerTent, setLatestPerTent] = useState({});
   const [editingLog, setEditingLog] = useState(null);
   const [selectedChart, setSelectedChart] = useState(null);
+  const [readingRange, setReadingRange] = useState('30'); // 7 | 30 | 90 | all
+  const [expandedDays, setExpandedDays] = useState({});
+  const [visibleDayCount, setVisibleDayCount] = useState(5);
 
-  const { register, handleSubmit, reset, formState: { isSubmitting, errors } } = useForm();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { register, handleSubmit, reset, setValue, formState: { isSubmitting, errors } } = useForm();
 
-  const fetchEnvironmentData = useCallback(async () => {
+  const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const selectedTent = params.get('tent') || '';
+  const addFromUrl = params.get('add') === '1';
+
+  const updateUrl = useCallback((next) => {
+    const p = new URLSearchParams();
+    if (next.tent) p.set('tent', next.tent);
+    if (next.add) p.set('add', '1');
+    const qs = p.toString();
+    navigate(qs ? `/environment?${qs}` : '/environment', { replace: next.replace !== false });
+  }, [navigate]);
+
+  const fetchTentList = useCallback(async () => {
     try {
-      setLoading(true);
-      const params = { limit: 50 };
-      if (selectedTent) {
-        params.grow_tent = selectedTent;
-      }
-      const data = await environmentApi.getAll(params);
-      setEnvironmentLogs(data);
+      const [plantTents, envTents, latestRows] = await Promise.all([
+        plantsApi.getGrowTents().catch(() => []),
+        environmentApi.getGrowTents().catch(() => []),
+        environmentApi.getLatestPerTent().catch(() => [])
+      ]);
+
+      const map = new Map();
+      (Array.isArray(plantTents) ? plantTents : []).forEach((t) => {
+        if (!t.grow_tent) return;
+        map.set(t.grow_tent, {
+          grow_tent: t.grow_tent,
+          plant_count: t.plant_count || 0,
+          reading_count: 0,
+          last_reading: null
+        });
+      });
+      (Array.isArray(envTents) ? envTents : []).forEach((t) => {
+        if (!t.grow_tent) return;
+        const existing = map.get(t.grow_tent) || { grow_tent: t.grow_tent, plant_count: 0 };
+        map.set(t.grow_tent, {
+          ...existing,
+          reading_count: t.reading_count || 0,
+          last_reading: t.last_reading || existing.last_reading
+        });
+      });
+
+      const tents = Array.from(map.values()).sort((a, b) => a.grow_tent.localeCompare(b.grow_tent));
+      setGrowTents(tents);
+
+      const latestMap = {};
+      (Array.isArray(latestRows) ? latestRows : []).forEach((row) => {
+        if (row.grow_tent) latestMap[row.grow_tent] = row;
+      });
+      setLatestPerTent(latestMap);
+    } catch {
+      toast.error('Failed to load tents');
+    }
+  }, []);
+
+  const fetchTentData = useCallback(async () => {
+    if (!selectedTent) {
+      setEnvironmentLogs([]);
+      setLatestReading(null);
+      setWeeklyData([]);
+      return;
+    }
+    try {
+      const [logs, latest, weekly] = await Promise.all([
+        environmentApi.getAll({ grow_tent: selectedTent, limit: 500 }),
+        environmentApi.getLatest({ grow_tent: selectedTent }),
+        environmentApi.getWeekly({ grow_tent: selectedTent, weeks: 8 })
+      ]);
+      setEnvironmentLogs(Array.isArray(logs) ? logs : []);
+      setLatestReading(latest && latest.id ? latest : null);
+      setWeeklyData(Array.isArray(weekly) ? weekly : []);
     } catch {
       toast.error('Failed to load environment data');
-    } finally {
-      setLoading(false);
+      setEnvironmentLogs([]);
+      setLatestReading(null);
+      setWeeklyData([]);
     }
   }, [selectedTent]);
 
-  const fetchLatestReading = useCallback(async () => {
-    try {
-      const params = {};
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      await fetchTentList();
+      if (cancelled) return;
       if (selectedTent) {
-        params.grow_tent = selectedTent;
-      }
-      await environmentApi.getLatest(params);
-      // Latest reading data could be used for dashboard stats if needed
-    } catch {
-      // Latest reading fetch failed
-    }
-  }, [selectedTent]);
-
-  const fetchWeeklyData = useCallback(async () => {
-    try {
-      const params = { weeks: 8 };
-      if (selectedTent) {
-        params.grow_tent = selectedTent;
-      }
-      const data = await environmentApi.getWeekly(params);
-      setWeeklyData(data);
-    } catch {
-      // Weekly data fetch failed
-    }
-  }, [selectedTent]);
-
-  const fetchGrowTents = useCallback(async () => {
-    try {
-      const data = await plantsApi.getGrowTents();
-      setGrowTents(data);
-      
-      // If no tent is currently selected and there are tents available, select the first one
-      if (!selectedTent && data.length > 0) {
-        setSelectedTent(data[0].grow_tent);
-      }
-    } catch {
-      // Grow tents fetch failed
-    }
-  }, [selectedTent]);
-
-  const onSubmit = async (data) => {
-    try {
-      // Convert form data to proper types
-      const environmentData = {
-        ...data,
-        temperature: data.temperature ? parseFloat(data.temperature) : null,
-        humidity: data.humidity ? parseFloat(data.humidity) : null,
-        ph_level: data.ph_level ? parseFloat(data.ph_level) : null,
-        light_hours: data.light_hours ? parseFloat(data.light_hours) : null,
-        vpd: data.vpd ? parseFloat(data.vpd) : null,
-        co2_ppm: data.co2_ppm ? parseFloat(data.co2_ppm) : null,
-        ppfd: data.ppfd ? parseFloat(data.ppfd) : null,
-        logged_at: data.logged_at || new Date().toISOString(),
-      };
-
-      if (editingLog) {
-        // Update existing log
-        await environmentApi.update(editingLog.id, environmentData);
-        toast.success('Environment data updated successfully');
+        await fetchTentData();
       } else {
-        // Create new log
-        await environmentApi.create(environmentData);
-        toast.success('Environment data added successfully');
+        setEnvironmentLogs([]);
+        setLatestReading(null);
+        setWeeklyData([]);
       }
-      
-      fetchEnvironmentData();
-      fetchLatestReading();
-      fetchWeeklyData();
-      resetForm();
-    } catch (error) {
-      toast.error(error.message);
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [fetchTentList, fetchTentData, selectedTent]);
+
+  useEffect(() => {
+    if (selectedTent && addFromUrl && !editingLog) {
+      setShowForm(true);
+      reset({
+        grow_tent: selectedTent,
+        logged_at: format(new Date(), "yyyy-MM-dd'T'HH:mm")
+      });
     }
-  };
+  }, [selectedTent, addFromUrl, editingLog, reset]);
 
-  const handleEdit = (log) => {
-    setEditingLog(log);
-    
-    // Format the logged_at date for the datetime-local input
-    const formattedDate = format(new Date(log.logged_at), "yyyy-MM-dd'T'HH:mm");
-    
-    // Populate form with existing data
-    reset({
-      grow_tent: log.grow_tent || '',
-      temperature: log.temperature || '',
-      humidity: log.humidity || '',
-      ph_level: log.ph_level || '',
-      light_hours: log.light_hours || '',
-      vpd: log.vpd || '',
-      co2_ppm: log.co2_ppm || '',
-      ppfd: log.ppfd || '',
-      logged_at: formattedDate,
-      notes: log.notes || ''
-    });
-    
-    setShowForm(true);
-    toast.success('Editing environment log. Make your changes and save.');
-  };
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && selectedChart) setSelectedChart(null);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedChart]);
 
-  const handleDelete = async (logId) => {
-    try {
-      const confirmed = window.confirm('Are you sure you want to delete this environment log?');
-      
-      if (confirmed) {
-        await environmentApi.delete(logId);
-        
-        toast.success('Environment log deleted successfully');
-        
-        // Refresh the data
-        await Promise.all([
-          fetchEnvironmentData(),
-          fetchLatestReading(),
-          fetchWeeklyData()
-        ]);
-      }
-    } catch (error) {
-      toast.error(`Failed to delete environment log: ${error.message}`);
-    }
-  };
-
-  const resetForm = () => {
-    setShowForm(false);
-    setEditingLog(null);
-    reset();
-  };
-
-  const getCurrentDateTime = () => {
-    const now = new Date();
-    return format(now, "yyyy-MM-dd'T'HH:mm");
-  };
+  const getCurrentDateTime = () => format(new Date(), "yyyy-MM-dd'T'HH:mm");
 
   const getImageDateTime = (parsedData) => {
-    // Use timestamp from image metadata if available, otherwise use current time
     if (parsedData.timestamp) {
       try {
-        const imageDate = new Date(parsedData.timestamp);
-        return format(imageDate, "yyyy-MM-dd'T'HH:mm");
+        return format(new Date(parsedData.timestamp), "yyyy-MM-dd'T'HH:mm");
       } catch {
         return getCurrentDateTime();
       }
@@ -381,142 +255,544 @@ const Environment = () => {
     return getCurrentDateTime();
   };
 
-  const handleImageData = (parsedData) => {
-    // Convert parsed data to form format and populate form
-    const formData = {
-      logged_at: getImageDateTime(parsedData),
-      grow_tent: selectedTent, // Use the currently selected tent
-    };
-
-    // Map parsed values to form fields (convert Celsius to Fahrenheit if needed)
-    if (parsedData.temperature !== null) {
-      // Assume parsed temperature is in Celsius, convert to Fahrenheit
-      formData.temperature = ((parsedData.temperature * 9/5) + 32).toFixed(1);
-    }
-    if (parsedData.humidity !== null) {
-      formData.humidity = parsedData.humidity.toString();
-    }
-    if (parsedData.ph !== null) {
-      formData.ph_level = parsedData.ph.toString();
-    }
-    if (parsedData.vpd !== null) {
-      formData.vpd = parsedData.vpd.toString();
-    }
-    if (parsedData.co2 !== null) {
-      formData.co2_ppm = parsedData.co2.toString();
-    }
-    if (parsedData.ppfd !== null) {
-      formData.ppfd = parsedData.ppfd.toString();
-    }
-
-    // Reset form with the parsed data
-    reset(formData);
-    setShowForm(true);
-    
-    const timeSource = parsedData.timestamp ? 'photo timestamp' : 'current time';
-    toast.success(`Data from image has been loaded into the form using ${timeSource}. Please review and submit.`);
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingLog(null);
+    reset();
+    updateUrl({ tent: selectedTent, add: false, replace: true });
   };
 
-  // Sort logs by date ascending for graphs
-  const sortedLogsForGraphs = [...environmentLogs].sort((a, b) => new Date(a.logged_at) - new Date(b.logged_at));
+  const openAddForm = () => {
+    setEditingLog(null);
+    reset({
+      grow_tent: selectedTent,
+      logged_at: getCurrentDateTime()
+    });
+    setShowForm(true);
+    updateUrl({ tent: selectedTent, add: true, replace: false });
+  };
 
-  // Handle keyboard events for chart modal
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape' && selectedChart) {
-        setSelectedChart(null);
+  const handleEdit = (log) => {
+    setEditingLog(log);
+    reset({
+      grow_tent: log.grow_tent || selectedTent,
+      temperature: log.temperature ?? '',
+      humidity: log.humidity ?? '',
+      ph_level: log.ph_level ?? '',
+      light_hours: log.light_hours ?? '',
+      vpd: log.vpd ?? '',
+      co2_ppm: log.co2_ppm ?? '',
+      ppfd: log.ppfd ?? '',
+      logged_at: format(new Date(log.logged_at), "yyyy-MM-dd'T'HH:mm"),
+      notes: log.notes || ''
+    });
+    setShowForm(true);
+  };
+
+  const handleDelete = async (logId) => {
+    if (!window.confirm('Are you sure you want to delete this environment log?')) return;
+    try {
+      await environmentApi.delete(logId);
+      toast.success('Environment log deleted successfully');
+      await fetchTentData();
+      await fetchTentList();
+    } catch (error) {
+      toast.error(`Failed to delete environment log: ${error.message}`);
+    }
+  };
+
+  const handleClearTentClimate = async (tentName, { plantCount = 0, readingCount = 0 } = {}) => {
+    const name = tentName || selectedTent;
+    if (!name) return;
+
+    const plants = plantCount || 0;
+    const readings = readingCount || 0;
+
+    const first = window.confirm(
+      plants > 0
+        ? `Clear all climate readings for "${name}"?\n\n` +
+          `This deletes ${readings || 'all'} environment log(s). ` +
+          `${plants} active plant(s) will stay assigned to this tent.\n\n` +
+          `This cannot be undone.`
+        : `Clear climate data for tent "${name}"?\n\n` +
+          `This deletes ${readings || 'all'} reading(s). ` +
+          (plants === 0
+            ? 'With no plants left, the tent will disappear from this list.'
+            : '') +
+          `\n\nThis cannot be undone.`
+    );
+    if (!first) return;
+
+    if (plants > 0) {
+      const second = window.confirm(
+        `FINAL CONFIRMATION\n\n` +
+          `Clear climate history for "${name}" while keeping ${plants} plant(s)?`
+      );
+      if (!second) return;
+    }
+
+    try {
+      const result = await tentsApi.clearEnvironment(name, true, plants > 0);
+      const deleted = result?.deletedRows ?? 0;
+      toast.success(
+        deleted > 0
+          ? `Cleared ${deleted} climate reading${deleted === 1 ? '' : 's'} for ${name}`
+          : `No climate readings to clear for ${name}`
+      );
+      // If no plants remain, leave the tent view so the empty tent goes away
+      if ((plantCount || 0) === 0 && name === selectedTent) {
+        navigate('/environment');
+      } else {
+        await fetchTentList();
+        if (name === selectedTent) await fetchTentData();
       }
+    } catch (error) {
+      // Retry with force if server still requires it
+      if (String(error.message || '').toLowerCase().includes('force')) {
+        try {
+          const result = await tentsApi.clearEnvironment(name, true, true);
+          toast.success(`Cleared climate data for ${name} (${result?.deletedRows || 0} readings)`);
+          await fetchTentList();
+          if (name === selectedTent) await fetchTentData();
+          return;
+        } catch (retryErr) {
+          toast.error(retryErr.message || 'Failed to clear tent climate data');
+          return;
+        }
+      }
+      toast.error(error.message || 'Failed to clear tent climate data');
+    }
+  };
+
+  const onSubmit = async (data) => {
+    try {
+      const environmentData = {
+        ...data,
+        grow_tent: selectedTent || data.grow_tent,
+        temperature: data.temperature ? parseFloat(data.temperature) : null,
+        humidity: data.humidity ? parseFloat(data.humidity) : null,
+        ph_level: data.ph_level ? parseFloat(data.ph_level) : null,
+        light_hours: data.light_hours ? parseFloat(data.light_hours) : null,
+        vpd: data.vpd ? parseFloat(data.vpd) : null,
+        co2_ppm: data.co2_ppm ? parseFloat(data.co2_ppm) : null,
+        ppfd: data.ppfd ? parseFloat(data.ppfd) : null,
+        logged_at: data.logged_at || new Date().toISOString()
+      };
+
+      if (editingLog) {
+        await environmentApi.update(editingLog.id, environmentData);
+        toast.success('Environment data updated successfully');
+      } else {
+        await environmentApi.create(environmentData);
+        toast.success('Environment data added successfully');
+      }
+
+      await fetchTentData();
+      await fetchTentList();
+      closeForm();
+    } catch (error) {
+      toast.error(error.message || 'Failed to save reading');
+    }
+  };
+
+  const handleImageData = (parsedData) => {
+    const formData = {
+      logged_at: getImageDateTime(parsedData),
+      grow_tent: selectedTent
     };
+    if (parsedData.temperature != null) {
+      formData.temperature = ((parsedData.temperature * 9) / 5 + 32).toFixed(1);
+    }
+    if (parsedData.humidity != null) formData.humidity = parsedData.humidity.toString();
+    if (parsedData.ph != null) formData.ph_level = parsedData.ph.toString();
+    if (parsedData.vpd != null) formData.vpd = parsedData.vpd.toString();
+    if (parsedData.co2 != null) formData.co2_ppm = parsedData.co2.toString();
+    if (parsedData.ppfd != null) formData.ppfd = parsedData.ppfd.toString();
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedChart]);
+    reset(formData);
+    setValue('grow_tent', selectedTent);
+    setShowForm(true);
+    setShowImageUpload(false);
+    const timeSource = parsedData.timestamp ? 'photo timestamp' : 'current time';
+    toast.success(`Data from image loaded using ${timeSource}. Review and submit.`);
+  };
 
-  // Initial data load
+  const selectTent = (tentName) => {
+    navigate(`/environment?tent=${encodeURIComponent(tentName)}`);
+  };
+
+  const changeTent = () => {
+    navigate('/environment');
+  };
+
+  const sortedLogsForGraphs = useMemo(
+    () => [...environmentLogs].sort((a, b) => new Date(a.logged_at) - new Date(b.logged_at)),
+    [environmentLogs]
+  );
+
+  const filteredReadingLogs = useMemo(() => {
+    if (readingRange === 'all') return environmentLogs;
+    const days = parseInt(readingRange, 10);
+    const cutoff = startOfDay(subDays(new Date(), days - 1));
+    return environmentLogs.filter((log) => new Date(log.logged_at) >= cutoff);
+  }, [environmentLogs, readingRange]);
+
+  const groupedLogs = useMemo(() => {
+    const groups = [];
+    const map = new Map();
+    filteredReadingLogs.forEach((log) => {
+      const dayKey = format(new Date(log.logged_at), 'yyyy-MM-dd');
+      const dayLabel = format(new Date(log.logged_at), 'EEE, MMM dd');
+      if (!map.has(dayKey)) {
+        const group = { key: dayKey, label: dayLabel, logs: [] };
+        map.set(dayKey, group);
+        groups.push(group);
+      }
+      map.get(dayKey).logs.push(log);
+    });
+    return groups;
+  }, [filteredReadingLogs]);
+
+  const visibleGroups = useMemo(
+    () => groupedLogs.slice(0, visibleDayCount),
+    [groupedLogs, visibleDayCount]
+  );
+
+  const newestDayKey = groupedLogs[0]?.key || '';
+
+  // Keep the newest day expanded when the tent/range/data window changes
   useEffect(() => {
-    fetchEnvironmentData();
-    fetchLatestReading();
-    fetchWeeklyData();
-    fetchGrowTents();
-  }, [fetchEnvironmentData, fetchLatestReading, fetchWeeklyData, fetchGrowTents]);
+    setVisibleDayCount(5);
+    if (newestDayKey) {
+      setExpandedDays({ [newestDayKey]: true });
+    } else {
+      setExpandedDays({});
+    }
+  }, [selectedTent, readingRange, newestDayKey]);
 
-  // Refresh grow tents when window gains focus (user might have added tents in another tab/page)
-  useEffect(() => {
-    const handleFocus = () => {
-      fetchGrowTents();
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [fetchGrowTents]);
+  const toggleDay = (dayKey) => {
+    setExpandedDays((prev) => ({ ...prev, [dayKey]: !prev[dayKey] }));
+  };
 
-  // Refresh data when tent selection changes
-  useEffect(() => {
-    fetchEnvironmentData();
-    fetchLatestReading();
-    fetchWeeklyData();
-  }, [selectedTent, fetchEnvironmentData, fetchLatestReading, fetchWeeklyData]);
+  const daySummary = (logs) => {
+    const temps = logs.map((l) => l.temperature).filter((v) => v != null && v !== '');
+    const hums = logs.map((l) => l.humidity).filter((v) => v != null && v !== '');
+    const parts = [];
+    if (temps.length) {
+      const avg = temps.reduce((a, b) => a + Number(b), 0) / temps.length;
+      parts.push(`${avg.toFixed(1)}°F`);
+    }
+    if (hums.length) {
+      const avg = hums.reduce((a, b) => a + Number(b), 0) / hums.length;
+      parts.push(`${avg.toFixed(0)}% RH`);
+    }
+    return parts.join(' · ');
+  };
+
+  const chartConfig = CHARTS.find((c) => c.id === selectedChart);
+  const ChartIcon = chartConfig?.Icon;
+
+  const heroMetrics = latestReading ? [
+    { label: 'Temp', value: latestReading.temperature != null ? `${latestReading.temperature}°F` : '—', color: '#f87171', Icon: Thermometer },
+    { label: 'Humidity', value: latestReading.humidity != null ? `${latestReading.humidity}%` : '—', color: '#60a5fa', Icon: Droplets },
+    { label: 'VPD', value: latestReading.vpd != null ? `${latestReading.vpd} kPa` : '—', color: '#22d3ee', Icon: Wind },
+    { label: 'CO₂', value: latestReading.co2_ppm != null ? `${latestReading.co2_ppm}` : '—', color: '#fbbf24', Icon: Wind },
+    { label: 'PPFD', value: latestReading.ppfd != null ? `${latestReading.ppfd}` : '—', color: '#a78bfa', Icon: Sun },
+    { label: 'pH', value: latestReading.ph_level != null ? `${latestReading.ph_level}` : '—', color: '#bef264', Icon: Beaker },
+    { label: 'Light', value: latestReading.light_hours != null ? `${latestReading.light_hours}h` : '—', color: '#fbbf24', Icon: Sun }
+  ] : [];
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-64">
-        <div className="loading"></div>
+        <div className="loading" />
       </div>
     );
   }
 
+  // ——— Tent picker ———
+  if (!selectedTent) {
+    return (
+      <div className="dashboard-page">
+        <PageHeader
+          icon={Thermometer}
+          title="Environment"
+          subtitle="Choose a tent to view climate readings and trends"
+        />
+
+        <div className="page-panel">
+          {growTents.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem 2rem' }}>
+              <Home className="w-12 h-12" style={{ color: '#4ade80', margin: '0 auto 1rem' }} />
+              <h3 style={{ color: '#f8fafc', marginBottom: '0.5rem' }}>No tents yet</h3>
+              <p style={{ color: '#94a3b8', marginBottom: '1.5rem' }}>
+                Assign plants to a grow tent, then come back to log climate readings.
+              </p>
+              <Link to="/" className="btn btn-primary inline-flex items-center gap-2">
+                Go to Plants
+              </Link>
+            </div>
+          ) : (
+            <>
+              <p style={{ color: '#94a3b8', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+                Select a tent to monitor climate. Use Clear to remove leftover climate history
+                (e.g. after a grow finishes or test tents).
+              </p>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: '1rem'
+              }}
+              >
+                {growTents.map((tent) => {
+                  const latest = latestPerTent[tent.grow_tent];
+                  const plantCount = tent.plant_count || 0;
+                  const readingCount = tent.reading_count || 0;
+                  const canClear = readingCount > 0 || plantCount === 0;
+                  return (
+                    <div
+                      key={tent.grow_tent}
+                      className="env-tent-card"
+                      style={{
+                        textAlign: 'left',
+                        padding: '1.1rem',
+                        background: 'rgba(15, 23, 42, 0.55)',
+                        border: '1px solid rgba(100, 116, 139, 0.35)',
+                        borderRadius: '14px',
+                        color: 'inherit',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.75rem'
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => selectTent(tent.grow_tent)}
+                        style={{
+                          textAlign: 'left',
+                          padding: 0,
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'inherit',
+                          width: '100%'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.65rem' }}>
+                          <div style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '10px',
+                            background: 'rgba(239, 68, 68, 0.15)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}
+                          >
+                            <Thermometer className="w-5 h-5" style={{ color: '#f87171' }} />
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ color: '#f8fafc', fontWeight: 700, fontSize: '1rem' }}>{tent.grow_tent}</div>
+                            <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>
+                              {[
+                                plantCount ? `${plantCount} plant${plantCount === 1 ? '' : 's'}` : 'No plants',
+                                readingCount ? `${readingCount} reading${readingCount === 1 ? '' : 's'}` : 'No readings'
+                              ].join(' · ')}
+                            </div>
+                          </div>
+                        </div>
+                        {latest ? (
+                          <div style={{ color: '#cbd5e1', fontSize: '0.8rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            {latest.temperature != null && <span style={{ color: '#f87171' }}>{latest.temperature}°F</span>}
+                            {latest.humidity != null && <span style={{ color: '#60a5fa' }}>{latest.humidity}%</span>}
+                            {latest.logged_at && (
+                              <span style={{ color: '#64748b' }}>
+                                {format(new Date(latest.logged_at), 'MMM dd, HH:mm')}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <div style={{ color: '#64748b', fontSize: '0.8rem' }}>No climate data yet</div>
+                        )}
+                      </button>
+                      {canClear && readingCount > 0 && (
+                        <button
+                          type="button"
+                          className="btn btn-outline env-tent-clear-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleClearTentClimate(tent.grow_tent, {
+                              plantCount,
+                              readingCount
+                            });
+                          }}
+                          style={{
+                            alignSelf: 'flex-start',
+                            fontSize: '0.75rem',
+                            padding: '0.35rem 0.65rem',
+                            color: '#f87171',
+                            borderColor: 'rgba(239, 68, 68, 0.4)'
+                          }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" style={{ width: '0.9rem', height: '0.9rem' }} />
+                          Clear climate data
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ——— Tent journal ———
   return (
     <div className="dashboard-page">
-      {/* Header */}
-      <header className="dashboard-header" style={{ animation: 'fadeInUp 0.6s ease-out' }}>
-        <div className="header-content">
-          <div className="header-text">
-            <h1 className="dashboard-title">
-              <Thermometer className="w-8 h-8" style={{ display: 'inline-block', marginRight: '0.75rem', verticalAlign: 'middle' }} />
-              Environment Control
-            </h1>
-            <p className="dashboard-subtitle">Monitor & log your grow environment conditions</p>
-          </div>
-          
-          <div className="header-actions">
-            <select
-              value={selectedTent}
-              onChange={(e) => setSelectedTent(e.target.value)}
-              className="btn btn-outline"
-              style={{ minWidth: '180px' }}
-            >
-              {growTents.map((tent) => (
-                <option key={tent.grow_tent} value={tent.grow_tent}>
-                  {tent.grow_tent} ({tent.plant_count} plants)
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={() => setShowWeekly(!showWeekly)}
-              className={`btn ${showWeekly ? 'btn-primary' : 'btn-outline'}`}
-            >
-              <TrendingUp className="w-5 h-5" />
-              Weekly Stats
+      <PageHeader
+        icon={Thermometer}
+        title={`Environment — ${selectedTent}`}
+        subtitle={
+          latestReading?.stage && latestReading.stage !== 'N/A'
+            ? `Current tent stage: ${latestReading.stage}`
+            : 'Climate readings and trends for this tent'
+        }
+        actions={(
+          <>
+            <button type="button" onClick={changeTent} className="btn btn-outline flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Change tent
             </button>
-          </div>
-        </div>
-      </header>
+            {environmentLogs.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const meta = growTents.find((t) => t.grow_tent === selectedTent) || {};
+                  handleClearTentClimate(selectedTent, {
+                    plantCount: meta.plant_count || 0,
+                    readingCount: meta.reading_count || environmentLogs.length
+                  });
+                }}
+                className="btn btn-outline flex items-center gap-2"
+                style={{ color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.4)' }}
+              >
+                <Trash2 className="w-4 h-4" />
+                Clear climate data
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowImageUpload(true)}
+              className="btn btn-outline flex items-center gap-2"
+            >
+              <Camera className="w-4 h-4" />
+              From Screenshot
+            </button>
+            <button type="button" onClick={openAddForm} className="btn btn-primary flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              Add Reading
+            </button>
+          </>
+        )}
+      />
 
-      {/* Add Form */}
+      {/* Latest conditions hero */}
+      <div className="page-panel">
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'baseline',
+          marginBottom: '1.25rem',
+          flexWrap: 'wrap',
+          gap: '0.5rem'
+        }}
+        >
+          <div>
+            <h2 className="page-panel-title" style={{ margin: 0 }}>Latest Conditions</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', margin: '0.35rem 0 0' }}>
+              At-a-glance snapshot for this tent
+            </p>
+          </div>
+          {latestReading?.logged_at && (
+            <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>
+              Updated {format(new Date(latestReading.logged_at), 'MMM dd, yyyy · HH:mm')}
+            </span>
+          )}
+        </div>
+        {!latestReading ? (
+          <p style={{ color: '#94a3b8', margin: 0, textAlign: 'center', padding: '1rem 0' }}>
+            No readings yet for this tent. Add a reading to start tracking climate.
+          </p>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(118px, 1fr))',
+            gap: '0.75rem',
+            justifyContent: 'center',
+            maxWidth: '1100px',
+            margin: '0 auto'
+          }}
+          >
+            {heroMetrics.map((m) => {
+              const Icon = m.Icon;
+              return (
+                <div
+                  key={m.label}
+                  style={{
+                    padding: '1rem 0.75rem',
+                    background: 'rgba(15, 23, 42, 0.55)',
+                    border: `1px solid ${m.color}33`,
+                    borderRadius: '12px',
+                    textAlign: 'center',
+                    minWidth: 0
+                  }}
+                >
+                  <Icon className="w-4 h-4" style={{ color: m.color, margin: '0 auto 0.45rem' }} />
+                  <div style={{
+                    color: m.color,
+                    fontWeight: 700,
+                    fontSize: '1.125rem',
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.2
+                  }}
+                  >
+                    {m.value}
+                  </div>
+                  <div style={{
+                    color: '#94a3b8',
+                    fontSize: '0.7rem',
+                    marginTop: '0.35rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    fontWeight: 600
+                  }}
+                  >
+                    {m.label}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Add / Edit form modal */}
       {showForm && (
         <div style={{
           position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
+          inset: 0,
           background: 'rgba(0, 0, 0, 0.8)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
           padding: '1rem'
-        }}>
+        }}
+        >
           <div style={{
             background: 'var(--surface)',
             borderRadius: '16px',
@@ -525,18 +801,14 @@ const Environment = () => {
             width: '100%',
             maxWidth: '600px',
             maxHeight: '90vh',
-            overflowY: 'auto',
-            animation: 'modalSlideIn 0.3s ease-out'
-          }}>
+            overflowY: 'auto'
+          }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h2 style={{ color: 'var(--text-primary)', fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}>
-                📊 {editingLog ? 'Edit Environment Reading' : 'Add Environment Reading'}
+                {editingLog ? 'Edit Environment Reading' : 'Add Environment Reading'}
               </h2>
-              <button
-                onClick={resetForm}
-                className="btn btn-secondary"
-                style={{ padding: '0.5rem 0.75rem', fontSize: '0.875rem' }}
-              >
+              <button type="button" onClick={closeForm} className="btn btn-secondary" style={{ padding: '0.5rem 0.75rem', fontSize: '0.875rem' }}>
                 Cancel
               </button>
             </div>
@@ -544,222 +816,64 @@ const Environment = () => {
             <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
                 <div style={{ gridColumn: 'span 3' }}>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Grow Tent</label>
-                  <select
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      background: 'var(--surface)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.875rem'
-                    }}
-                    {...register('grow_tent', { required: 'Please select a grow tent' })}
-                    defaultValue={selectedTent}
-                  >
-                    {growTents.map((tent) => (
-                      <option key={tent.grow_tent} value={tent.grow_tent}>
-                        {tent.grow_tent}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.grow_tent && (
-                    <span style={{color: 'var(--error)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block'}}>
-                      {errors.grow_tent.message}
-                    </span>
-                  )}
+                  <label style={labelStyle}>Grow Tent</label>
+                  <input type="hidden" {...register('grow_tent', { required: true })} />
+                  <div style={{ ...fieldStyle, color: '#4ade80', fontWeight: 600 }}>
+                    {selectedTent}
+                  </div>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Temp (°F)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      background: 'var(--surface)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.875rem'
-                    }}
-                    {...register('temperature')}
-                    placeholder="75.5"
-                  />
+                  <label style={labelStyle}>Temp (°F)</label>
+                  <input type="number" step="0.1" style={fieldStyle} {...register('temperature')} placeholder="75.5" />
                 </div>
-
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Humidity (%)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      background: 'var(--surface)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.875rem'
-                    }}
-                    {...register('humidity')}
-                    placeholder="65.0"
-                  />
+                  <label style={labelStyle}>Humidity (%)</label>
+                  <input type="number" step="0.1" style={fieldStyle} {...register('humidity')} placeholder="65.0" />
                 </div>
-
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>VPD (kPa)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      background: 'var(--surface)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.875rem'
-                    }}
-                    {...register('vpd')}
-                    placeholder="1.2"
-                  />
+                  <label style={labelStyle}>VPD (kPa)</label>
+                  <input type="number" step="0.01" style={fieldStyle} {...register('vpd')} placeholder="1.2" />
                 </div>
-
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>CO₂ (ppm)</label>
-                  <input
-                    type="number"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      background: 'var(--surface)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.875rem'
-                    }}
-                    {...register('co2_ppm')}
-                    placeholder="1200"
-                  />
+                  <label style={labelStyle}>CO₂ (ppm)</label>
+                  <input type="number" style={fieldStyle} {...register('co2_ppm')} placeholder="1200" />
                 </div>
-
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>PPFD</label>
-                  <input
-                    type="number"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      background: 'var(--surface)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.875rem'
-                    }}
-                    {...register('ppfd')}
-                    placeholder="800"
-                  />
+                  <label style={labelStyle}>PPFD</label>
+                  <input type="number" style={fieldStyle} {...register('ppfd')} placeholder="800" />
                 </div>
-
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>pH Level</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      background: 'var(--surface)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.875rem'
-                    }}
-                    {...register('ph_level')}
-                    placeholder="6.5"
-                  />
+                  <label style={labelStyle}>pH Level</label>
+                  <input type="number" step="0.1" style={fieldStyle} {...register('ph_level')} placeholder="6.5" />
                 </div>
-
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Light Hours</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      background: 'var(--surface)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.875rem'
-                    }}
-                    {...register('light_hours')}
-                    placeholder="18.0"
-                  />
+                  <label style={labelStyle}>Light Hours</label>
+                  <input type="number" step="0.1" style={fieldStyle} {...register('light_hours')} placeholder="18.0" />
                 </div>
-
                 <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Date & Time</label>
-                  <input
-                    type="datetime-local"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      background: 'var(--surface)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.875rem'
-                    }}
-                    {...register('logged_at')}
-                    defaultValue={getCurrentDateTime()}
-                  />
+                  <label style={labelStyle}>Date & Time</label>
+                  <input type="datetime-local" style={fieldStyle} {...register('logged_at')} defaultValue={getCurrentDateTime()} />
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Notes</label>
+                <label style={labelStyle}>Notes</label>
                 <textarea
-                  style={{
-                    width: '100%',
-                    padding: '0.5rem',
-                    border: '1px solid var(--border)',
-                    borderRadius: '6px',
-                    background: 'var(--surface)',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.875rem',
-                    resize: 'vertical',
-                    minHeight: '60px'
-                  }}
+                  style={{ ...fieldStyle, resize: 'vertical', minHeight: '60px' }}
                   {...register('notes')}
                   placeholder="Any observations about environmental conditions..."
                   rows={2}
                 />
               </div>
 
+              {errors.grow_tent && (
+                <span style={{ color: 'var(--error)', fontSize: '0.75rem' }}>{errors.grow_tent.message}</span>
+              )}
+
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  {isSubmitting && <div className="loading"></div>}
+                <button type="submit" disabled={isSubmitting} className="btn btn-primary">
+                  {isSubmitting && <div className="loading" />}
                   {editingLog ? 'Update Reading' : 'Add Reading'}
                 </button>
               </div>
@@ -768,1494 +882,505 @@ const Environment = () => {
         </div>
       )}
 
-      {/* Weekly Stats View */}
-      {showWeekly ? (
-        <div style={{
-          background: 'var(--surface)',
-          borderRadius: '16px',
-          border: '1px solid var(--border)',
-          padding: '2rem',
-          animation: 'fadeInUp 0.8s ease-out 0.2s both'
-        }}>
-          <h2 style={{ color: 'var(--text-primary)', fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Weekly Averages</h2>
-          {weeklyData.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem 0' }}>No weekly data available</p>
-          ) : (
-            <div className="space-y-4">
-              {weeklyData.map((week, _index) => (
-                <div 
-                  key={week.week} 
+      {/* Trends — glance charts after latest conditions */}
+      {sortedLogsForGraphs.length > 0 && (
+        <div className="page-panel">
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            marginBottom: '1.25rem',
+            flexWrap: 'wrap',
+            gap: '0.75rem'
+          }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                <TrendingUp className="w-5 h-5" style={{ color: '#4ade80' }} />
+                <h2 className="page-panel-title" style={{ margin: 0 }}>Trends</h2>
+              </div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', margin: 0 }}>
+                Click a chart for a larger view
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowWeekly(!showWeekly)}
+              className="btn btn-outline flex items-center gap-2"
+              style={{ fontSize: '0.8rem', padding: '0.5rem 0.85rem' }}
+            >
+              {showWeekly ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              Weekly Averages
+            </button>
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '1.25rem'
+          }}
+          >
+            {CHARTS.map((chart) => {
+              const Icon = chart.Icon;
+              return (
+                <div
+                  key={chart.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedChart(chart.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') setSelectedChart(chart.id); }}
                   style={{
-                    border: '1px solid var(--border)',
+                    background: 'rgba(15, 23, 42, 0.6)',
                     borderRadius: '12px',
-                    padding: '1.5rem',
-                    transition: 'all 0.3s ease',
-                    cursor: 'pointer'
+                    border: '1px solid rgba(100, 116, 139, 0.25)',
+                    padding: '1.1rem 1rem 0.85rem',
+                    cursor: 'pointer',
+                    transition: 'border-color 0.2s ease, transform 0.2s ease'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
-                    e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                    e.currentTarget.style.borderColor = `${chart.color}66`;
+                    e.currentTarget.style.transform = 'translateY(-2px)';
                   }}
                   onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.25)';
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.borderColor = 'var(--border)';
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h3 style={{ color: 'var(--text-primary)', fontWeight: '600' }}>
-                      Week of {format(new Date(week.week_start), 'MMM dd, yyyy')}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem' }}>
+                    <Icon className="w-4 h-4" style={{ color: chart.color }} />
+                    <h3 style={{ color: '#f8fafc', fontSize: '0.95rem', fontWeight: 600, margin: 0 }}>
+                      {chart.label}
                     </h3>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                      {week.reading_count} readings
+                  </div>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <LineChart data={sortedLogsForGraphs} margin={{ top: 5, right: 8, left: 0, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.1)" />
+                      <XAxis
+                        dataKey="logged_at"
+                        tick={{ fill: '#94a3b8', fontSize: 10 }}
+                        axisLine={{ stroke: 'rgba(100, 116, 139, 0.2)' }}
+                        tickFormatter={(value) => format(new Date(value), 'MM/dd')}
+                        height={36}
+                        interval="preserveStartEnd"
+                      />
+                      <YAxis
+                        tick={{ fill: '#94a3b8', fontSize: 11 }}
+                        domain={chart.domain}
+                        axisLine={{ stroke: 'rgba(100, 116, 139, 0.2)' }}
+                        width={36}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: 'rgba(15, 23, 42, 0.95)',
+                          border: '1px solid rgba(100, 116, 139, 0.3)',
+                          borderRadius: '6px',
+                          color: '#f8fafc',
+                          fontSize: '0.75rem'
+                        }}
+                        labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy HH:mm')}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey={chart.dataKey}
+                        stroke={chart.color}
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 3, fill: chart.color }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Weekly averages (secondary) */}
+          {showWeekly && (
+          <div style={{ marginTop: '1.25rem', borderTop: '1px solid rgba(100, 116, 139, 0.2)', paddingTop: '1.25rem' }}>
+            {weeklyData.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '1rem 0' }}>
+                No weekly data available
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {weeklyData.map((week) => (
+                  <div
+                    key={week.week}
+                    style={{
+                      border: '1px solid var(--border)',
+                      borderRadius: '12px',
+                      padding: '1rem 1.25rem',
+                      background: 'rgba(15, 23, 42, 0.35)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <h3 style={{ color: 'var(--text-primary)', fontWeight: 600, margin: 0, fontSize: '0.95rem' }}>
+                        Week of {format(new Date(week.week_start), 'MMM dd, yyyy')}
+                      </h3>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                        {week.reading_count} readings
+                      </span>
+                    </div>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))',
+                      gap: '0.75rem',
+                      fontSize: '0.8rem',
+                      textAlign: 'center'
+                    }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#ef4444' }}>
+                          {week.avg_temperature != null ? `${Number(week.avg_temperature).toFixed(1)}°F` : 'N/A'}
+                        </div>
+                        <div style={{ color: 'var(--text-secondary)' }}>Temp</div>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#3b82f6' }}>
+                          {week.avg_humidity != null ? `${Number(week.avg_humidity).toFixed(1)}%` : 'N/A'}
+                        </div>
+                        <div style={{ color: 'var(--text-secondary)' }}>Humidity</div>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#22d3ee' }}>
+                          {week.avg_vpd != null ? Number(week.avg_vpd).toFixed(2) : 'N/A'}
+                        </div>
+                        <div style={{ color: 'var(--text-secondary)' }}>VPD</div>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--primary-color)' }}>
+                          {week.avg_ph_level != null ? Number(week.avg_ph_level).toFixed(1) : 'N/A'}
+                        </div>
+                        <div style={{ color: 'var(--text-secondary)' }}>pH</div>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#fbbf24' }}>
+                          {week.avg_co2 != null ? Math.round(week.avg_co2) : 'N/A'}
+                        </div>
+                        <div style={{ color: 'var(--text-secondary)' }}>CO₂</div>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#a78bfa' }}>
+                          {week.avg_ppfd != null ? Math.round(week.avg_ppfd) : 'N/A'}
+                        </div>
+                        <div style={{ color: 'var(--text-secondary)' }}>PPFD</div>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#fbbf24' }}>
+                          {week.avg_light_hours != null ? `${Number(week.avg_light_hours).toFixed(1)}h` : 'N/A'}
+                        </div>
+                        <div style={{ color: 'var(--text-secondary)' }}>Light</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          )}
+        </div>
+      )}
+
+      {/* Readings — compact collapsible day browser */}
+      <div className="page-panel" style={{ overflow: 'hidden', padding: 0 }}>
+        <div style={{
+          padding: '1.25rem 1.5rem',
+          borderBottom: '1px solid rgba(100, 116, 139, 0.2)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-end',
+          flexWrap: 'wrap',
+          gap: '0.75rem'
+        }}
+        >
+          <div>
+            <h2 className="page-panel-title" style={{ marginBottom: '0.25rem' }}>Readings</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', margin: 0 }}>
+              {filteredReadingLogs.length} in view
+              {filteredReadingLogs.length !== environmentLogs.length
+                ? ` · ${environmentLogs.length} loaded total`
+                : ''}
+              {' — click a day to expand'}
+            </p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {[
+              { id: '7', label: '7d' },
+              { id: '30', label: '30d' },
+              { id: '90', label: '90d' },
+              { id: 'all', label: 'All' }
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setReadingRange(opt.id)}
+                className={`btn ${readingRange === opt.id ? 'btn-primary' : 'btn-outline'}`}
+                style={{ fontSize: '0.75rem', padding: '0.35rem 0.7rem', minWidth: '2.75rem' }}
+              >
+                {opt.label}
+              </button>
+            ))}
+            {filteredReadingLogs.length > 0 && (
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ fontSize: '0.75rem', padding: '0.35rem 0.7rem' }}
+                onClick={() => exportToCSV(filteredReadingLogs)}
+              >
+                Export
+              </button>
+            )}
+          </div>
+        </div>
+
+        {environmentLogs.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '3rem 2rem' }}>
+            <Thermometer className="w-10 h-10" style={{ color: '#f87171', margin: '0 auto 1rem' }} />
+            <h3 style={{ color: '#f8fafc', marginBottom: '0.5rem' }}>No readings yet</h3>
+            <p style={{ color: '#94a3b8', marginBottom: '1.5rem' }}>
+              Start tracking climate for {selectedTent}.
+            </p>
+            <button type="button" onClick={openAddForm} className="btn btn-primary inline-flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Add First Reading
+            </button>
+          </div>
+        ) : filteredReadingLogs.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2.5rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', marginBottom: '1rem' }}>
+              No readings in the last {readingRange === 'all' ? 'period' : `${readingRange} days`}.
+            </p>
+            <button type="button" className="btn btn-outline" onClick={() => setReadingRange('all')}>
+              Show all loaded readings
+            </button>
+          </div>
+        ) : (
+          <>
+            {visibleGroups.map((group) => {
+              const isOpen = !!expandedDays[group.key];
+              const summary = daySummary(group.logs);
+              return (
+                <div key={group.key} style={{ borderBottom: '1px solid rgba(100, 116, 139, 0.2)' }}>
+                  <button
+                    type="button"
+                    onClick={() => toggleDay(group.key)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.65rem',
+                      padding: '0.7rem 1.25rem',
+                      background: isOpen ? 'rgba(15, 23, 42, 0.95)' : 'rgba(15, 23, 42, 0.65)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'inherit',
+                      textAlign: 'left'
+                    }}
+                  >
+                    {isOpen
+                      ? <ChevronDown className="w-4 h-4" style={{ color: '#4ade80', flexShrink: 0 }} />
+                      : <ChevronRight className="w-4 h-4" style={{ color: '#64748b', flexShrink: 0 }} />}
+                    <span style={{
+                      color: '#e2e8f0',
+                      fontWeight: 700,
+                      fontSize: '0.8rem',
+                      letterSpacing: '0.02em',
+                      minWidth: '7.5rem'
+                    }}
+                    >
+                      {group.label}
                     </span>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div className="text-center">
-                      <div style={{ fontWeight: '600', color: '#ef4444' }}>
-                        {week.avg_temperature ? `${week.avg_temperature.toFixed(1)}°F` : 'N/A'}
-                      </div>
-                      <div style={{ color: 'var(--text-secondary)' }}>Avg Temp</div>
-                    </div>
-                    <div className="text-center">
-                      <div style={{ fontWeight: '600', color: '#3b82f6' }}>
-                        {week.avg_humidity ? `${week.avg_humidity.toFixed(1)}%` : 'N/A'}
-                      </div>
-                      <div style={{ color: 'var(--text-secondary)' }}>Avg Humidity</div>
-                    </div>
-                    <div className="text-center">
-                      <div style={{ fontWeight: '600', color: 'var(--primary-color)' }}>
-                        {week.avg_ph_level ? week.avg_ph_level.toFixed(1) : 'N/A'}
-                      </div>
-                      <div style={{ color: 'var(--text-secondary)' }}>Avg pH</div>
-                    </div>
-                    <div className="text-center">
-                      <div style={{ fontWeight: '600', color: '#fbbf24' }}>
-                        {week.avg_light_hours ? `${week.avg_light_hours.toFixed(1)}h` : 'N/A'}
-                      </div>
-                      <div style={{ color: 'var(--text-secondary)' }}>Avg Light</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div 
-          style={{
-            background: 'var(--surface)',
-            borderRadius: '16px',
-            border: '1px solid var(--border)',
-            padding: '2rem',
-            animation: 'fadeInUp 0.8s ease-out 0.4s both',
-            transition: 'all 0.3s ease',
-            cursor: 'pointer'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-4px)';
-            e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
-            e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = 'none';
-            e.currentTarget.style.borderColor = 'var(--border)';
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-            <div>
-              <h2 style={{ color: 'var(--text-primary)', fontSize: '1.5rem', fontWeight: 'bold', margin: 0, marginBottom: '0.5rem' }}>
-                📋 Recent Readings
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: 0 }}>
-                Latest environment measurements and data
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setShowImageUpload(true);
-                }}
-                className="btn btn-outline"
-                style={{borderColor: '#ffb347', color: '#ffb347'}}
-              >
-                <Camera className="w-5 h-5" />
-                From Screenshot
-              </button>
-              <button
-                onClick={() => {
-                  fetchGrowTents(); // Refresh tents before showing form
-                  setShowForm(true);
-                }}
-                className="btn btn-primary"
-              >
-                <Plus className="w-5 h-5" />
-                Manual Entry
-              </button>
-              <button
-                className="btn btn-outline"
-                onClick={() => exportToCSV(sortedLogsForGraphs)}
-                style={{borderColor: '#ffffff', color: '#ffffff'}}
-              >
-                <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-                  <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Export CSV
-              </button>
-            </div>
-          </div>
-          {sortedLogsForGraphs.length === 0 ? (
-            <div style={{ 
-              textAlign: 'center', 
-              padding: '4rem 2rem',
-              background: 'var(--surface-elevated)',
-              borderRadius: '12px',
-              border: '1px solid var(--border)'
-            }}>
-              <div style={{
-                width: '80px',
-                height: '80px',
-                background: 'linear-gradient(135deg, var(--primary-color), var(--accent-color))',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 1.5rem',
-                opacity: 0.8
-              }}>
-                <Thermometer className="w-10 h-10 text-white" />
-              </div>
-              <h3 style={{ 
-                color: 'var(--text-primary)', 
-                fontSize: '1.25rem', 
-                fontWeight: '600', 
-                marginBottom: '0.75rem',
-                letterSpacing: '-0.025em'
-              }}>
-                No environment data yet
-              </h3>
-              <p style={{ 
-                color: 'var(--text-secondary)', 
-                marginBottom: '2rem',
-                fontSize: '0.95rem',
-                lineHeight: '1.5'
-              }}>
-                Start tracking your grow environment conditions to monitor temperature, humidity, pH levels, and more.
-              </p>
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => {
-                    fetchGrowTents(); // Refresh tents before showing form
-                    setShowForm(true);
-                  }}
-                  className="btn btn-primary"
-                  style={{ padding: '0.75rem 1.5rem' }}
-                >
-                  <Plus className="w-4 h-4" />
-                  Add First Reading
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowImageUpload(true);
-                  }}
-                  className="btn btn-outline"
-                  style={{ borderColor: '#ffb347', color: '#ffb347', padding: '0.75rem 1.5rem' }}
-                >
-                  <Camera className="w-4 h-4" />
-                  From Screenshot
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div 
-              style={{
-                background: 'rgba(30, 41, 59, 0.6)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                borderRadius: '16px',
-                border: '1px solid rgba(100, 116, 139, 0.2)',
-                overflow: 'hidden',
-                boxShadow: '0 8px 20px -6px rgba(0, 0, 0, 0.3)',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
-                e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 8px 20px -6px rgba(0, 0, 0, 0.3)';
-                e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.2)';
-              }}
-            >
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', fontSize: '0.875rem', textAlign: 'left', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-                  <colgroup>
-                    <col style={{ width: '13%' }} />
-                    <col style={{ width: '11%' }} />
-                    <col style={{ width: '10%' }} />
-                    <col style={{ width: '8%' }} />
-                    <col style={{ width: '8%' }} />
-                    <col style={{ width: '6%' }} />
-                    <col style={{ width: '8%' }} />
-                    <col style={{ width: '7%' }} />
-                    <col style={{ width: '8%' }} />
-                    <col style={{ width: '8%' }} />
-                    <col style={{ width: '13%' }} />
-                  </colgroup>
-                  <thead>
-                    <tr style={{ 
-                      background: 'rgba(15, 23, 42, 0.8)', 
-                      backdropFilter: 'blur(10px)',
-                      WebkitBackdropFilter: 'blur(10px)',
-                      borderBottom: '1px solid rgba(100, 116, 139, 0.3)' 
-                    }}>
-                      <th style={{ 
-                        padding: '1rem 1.25rem', 
-                        fontWeight: '600', 
-                        color: '#e2e8f0',
-                        fontSize: '0.8rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        textAlign: 'left'
-                      }}>Date/Time</th>
-                      <th style={{ 
-                        padding: '1rem 1.25rem', 
-                        fontWeight: '600', 
-                        color: '#e2e8f0',
-                        fontSize: '0.8rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        textAlign: 'center'
-                      }}>Tent</th>
-                      <th style={{ 
-                        padding: '1rem 1.25rem', 
-                        fontWeight: '600', 
-                        color: '#e2e8f0',
-                        fontSize: '0.8rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        textAlign: 'center'
-                      }}>Stage</th>
-                      <th style={{ 
-                        padding: '1rem 1.25rem', 
-                        fontWeight: '600', 
-                        color: '#e2e8f0',
-                        fontSize: '0.8rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        textAlign: 'center'
-                      }}>Temp</th>
-                      <th style={{ 
-                        padding: '1rem 1.25rem', 
-                        fontWeight: '600', 
-                        color: '#e2e8f0',
-                        fontSize: '0.8rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        textAlign: 'center'
-                      }}>Humidity</th>
-                      <th style={{ 
-                        padding: '1rem 1.25rem', 
-                        fontWeight: '600', 
-                        color: '#e2e8f0',
-                        fontSize: '0.8rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        textAlign: 'center'
-                      }}>pH</th>
-                      <th style={{ 
-                        padding: '1rem 1.25rem', 
-                        fontWeight: '600', 
-                        color: '#e2e8f0',
-                        fontSize: '0.8rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        textAlign: 'center'
-                      }}>Light</th>
-                      <th style={{ 
-                        padding: '1rem 1.25rem', 
-                        fontWeight: '600', 
-                        color: '#e2e8f0',
-                        fontSize: '0.8rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        textAlign: 'center'
-                      }}>CO₂</th>
-                      <th style={{ 
-                        padding: '1rem 1.25rem', 
-                        fontWeight: '600', 
-                        color: '#e2e8f0',
-                        fontSize: '0.8rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        textAlign: 'center'
-                      }}>PPFD</th>
-                      <th style={{ 
-                        padding: '1rem 1.25rem', 
-                        fontWeight: '600', 
-                        color: '#e2e8f0',
-                        fontSize: '0.8rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        textAlign: 'center'
-                      }}>VPD</th>
-                      <th style={{ 
-                        padding: '1rem 1.25rem', 
-                        fontWeight: '600', 
-                        color: '#e2e8f0',
-                        fontSize: '0.8rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        textAlign: 'center'
-                      }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedLogsForGraphs.slice(-10).reverse().map((log, index) => (
-                      <tr 
-                        key={log.id} 
-                        style={{ 
-                          borderBottom: index < 9 ? '1px solid rgba(100, 116, 139, 0.2)' : 'none',
-                          transition: 'all 0.2s ease',
-                          background: index % 2 === 0 ? 'rgba(15, 23, 42, 0.3)' : 'transparent'
-                        }} 
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'rgba(30, 41, 59, 0.7)';
-                          e.currentTarget.style.backdropFilter = 'blur(8px)';
-                          e.currentTarget.style.WebkitBackdropFilter = 'blur(8px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = index % 2 === 0 ? 'rgba(15, 23, 42, 0.3)' : 'transparent';
-                          e.currentTarget.style.backdropFilter = 'none';
-                          e.currentTarget.style.WebkitBackdropFilter = 'none';
-                        }}
+                    <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
+                      {group.logs.length} {group.logs.length === 1 ? 'reading' : 'readings'}
+                    </span>
+                    {!isOpen && summary && (
+                      <span style={{
+                        color: '#94a3b8',
+                        fontSize: '0.75rem',
+                        marginLeft: 'auto',
+                        fontWeight: 500
+                      }}
                       >
-                        <td style={{ padding: '1rem 1.25rem', whiteSpace: 'nowrap', textAlign: 'left' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '0.125rem' }}>
-                            <span style={{ color: '#f8fafc', fontWeight: '600', fontSize: '0.875rem' }}>
-                              {format(new Date(log.logged_at), 'MMM dd, yyyy')}
-                            </span>
-                            <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: '500' }}>
-                              {format(new Date(log.logged_at), 'HH:mm:ss')}
-                            </span>
-                          </div>
-                        </td>
-                        <td style={{ 
-                          padding: '1rem 1.25rem', 
-                          whiteSpace: 'nowrap', 
-                          textAlign: 'center',
-                          verticalAlign: 'middle'
-                        }}>
-                          <span style={{ 
-                            color: '#f8fafc',
-                            background: 'rgba(100, 116, 139, 0.2)',
-                            backdropFilter: 'blur(8px)',
-                            WebkitBackdropFilter: 'blur(8px)',
-                            padding: '0.375rem 0.75rem',
-                            borderRadius: '8px',
+                        {summary}
+                      </span>
+                    )}
+                  </button>
+
+                  {isOpen && group.logs.map((log, index) => (
+                    <div
+                      key={log.id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '52px minmax(0, 1fr) auto',
+                        gap: '0.75rem',
+                        padding: '0.55rem 1.25rem 0.55rem 2.75rem',
+                        borderTop: '1px solid rgba(100, 116, 139, 0.12)',
+                        background: index % 2 === 0 ? 'rgba(15, 23, 42, 0.2)' : 'transparent',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <div style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>
+                        {format(new Date(log.logged_at), 'HH:mm')}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <MetricChips log={log} />
+                        {log.notes && (
+                          <p style={{
+                            color: '#94a3b8',
                             fontSize: '0.75rem',
-                            fontWeight: '600',
-                            border: '1px solid rgba(100, 116, 139, 0.3)',
-                            display: 'inline-block'
-                          }}>
-                            {log.grow_tent || 'General'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '0.2rem 0.5rem',
-                            borderRadius: '100px',
-                            fontSize: '0.625rem',
-                            fontWeight: '700',
-                            background: getStageColor(log.stage).bg,
-                            color: getStageColor(log.stage).color,
-                            border: `1px solid ${getStageColor(log.stage).border}`,
-                            gap: '0.2rem',
-                            backdropFilter: 'blur(8px)',
-                            WebkitBackdropFilter: 'blur(8px)',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.015em',
+                            margin: '0.3rem 0 0',
                             whiteSpace: 'nowrap',
-                            maxWidth: '100%',
                             overflow: 'hidden',
-                            textAlign: 'center',
-                            minWidth: 'fit-content'
-                          }}>
-                            <Sprout className="w-2 h-2" />
-                            {log.stage || 'N/A'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                          <span style={{ 
-                            color: log.temperature ? '#f87171' : '#64748b', 
-                            fontWeight: '600',
-                            fontSize: '0.875rem'
-                          }}>
-                            {log.temperature ? `${log.temperature}°F` : '-'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                          <span style={{ 
-                            color: log.humidity ? '#60a5fa' : '#64748b', 
-                            fontWeight: '600',
-                            fontSize: '0.875rem'
-                          }}>
-                            {log.humidity ? `${log.humidity}%` : '-'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                          <span style={{ 
-                            color: log.ph_level ? '#bef264' : '#64748b', 
-                            fontWeight: '600',
-                            fontSize: '0.875rem'
-                          }}>
-                            {log.ph_level ?? '-'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                          <span style={{ 
-                            color: log.light_hours ? '#fbbf24' : '#64748b', 
-                            fontWeight: '600',
-                            fontSize: '0.875rem'
-                          }}>
-                            {log.light_hours ? `${log.light_hours}h` : '-'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                          <span style={{ 
-                            color: log.co2_level ? '#fbbf24' : '#64748b', 
-                            fontWeight: '600',
-                            fontSize: '0.875rem'
-                          }}>
-                            {log.co2_level ? `${log.co2_level}ppm` : '-'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                          <span style={{ 
-                            color: log.ppfd ? '#a78bfa' : '#64748b', 
-                            fontWeight: '600',
-                            fontSize: '0.875rem'
-                          }}>
-                            {log.ppfd ? `${log.ppfd}μmol` : '-'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                          <span style={{ 
-                            color: log.vpd ? '#22d3ee' : '#64748b', 
-                            fontWeight: '600',
-                            fontSize: '0.875rem'
-                          }}>
-                            {log.vpd ? `${log.vpd}kPa` : '-'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                            <button
-                              onClick={() => handleEdit(log)}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                background: 'rgba(59, 130, 246, 0.2)',
-                                border: '1px solid rgba(59, 130, 246, 0.3)',
-                                borderRadius: '8px',
-                                padding: '0.5rem',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease'
-                              }}
-                              title="Edit Reading"
-                            >
-                              <Edit className="w-4 h-4" style={{ color: '#60a5fa' }} />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleDelete(log.id);
-                              }}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                background: 'rgba(239, 68, 68, 0.2)',
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                                borderRadius: '8px',
-                                padding: '0.5rem',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease'
-                              }}
-                              title="Delete Reading"
-                            >
-                              <Trash2 className="w-4 h-4" style={{ color: '#f87171' }} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {sortedLogsForGraphs.length > 10 && (
-                <div style={{ 
-                  padding: '1.25rem', 
-                  borderTop: '1px solid rgba(100, 116, 139, 0.2)', 
-                  background: 'rgba(15, 23, 42, 0.5)',
-                  backdropFilter: 'blur(10px)',
-                  WebkitBackdropFilter: 'blur(10px)',
-                  textAlign: 'center'
-                }}>
-                  <p style={{ color: '#94a3b8', fontSize: '0.875rem', margin: 0, fontWeight: '500' }}>
-                    Showing latest 10 readings of {sortedLogsForGraphs.length} total
-                  </p>
+                            textOverflow: 'ellipsis'
+                          }}
+                          title={log.notes}
+                          >
+                            {log.notes}
+                          </p>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.35rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(log)}
+                          aria-label="Edit reading"
+                          style={{
+                            display: 'inline-flex',
+                            padding: '0.35rem',
+                            background: 'rgba(59, 130, 246, 0.1)',
+                            color: '#3b82f6',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(59, 130, 246, 0.2)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(log.id)}
+                          aria-label="Delete reading"
+                          style={{
+                            display: 'inline-flex',
+                            padding: '0.35rem',
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            color: '#ef4444',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(239, 68, 68, 0.2)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+              );
+            })}
 
-      {/* Charts Section - 2x2 Grid */}
-      {sortedLogsForGraphs.length > 0 && (
-        <div 
-          style={{
-            background: 'rgba(30, 41, 59, 0.7)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            borderRadius: '16px',
-            border: '1px solid rgba(100, 116, 139, 0.2)',
-            padding: '1.5rem',
-            boxShadow: '0 8px 20px -6px rgba(0, 0, 0, 0.3)',
-            marginTop: '2rem',
-            animation: 'fadeInUp 0.8s ease-out 0.6s both',
-            transition: 'all 0.3s ease',
-            cursor: 'pointer'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-4px)';
-            e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
-            e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 8px 20px -6px rgba(0, 0, 0, 0.3)';
-            e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.2)';
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h2 style={{ 
-              color: '#f8fafc', 
-              fontSize: '1.5rem', 
-              fontWeight: '700', 
-              margin: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <TrendingUp className="w-5 h-5 text-emerald-400" />
-              Environment Analytics
-            </h2>
-          </div>
-          
-          {/* 3x2 Grid Layout */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(3, 1fr)', 
-            gap: '1rem'
-          }}>
-            {/* Temperature Chart */}
-            <div 
-              style={{ 
-                background: 'rgba(15, 23, 42, 0.6)', 
-                borderRadius: '12px', 
-                border: '1px solid rgba(100, 116, 139, 0.2)',
-                padding: '1rem',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer'
-              }}
-              onClick={() => setSelectedChart('temperature')}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
-                e.currentTarget.style.borderColor = 'rgba(248, 113, 113, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.2)';
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <Thermometer className="w-4 h-4" style={{ color: '#f87171' }} />
-                <h3 style={{ color: '#f8fafc', fontSize: '0.875rem', fontWeight: '600', margin: 0 }}>
-                  Temperature
-                </h3>
+            {groupedLogs.length > visibleDayCount && (
+              <div style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setVisibleDayCount((n) => n + 7)}
+                >
+                  Show older days ({groupedLogs.length - visibleDayCount} more)
+                </button>
               </div>
-              <ResponsiveContainer width="100%" height={150}>
-                <LineChart data={sortedLogsForGraphs} margin={{ top: 5, right: 5, left: 5, bottom: 25 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.1)" />
-                  <XAxis 
-                    dataKey="logged_at"
-                    tick={{ fill: '#94a3b8', fontSize: 9 }}
-                    axisLine={{ stroke: 'rgba(100, 116, 139, 0.2)' }}
-                    tickFormatter={(value) => format(new Date(value), 'MM/dd HH:mm')}
-                    angle={-45}
-                    textAnchor="end"
-                    height={50}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis 
-                    tick={{ fill: '#94a3b8', fontSize: 10 }} 
-                    domain={[60, 90]}
-                    axisLine={{ stroke: 'rgba(100, 116, 139, 0.2)' }}
-                    width={30}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      background: 'rgba(15, 23, 42, 0.95)', 
-                      border: '1px solid rgba(100, 116, 139, 0.3)', 
-                      borderRadius: '6px',
-                      color: '#f8fafc',
-                      fontSize: '0.75rem'
-                    }}
-                    labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy HH:mm')}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="temperature" 
-                    stroke="#f87171" 
-                    strokeWidth={2} 
-                    dot={false}
-                    activeDot={{ r: 3, fill: '#ef4444' }} 
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            
-            {/* Humidity Chart */}
-            <div 
-              style={{ 
-                background: 'rgba(15, 23, 42, 0.6)', 
-                borderRadius: '12px', 
-                border: '1px solid rgba(100, 116, 139, 0.2)',
-                padding: '1rem',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer'
-              }}
-              onClick={() => setSelectedChart('humidity')}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
-                e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.2)';
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <Droplets className="w-4 h-4" style={{ color: '#60a5fa' }} />
-                <h3 style={{ color: '#f8fafc', fontSize: '0.875rem', fontWeight: '600', margin: 0 }}>
-                  Humidity
-                </h3>
-              </div>
-              <ResponsiveContainer width="100%" height={150}>
-                <LineChart data={sortedLogsForGraphs} margin={{ top: 5, right: 5, left: 5, bottom: 25 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.1)" />
-                  <XAxis 
-                    dataKey="logged_at"
-                    tick={{ fill: '#94a3b8', fontSize: 9 }}
-                    axisLine={{ stroke: 'rgba(100, 116, 139, 0.2)' }}
-                    tickFormatter={(value) => format(new Date(value), 'MM/dd HH:mm')}
-                    angle={-45}
-                    textAnchor="end"
-                    height={50}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis 
-                    tick={{ fill: '#94a3b8', fontSize: 10 }} 
-                    domain={[0, 100]}
-                    axisLine={{ stroke: 'rgba(100, 116, 139, 0.2)' }}
-                    width={30}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      background: 'rgba(15, 23, 42, 0.95)', 
-                      border: '1px solid rgba(100, 116, 139, 0.3)', 
-                      borderRadius: '6px',
-                      color: '#f8fafc',
-                      fontSize: '0.75rem'
-                    }}
-                    labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy HH:mm')}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="humidity" 
-                    stroke="#60a5fa" 
-                    strokeWidth={2} 
-                    dot={false}
-                    activeDot={{ r: 3, fill: '#3b82f6' }} 
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            
-            {/* VPD Chart */}
-            <div 
-              style={{ 
-                background: 'rgba(15, 23, 42, 0.6)', 
-                borderRadius: '12px', 
-                border: '1px solid rgba(100, 116, 139, 0.2)',
-                padding: '1rem',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer'
-              }}
-              onClick={() => setSelectedChart('vpd')}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
-                e.currentTarget.style.borderColor = 'rgba(34, 211, 238, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.2)';
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <Wind className="w-4 h-4" style={{ color: '#22d3ee' }} />
-                <h3 style={{ color: '#f8fafc', fontSize: '0.875rem', fontWeight: '600', margin: 0 }}>
-                  VPD
-                </h3>
-              </div>
-              <ResponsiveContainer width="100%" height={150}>
-                <LineChart data={sortedLogsForGraphs} margin={{ top: 5, right: 5, left: 5, bottom: 25 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.1)" />
-                  <XAxis 
-                    dataKey="logged_at"
-                    tick={{ fill: '#94a3b8', fontSize: 9 }}
-                    axisLine={{ stroke: 'rgba(100, 116, 139, 0.2)' }}
-                    tickFormatter={(value) => format(new Date(value), 'MM/dd HH:mm')}
-                    angle={-45}
-                    textAnchor="end"
-                    height={50}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis 
-                    tick={{ fill: '#94a3b8', fontSize: 10 }} 
-                    domain={[0, 3]}
-                    axisLine={{ stroke: 'rgba(100, 116, 139, 0.2)' }}
-                    width={30}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      background: 'rgba(15, 23, 42, 0.95)', 
-                      border: '1px solid rgba(100, 116, 139, 0.3)', 
-                      borderRadius: '6px',
-                      color: '#f8fafc',
-                      fontSize: '0.75rem'
-                    }}
-                    labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy HH:mm')}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="vpd" 
-                    stroke="#22d3ee" 
-                    strokeWidth={2} 
-                    dot={false}
-                    activeDot={{ r: 3, fill: '#06b6d4' }} 
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            
-            {/* pH Level Chart */}
-            <div 
-              style={{ 
-                background: 'rgba(15, 23, 42, 0.6)', 
-                borderRadius: '12px', 
-                border: '1px solid rgba(100, 116, 139, 0.2)',
-                padding: '1rem',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer'
-              }}
-              onClick={() => setSelectedChart('ph')}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
-                e.currentTarget.style.borderColor = 'rgba(190, 242, 100, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.2)';
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <TestTube className="w-4 h-4" style={{ color: '#bef264' }} />
-                <h3 style={{ color: '#f8fafc', fontSize: '0.875rem', fontWeight: '600', margin: 0 }}>
-                  pH Level
-                </h3>
-              </div>
-              <ResponsiveContainer width="100%" height={150}>
-                <LineChart data={sortedLogsForGraphs} margin={{ top: 5, right: 5, left: 5, bottom: 25 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.1)" />
-                  <XAxis 
-                    dataKey="logged_at"
-                    tick={{ fill: '#94a3b8', fontSize: 9 }}
-                    axisLine={{ stroke: 'rgba(100, 116, 139, 0.2)' }}
-                    tickFormatter={(value) => format(new Date(value), 'MM/dd HH:mm')}
-                    angle={-45}
-                    textAnchor="end"
-                    height={50}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis 
-                    tick={{ fill: '#94a3b8', fontSize: 10 }} 
-                    domain={[4, 9]}
-                    axisLine={{ stroke: 'rgba(100, 116, 139, 0.2)' }}
-                    width={30}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      background: 'rgba(15, 23, 42, 0.95)', 
-                      border: '1px solid rgba(100, 116, 139, 0.3)', 
-                      borderRadius: '6px',
-                      color: '#f8fafc',
-                      fontSize: '0.75rem'
-                    }}
-                    labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy HH:mm')}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="ph_level" 
-                    stroke="#bef264" 
-                    strokeWidth={2} 
-                    dot={false}
-                    activeDot={{ r: 3, fill: '#84cc16' }} 
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            
-            {/* CO2 Chart */}
-            <div 
-              style={{ 
-                background: 'rgba(15, 23, 42, 0.6)', 
-                borderRadius: '12px', 
-                border: '1px solid rgba(100, 116, 139, 0.2)',
-                padding: '1rem',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer'
-              }}
-              onClick={() => setSelectedChart('co2')}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
-                e.currentTarget.style.borderColor = 'rgba(251, 191, 36, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.2)';
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <Wind className="w-4 h-4" style={{ color: '#fbbf24' }} />
-                <h3 style={{ color: '#f8fafc', fontSize: '0.875rem', fontWeight: '600', margin: 0 }}>
-                  CO₂ Level
-                </h3>
-              </div>
-              <ResponsiveContainer width="100%" height={150}>
-                <LineChart data={sortedLogsForGraphs} margin={{ top: 5, right: 5, left: 5, bottom: 25 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.1)" />
-                  <XAxis 
-                    dataKey="logged_at"
-                    tick={{ fill: '#94a3b8', fontSize: 9 }}
-                    axisLine={{ stroke: 'rgba(100, 116, 139, 0.2)' }}
-                    tickFormatter={(value) => format(new Date(value), 'MM/dd HH:mm')}
-                    angle={-45}
-                    textAnchor="end"
-                    height={50}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis 
-                    tick={{ fill: '#94a3b8', fontSize: 10 }} 
-                    domain={[300, 1500]}
-                    axisLine={{ stroke: 'rgba(100, 116, 139, 0.2)' }}
-                    width={30}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      background: 'rgba(15, 23, 42, 0.95)', 
-                      border: '1px solid rgba(100, 116, 139, 0.3)', 
-                      borderRadius: '6px',
-                      color: '#f8fafc',
-                      fontSize: '0.75rem'
-                    }}
-                    labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy HH:mm')}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="co2_level" 
-                    stroke="#fbbf24" 
-                    strokeWidth={2} 
-                    dot={false}
-                    activeDot={{ r: 3, fill: '#f59e0b' }} 
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            
-            {/* PPFD Chart */}
-            <div 
-              style={{ 
-                background: 'rgba(15, 23, 42, 0.6)', 
-                borderRadius: '12px', 
-                border: '1px solid rgba(100, 116, 139, 0.2)',
-                padding: '1rem',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer'
-              }}
-              onClick={() => setSelectedChart('ppfd')}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
-                e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.2)';
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <Sun className="w-4 h-4" style={{ color: '#a78bfa' }} />
-                <h3 style={{ color: '#f8fafc', fontSize: '0.875rem', fontWeight: '600', margin: 0 }}>
-                  PPFD
-                </h3>
-              </div>
-              <ResponsiveContainer width="100%" height={150}>
-                <LineChart data={sortedLogsForGraphs} margin={{ top: 5, right: 5, left: 5, bottom: 25 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.1)" />
-                  <XAxis 
-                    dataKey="logged_at"
-                    tick={{ fill: '#94a3b8', fontSize: 9 }}
-                    axisLine={{ stroke: 'rgba(100, 116, 139, 0.2)' }}
-                    tickFormatter={(value) => format(new Date(value), 'MM/dd HH:mm')}
-                    angle={-45}
-                    textAnchor="end"
-                    height={50}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis 
-                    tick={{ fill: '#94a3b8', fontSize: 10 }} 
-                    domain={[0, 2000]}
-                    axisLine={{ stroke: 'rgba(100, 116, 139, 0.2)' }}
-                    width={30}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      background: 'rgba(15, 23, 42, 0.95)', 
-                      border: '1px solid rgba(100, 116, 139, 0.3)', 
-                      borderRadius: '6px',
-                      color: '#f8fafc',
-                      fontSize: '0.75rem'
-                    }}
-                    labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy HH:mm')}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="ppfd" 
-                    stroke="#a78bfa" 
-                    strokeWidth={2} 
-                    dot={false}
-                    activeDot={{ r: 3, fill: '#8b5cf6' }} 
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      )}
+            )}
+          </>
+        )}
+      </div>
 
-      {/* Simplified Detailed Chart Modal */}
-      {selectedChart && (
-        <div 
+      {/* Single chart detail modal */}
+      {selectedChart && chartConfig && (
+        <div
           onClick={(e) => {
-            // Close modal when clicking on backdrop
-            if (e.target === e.currentTarget) {
-              setSelectedChart(null);
-            }
+            if (e.target === e.currentTarget) setSelectedChart(null);
           }}
+          role="presentation"
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
+            inset: 0,
             background: 'rgba(0, 0, 0, 0.8)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1000,
             padding: '2rem',
-            animation: 'fadeIn 0.3s ease-out',
             cursor: 'pointer'
           }}
         >
-          <div 
-            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label={`${chartConfig.label} chart`}
             style={{
-              background: 'rgba(15, 23, 42, 0.95)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              borderRadius: '16px',
+              background: 'rgba(15, 23, 42, 0.98)',
               border: '1px solid rgba(100, 116, 139, 0.3)',
-              boxShadow: '0 20px 40px -8px rgba(0, 0, 0, 0.6)',
-              padding: '2rem',
+              borderRadius: '16px',
+              padding: '1.5rem',
               width: '100%',
               maxWidth: '900px',
-              maxHeight: '80vh',
-              overflowY: 'auto',
-              position: 'relative',
-              animation: 'slideUp 0.4s ease-out',
               cursor: 'default'
             }}
           >
-            {/* Simplified modal header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{
-                  background: selectedChart === 'temperature' ? 'rgba(239, 68, 68, 0.2)' :
-                            selectedChart === 'humidity' ? 'rgba(59, 130, 246, 0.2)' :
-                            selectedChart === 'vpd' ? 'rgba(6, 182, 212, 0.2)' :
-                            selectedChart === 'ph' ? 'rgba(132, 204, 22, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                  borderRadius: '12px',
-                  padding: '1rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  {selectedChart === 'temperature' && <Thermometer className="w-6 h-6" style={{ color: '#f87171' }} />}
-                  {selectedChart === 'humidity' && <Droplets className="w-6 h-6" style={{ color: '#60a5fa' }} />}
-                  {selectedChart === 'vpd' && <Wind className="w-6 h-6" style={{ color: '#22d3ee' }} />}
-                  {selectedChart === 'ph' && <Beaker className="w-6 h-6" style={{ color: '#bef264' }} />}
-                </div>
-                <div>
-                  <h2 style={{
-                    color: '#f8fafc',
-                    fontSize: '1.8rem',
-                    fontWeight: '700',
-                    margin: 0,
-                    letterSpacing: '-0.02em'
-                  }}>
-                    {selectedChart.charAt(0).toUpperCase() + selectedChart.slice(1)} Analytics
-                  </h2>
-                  <p style={{ color: '#94a3b8', fontSize: '1rem', margin: 0, marginTop: '0.25rem' }}>
-                    Detailed performance analysis
-                  </p>
-                </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                {ChartIcon && <ChartIcon className="w-6 h-6" style={{ color: chartConfig.color }} />}
+                <h2 style={{ color: '#f8fafc', margin: 0, fontSize: '1.25rem' }}>
+                  {chartConfig.label}
+                </h2>
               </div>
-              <button
-                onClick={() => setSelectedChart(null)}
-                style={{
-                  background: 'rgba(100, 116, 139, 0.2)',
-                  border: '1px solid rgba(100, 116, 139, 0.3)',
-                  borderRadius: '8px',
-                  color: '#94a3b8',
-                  padding: '0.75rem',
-                  cursor: 'pointer',
-                  fontSize: '1.25rem',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = 'rgba(248, 113, 113, 0.2)';
-                  e.target.style.borderColor = 'rgba(248, 113, 113, 0.4)';
-                  e.target.style.color = '#f87171';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = 'rgba(100, 116, 139, 0.2)';
-                  e.target.style.borderColor = 'rgba(100, 116, 139, 0.3)';
-                  e.target.style.color = '#94a3b8';
-                }}
-              >
-                ×
+              <button type="button" className="btn btn-outline" onClick={() => setSelectedChart(null)}>
+                Close
               </button>
             </div>
-            
-            {/* Simplified chart container */}
-            <div style={{
-              background: 'rgba(30, 41, 59, 0.3)',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              border: '1px solid rgba(100, 116, 139, 0.2)'
-            }}>
-              <div style={{ height: '400px', position: 'relative' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={sortedLogsForGraphs} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                    <CartesianGrid 
-                      strokeDasharray="3 3" 
-                      stroke="rgba(100, 116, 139, 0.2)" 
-                    />
-                    <XAxis 
-                      dataKey="logged_at"
-                      tick={{ fill: '#e2e8f0', fontSize: 12 }} 
-                      axisLine={{ stroke: 'rgba(100, 116, 139, 0.3)' }}
-                      tickLine={{ stroke: 'rgba(100, 116, 139, 0.3)' }}
-                      tickFormatter={(value) => format(new Date(value), 'MM/dd HH:mm')}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                      interval="preserveStartEnd"
-                    />
-                    <YAxis 
-                      tick={{ fill: '#e2e8f0', fontSize: 12 }} 
-                      axisLine={{ stroke: 'rgba(100, 116, 139, 0.3)' }}
-                      tickLine={{ stroke: 'rgba(100, 116, 139, 0.3)' }}
-                      domain={['dataMin - 2', 'dataMax + 2']}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'rgba(15, 23, 42, 0.95)', 
-                        backdropFilter: 'blur(12px)',
-                        WebkitBackdropFilter: 'blur(12px)',
-                        border: '1px solid rgba(100, 116, 139, 0.3)', 
-                        borderRadius: '8px',
-                        color: '#f1f5f9',
-                        padding: '0.75rem 1rem',
-                        boxShadow: '0 8px 16px -4px rgba(0, 0, 0, 0.4)'
-                      }}
-                      labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy HH:mm')}
-                      labelStyle={{ 
-                        color: '#cbd5e1',
-                        fontSize: '0.875rem',
-                        fontWeight: '500'
-                      }}
-                      formatter={(value, _name) => [
-                        <span key="value" style={{ 
-                          color: selectedChart === 'temperature' ? '#f87171' :
-                                 selectedChart === 'humidity' ? '#60a5fa' :
-                                 selectedChart === 'vpd' ? '#22d3ee' :
-                                 selectedChart === 'ph' ? '#bef264' : '#f87171',
-                          fontWeight: '600'
-                        }}>
-                          {value}{
-                            selectedChart === 'temperature' ? '°F' : 
-                            selectedChart === 'humidity' ? '%' : 
-                            selectedChart === 'vpd' ? ' kPa' : ''
-                          }
-                        </span>,
-                        selectedChart.charAt(0).toUpperCase() + selectedChart.slice(1)
-                      ]}
-                    />
-                    
-                    {/* Simplified line */}
-                    <Line 
-                      type="monotone" 
-                      dataKey={
-                        selectedChart === 'temperature' ? 'temperature' :
-                        selectedChart === 'humidity' ? 'humidity' :
-                        selectedChart === 'vpd' ? 'vpd' :
-                        selectedChart === 'ph' ? 'ph_level' :
-                        selectedChart === 'co2' ? 'co2_level' :
-                        selectedChart === 'ppfd' ? 'ppfd_level' : 'temperature'
-                      }
-                      stroke={selectedChart === 'temperature' ? '#f87171' :
-                             selectedChart === 'humidity' ? '#60a5fa' :
-                             selectedChart === 'vpd' ? '#22d3ee' :
-                             selectedChart === 'ph' ? '#bef264' :
-                             selectedChart === 'co2' ? '#fbbf24' :
-                             selectedChart === 'ppfd' ? '#a78bfa' : '#f87171'}
-                      strokeWidth={3} 
-                      dot={{ 
-                        r: 4, 
-                        fill: selectedChart === 'temperature' ? '#f87171' :
-                              selectedChart === 'humidity' ? '#60a5fa' :
-                              selectedChart === 'vpd' ? '#22d3ee' :
-                              selectedChart === 'ph' ? '#bef264' : '#f87171',
-                        strokeWidth: 0
-                      }} 
-                      activeDot={{ 
-                        r: 6, 
-                        fill: selectedChart === 'temperature' ? '#ef4444' :
-                              selectedChart === 'humidity' ? '#3b82f6' :
-                              selectedChart === 'vpd' ? '#06b6d4' :
-                              selectedChart === 'ph' ? '#84cc16' : '#ef4444',
-                        stroke: '#f8fafc',
-                        strokeWidth: 2
-                      }} 
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Loading Animation */}
-      {loading && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="loading-container">
-            <div className="quantum-loader">
-              <div className="quantum-core"></div>
-              <div className="quantum-ring quantum-ring-1"></div>
-              <div className="quantum-ring quantum-ring-2"></div>
-              <div className="quantum-ring quantum-ring-3"></div>
-              <div className="quantum-particles">
-                <div className="particle"></div>
-                <div className="particle"></div>
-                <div className="particle"></div>
-                <div className="particle"></div>
-              </div>
-            </div>
-            <div className="loading-text">
-              Loading environment data...
-            </div>
+            <ResponsiveContainer width="100%" height={360}>
+              <LineChart data={sortedLogsForGraphs} margin={{ top: 10, right: 20, left: 10, bottom: 40 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.15)" />
+                <XAxis
+                  dataKey="logged_at"
+                  tick={{ fill: '#94a3b8', fontSize: 11 }}
+                  tickFormatter={(value) => format(new Date(value), 'MMM dd HH:mm')}
+                  angle={-35}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis
+                  tick={{ fill: '#94a3b8', fontSize: 11 }}
+                  domain={chartConfig.domain}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: 'rgba(15, 23, 42, 0.95)',
+                    border: '1px solid rgba(100, 116, 139, 0.3)',
+                    borderRadius: '6px',
+                    color: '#f8fafc'
+                  }}
+                  labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy HH:mm')}
+                  formatter={(value) => [`${value}${chartConfig.unit}`, chartConfig.label]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey={chartConfig.dataKey}
+                  stroke={chartConfig.color}
+                  strokeWidth={2.5}
+                  dot={{ r: 3, fill: chartConfig.color }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
       )}
 
-      {/* Image Upload Modal */}
       {showImageUpload && (
         <ImageUpload
-          onDataParsed={handleImageData}
           onClose={() => setShowImageUpload(false)}
+          onDataParsed={handleImageData}
         />
-      )}
-
-      {/* Chart Modal */}
-      {selectedChart && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.8)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '2rem',
-            animation: 'fadeIn 0.3s ease-out'
-          }}
-          onClick={() => setSelectedChart(null)}
-        >
-          <div 
-            style={{
-              background: 'rgba(15, 23, 42, 0.95)',
-              borderRadius: '20px',
-              border: '1px solid rgba(100, 116, 139, 0.3)',
-              padding: '2rem',
-              width: '95%',
-              maxWidth: '1200px',
-              height: '85%',
-              maxHeight: '800px',
-              minHeight: '500px',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-              animation: 'modalSlideIn 0.3s ease-out',
-              '@media (max-width: 768px)': {
-                width: '98%',
-                height: '90%',
-                padding: '1.5rem',
-                borderRadius: '16px'
-              }
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
-              marginBottom: '1.5rem',
-              paddingBottom: '1rem',
-              borderBottom: '1px solid rgba(100, 116, 139, 0.2)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                {selectedChart === 'temperature' && (
-                  <>
-                    <Thermometer className="w-6 h-6" style={{ color: '#f87171' }} />
-                    <h2 style={{ color: '#f8fafc', fontSize: '1.5rem', fontWeight: '700', margin: 0 }}>
-                      Temperature Analytics
-                    </h2>
-                  </>
-                )}
-                {selectedChart === 'humidity' && (
-                  <>
-                    <Droplets className="w-6 h-6" style={{ color: '#60a5fa' }} />
-                    <h2 style={{ color: '#f8fafc', fontSize: '1.5rem', fontWeight: '700', margin: 0 }}>
-                      Humidity Analytics
-                    </h2>
-                  </>
-                )}
-                {selectedChart === 'vpd' && (
-                  <>
-                    <Beaker className="w-6 h-6" style={{ color: '#22d3ee' }} />
-                    <h2 style={{ color: '#f8fafc', fontSize: '1.5rem', fontWeight: '700', margin: 0 }}>
-                      VPD Analytics
-                    </h2>
-                  </>
-                )}
-                {selectedChart === 'ph' && (
-                  <>
-                    <TestTube className="w-6 h-6" style={{ color: '#bef264' }} />
-                    <h2 style={{ color: '#f8fafc', fontSize: '1.5rem', fontWeight: '700', margin: 0 }}>
-                      pH Level Analytics
-                    </h2>
-                  </>
-                )}
-                {selectedChart === 'co2' && (
-                  <>
-                    <Wind className="w-6 h-6" style={{ color: '#fbbf24' }} />
-                    <h2 style={{ color: '#f8fafc', fontSize: '1.5rem', fontWeight: '700', margin: 0 }}>
-                      CO₂ Level Analytics
-                    </h2>
-                  </>
-                )}
-                {selectedChart === 'ppfd' && (
-                  <>
-                    <Sun className="w-6 h-6" style={{ color: '#a78bfa' }} />
-                    <h2 style={{ color: '#f8fafc', fontSize: '1.5rem', fontWeight: '700', margin: 0 }}>
-                      PPFD Analytics
-                    </h2>
-                  </>
-                )}
-              </div>
-              <button
-                onClick={() => setSelectedChart(null)}
-                style={{
-                  background: 'rgba(100, 116, 139, 0.2)',
-                  border: '1px solid rgba(100, 116, 139, 0.3)',
-                  borderRadius: '8px',
-                  color: '#94a3b8',
-                  padding: '0.75rem',
-                  cursor: 'pointer',
-                  fontSize: '1.25rem',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = 'rgba(248, 113, 113, 0.2)';
-                  e.target.style.borderColor = 'rgba(248, 113, 113, 0.4)';
-                  e.target.style.color = '#f87171';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = 'rgba(100, 116, 139, 0.2)';
-                  e.target.style.borderColor = 'rgba(100, 116, 139, 0.3)';
-                  e.target.style.color = '#94a3b8';
-                }}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Chart Container */}
-            <div style={{ flex: 1, minHeight: 0 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={sortedLogsForGraphs} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.2)" />
-                  <XAxis 
-                    dataKey="logged_at"
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
-                    axisLine={{ stroke: 'rgba(100, 116, 139, 0.3)' }}
-                    tickFormatter={(value) => format(new Date(value), 'MM/dd HH:mm')}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis 
-                    tick={{ fill: '#94a3b8', fontSize: 12 }} 
-                    domain={
-                      selectedChart === 'temperature' ? [60, 90] :
-                      selectedChart === 'humidity' ? [0, 100] :
-                      selectedChart === 'vpd' ? [0, 3] :
-                      selectedChart === 'ph' ? [4, 9] :
-                      selectedChart === 'co2' ? [300, 1500] :
-                      selectedChart === 'ppfd' ? [0, 2000] : ['auto', 'auto']
-                    }
-                    axisLine={{ stroke: 'rgba(100, 116, 139, 0.3)' }}
-                    width={60}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      background: 'rgba(15, 23, 42, 0.95)', 
-                      border: '1px solid rgba(100, 116, 139, 0.3)', 
-                      borderRadius: '8px',
-                      color: '#f8fafc',
-                      fontSize: '0.875rem'
-                    }}
-                    labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy HH:mm')}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey={
-                      selectedChart === 'temperature' ? 'temperature' :
-                      selectedChart === 'humidity' ? 'humidity' :
-                      selectedChart === 'vpd' ? 'vpd' :
-                      selectedChart === 'ph' ? 'ph_level' :
-                      selectedChart === 'co2' ? 'co2_level' :
-                      selectedChart === 'ppfd' ? 'ppfd_level' : 'temperature'
-                    }
-                    stroke={selectedChart === 'temperature' ? '#f87171' :
-                           selectedChart === 'humidity' ? '#60a5fa' :
-                           selectedChart === 'vpd' ? '#22d3ee' :
-                           selectedChart === 'ph' ? '#bef264' :
-                           selectedChart === 'co2' ? '#fbbf24' :
-                           selectedChart === 'ppfd' ? '#a78bfa' : '#f87171'}
-                    strokeWidth={3} 
-                    dot={{ fill: 'currentColor', strokeWidth: 2, r: 4 }}
-                    activeDot={{ 
-                      r: 6, 
-                      fill: 'currentColor',
-                      stroke: '#fff',
-                      strokeWidth: 2
-                    }} 
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Modal Footer */}
-            <div style={{
-              marginTop: '1.5rem',
-              paddingTop: '1rem',
-              borderTop: '1px solid rgba(100, 116, 139, 0.2)',
-              color: '#94a3b8',
-              fontSize: '0.875rem',
-              textAlign: 'center'
-            }}>
-              Click anywhere outside this chart to close • {sortedLogsForGraphs.length} data points
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

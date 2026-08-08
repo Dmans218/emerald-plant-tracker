@@ -1,41 +1,33 @@
 {
   "name": "emerald-plant-tracker-backend",
   "version": "1.0.0",
-  "description": "Backend for Emerald Plant Tracker with enhanced OCR capabilities",
+  "description": "Backend for Emerald Plant Tracker",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "audit": "npm audit || true",
     "audit-fix": "npm audit fix",
-    "test": "echo \"No tests specified\" && exit 0"
+    "test": "node --test test/**/*.test.js"
   },
   "dependencies": {
-    "axios": "^1.19.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.1",
-    "jimp": "^1.6.1",
+    "helmet": "^8.1.0",
     "joi": "^18.2.3",
     "morgan": "^1.11.0",
     "multer": "^2.2.0",
-    "sharp": "^0.35.3",
-    "sqlite3": "^6.0.1",
-    "tesseract.js": "^7.0.0"
+    "sqlite3": "^6.0.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "supertest": "^7.1.4"
   },
   "keywords": [
     "cannabis",
     "tracking",
-    "ocr",
-    "environmental",
-    "controller",
-    "spider-farmer",
-    "ac-infinity",
-    "vivosun",
-    "mars-hydro"
+    "environmental"
   ],
   "author": "Emerald Plant Tracker Team",
   "license": "MIT",

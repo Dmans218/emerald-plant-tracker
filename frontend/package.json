@@ -7,13 +7,11 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.5.2",
     "axios": "^1.19.0",
-    "chart.js": "^4.5.1",
     "date-fns": "^4.4.0",
     "exif-js": "^2.3.0",
     "globals": "^17.8.0",
     "lucide-react": "^1.28.0",
     "react": "^19.2.8",
-    "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.8",
     "react-hook-form": "^7.83.0",
     "react-hot-toast": "^2.6.0",
@@ -35,7 +33,6 @@
   "npmConfig": {
     "legacy-peer-deps": true
   },
-
   "browserslist": {
     "production": [
       ">0.2%",
@@ -48,7 +45,7 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:5000",
+  "proxy": "http://localhost:420",
   "devDependencies": {
     "@craco/craco": "^5.9.0",
     "@eslint/js": "^10.0.1",
@@ -56,7 +53,8 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
-    "react-scripts": "^5.1.0-next.26"
+    "react-scripts": "^5.1.0-next.26",
+    "webpack-dev-server": "4.15.2"
   },
   "engines": {
     "node": ">=20.0.0",
@@ -65,9 +63,9 @@
   "overrides": {
     "nth-check": "^2.1.1",
     "postcss": "^8.4.31",
-    "webpack-dev-server": "^5.2.1",
+    "webpack-dev-server": "4.15.2",
     "react-scripts": {
-      "webpack-dev-server": "^5.2.1"
+      "webpack-dev-server": "4.15.2"
     },
     "eslint": "^9.28.0",
     "eslint-webpack-plugin": "^4.0.1",

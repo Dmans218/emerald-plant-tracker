@@ -1,19 +1,14 @@
-FROM node:18
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 
-# Copy package files first for better Docker layer caching
 COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy application code
 COPY . .
-
-# Create data directory for SQLite
 RUN mkdir -p data uploads
 
-EXPOSE 5000
+ENV PORT=420
+EXPOSE 420
 
-CMD ["node", "server.js"] 
+CMD ["node", "server.js"]

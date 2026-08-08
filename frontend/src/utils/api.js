@@ -1,29 +1,15 @@
 import axios from 'axios';
 
-// In production (single container), use relative paths
-// In development, use the environment variable or default to localhost:5000
-const API_BASE_URL = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000');
+// Relative paths in production (same origin). Dev server proxies /api via package.json proxy.
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
-  timeout: 10000,
+  timeout: 15000,
 });
 
-// Request interceptor
-api.interceptors.request.use(
-  (config) => {
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor
 api.interceptors.response.use(
-  (response) => {
-    return response.data;
-  },
+  (response) => response.data,
   (error) => {
     const message = error.response?.data?.error || error.message || 'Something went wrong';
     return Promise.reject(new Error(message));
@@ -42,26 +28,30 @@ export const plantsApi = {
   unarchive: (archivedGrowId) => api.post(`/plants/archived/${archivedGrowId}/unarchive`),
   getArchivedGrows: () => api.get('/plants/archived'),
   getArchivedGrow: (id) => api.get(`/plants/archived/${id}`),
-  exportArchivedGrow: (id) => {
-    return api.get(`/plants/archived/${id}/export`, { 
+  exportArchivedGrow: (id) =>
+    api.get(`/plants/archived/${id}/export`, {
       responseType: 'blob',
-      headers: { 'Accept': 'text/csv' }
-    });
-  },
-  exportArchivedTent: (tentName) => {
-    return api.get(`/plants/archived/tent/${encodeURIComponent(tentName)}/export`, { 
+      headers: { Accept: 'text/csv' },
+    }),
+  exportArchivedTent: (tentName) =>
+    api.get(`/plants/archived/tent/${encodeURIComponent(tentName)}/export`, {
       responseType: 'blob',
-      headers: { 'Accept': 'text/csv' }
-    });
-  },
-  clearTentEnvironmentData: (tentName, confirm = true) => {
-    return api.delete(`/plants/tent/${encodeURIComponent(tentName)}/environment`, { 
-      data: { confirm } 
-    });
-  },
-  getTentSummary: (tentName) => {
-    return api.get(`/plants/tent/${encodeURIComponent(tentName)}/summary`);
-  },
+      headers: { Accept: 'text/csv' },
+    }),
+  clearTentEnvironmentData: (tentName, confirm = true, force = false) =>
+    api.delete(`/plants/tent/${encodeURIComponent(tentName)}/environment`, {
+      data: { confirm, force },
+    }),
+  getTentSummary: (tentName) =>
+    api.get(`/plants/tent/${encodeURIComponent(tentName)}/summary`),
+};
+
+// Tents API (first-class tent surface)
+export const tentsApi = {
+  list: () => api.get('/tents'),
+  getSummary: (tentName) => api.get(`/tents/${encodeURIComponent(tentName)}/summary`),
+  clearEnvironment: (tentName, confirm = true, force = false) =>
+    api.delete(`/tents/${encodeURIComponent(tentName)}/environment`, { data: { confirm, force } }),
 };
 
 // Logs API
@@ -71,11 +61,10 @@ export const logsApi = {
   create: (data) => api.post('/logs', data),
   update: (id, data) => api.put(`/logs/${id}`, data),
   delete: (id) => api.delete(`/logs/${id}`),
-  uploadPhoto: (formData) => api.post('/logs/photo', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  }),
+  uploadPhoto: (formData) =>
+    api.post('/logs/photo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
   getStats: (plantId) => api.get(`/logs/stats/${plantId}`),
 };
 
@@ -83,6 +72,7 @@ export const logsApi = {
 export const environmentApi = {
   getAll: (params) => api.get('/environment', { params }),
   getLatest: (params) => api.get('/environment/latest', { params }),
+  getLatestPerTent: () => api.get('/environment/latest-per-tent'),
   getWeekly: (params) => api.get('/environment/weekly', { params }),
   create: (data) => api.post('/environment', data),
   update: (id, data) => api.put(`/environment/${id}`, data),
@@ -90,9 +80,16 @@ export const environmentApi = {
   getGrowTents: () => api.get('/environment/grow-tents'),
 };
 
-// Health check
+// Health / backup
 export const healthApi = {
   check: () => api.get('/health'),
 };
 
-export default api; 
+export const backupApi = {
+  download: () =>
+    api.get('/backup', {
+      responseType: 'blob',
+    }),
+};
+
+export default api;

@@ -1,79 +1,59 @@
-# 🌿 Emerald Plant Tracker - Advanced Cannabis Cultivation Tracker
+# Emerald Plant Tracker
 
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Docker Ready](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org/)
 [![GitHub Sponsors](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-fc2967?logo=github)](https://github.com/sponsors/Dmans218)
 [![Buy Me a Coffee](https://img.shields.io/badge/donate-Ko--fi-29abe0?logo=ko-fi)](https://ko-fi.com/emeraldplantmanager)
 
-A comprehensive, self-hosted web application for professional cannabis cultivation management. Built with React, Express, and SQLite, featuring an advanced nutrient calculator, environmental monitoring, and complete grow tracking. Fully Dockerized for easy deployment and perfect for privacy-focused growers.
+Self-hosted cannabis cultivation tracker for plants, environment, activity logs, archives, and a multi-brand nutrient calculator. Built with React, Express, and SQLite — one Docker container, data stays on your hardware.
+
+**Live app after deploy:** [http://localhost:420](http://localhost:420)
 
 ---
 
-## ✨ Key Features
+## Features
 
-### 🧪 **Advanced Nutrient Calculator**
+### Plants & grow tents
+- Track plants from seed through harvest (stage, strain, tent, notes)
+- Multi-tent organization with per-tent environment snapshots on the plants home view
+- Photo docs and activity history on plant detail
+- Archive completed grows with yield / harvest metadata; unarchive when needed
+- CSV export for archived plants and full tent datasets
 
-- **10+ Professional Nutrient Brands**: General Hydroponics, Advanced Nutrients, Fox Farm, Canna, Jack's 321, MegaCrop, and more
-- **Smart Growth Stage Management**: Automatic feeding strength adjustments for seedling, vegetative, and flowering stages
-- **Multi-Medium Support**: Hydroponic, Coco/Soilless, Soil, and Inert media configurations
-- **Precise Mixing Ratios**: Calculate exact amounts for any tank size with watering method adjustments
-- **localStorage Persistence**: Remembers your preferred settings between sessions
-- **Copy-to-Clipboard Recipes**: Export complete mixing instructions with one click
-- **Real-time PPM/EC Targets**: Brand-specific target ranges for optimal plant health
-- **pH Guidelinegots**: Medium-specific pH recommendations (5.5-6.5 hydro, 6.0-7.0 soil)
+### Activity logs
+- Log watering, feeding, pruning, training, environmental checks, and observations
+- Optional fields: pH, EC/TDS, temp/humidity, PPFD, CO₂, water amount, nutrients, height
+- Photo uploads attached to log entries
+- Filter and review history across plants
 
-### 🌿 **Plant Management System**
-- **Complete Growth Tracking**: Monitor plants from seed to harvest across all growth stages
-- **Strain Information**: Store genetics, breeder info, and cultivation notes
-- **Visual Progress**: Upload photos to track plant development over time
-- **Growth Timeline**: Detailed chronological view of each plant's journey
-- **Harvest Management**: Track yield, quality, and curing progress
+### Environment
+- Multi-tent readings: temperature, humidity, pH, light hours, VPD, CO₂, PPFD
+- Charts and weekly averages for trends
+- Client-side CSV export of filtered readings
+- Optional **Spider Farmer** webhook (`POST /api/environment/spider-farmer`) when `INTEGRATION_SECRET` is set
 
-### 📊 **Environmental Monitoring**
-- **Comprehensive Data Logging**: Temperature, humidity, VPD, CO₂, PPFD, pH, and light hours
-- **Multi-Tent Support**: Manage multiple grow spaces with independent environmental tracking
-- **Statistical Analysis**: Weekly averages and trends for environmental optimization
-- **CSV Export**: Download environmental data for external analysis
-- **Real-time Dashboard**: At-a-glance view of all critical environmental parameters
+### Nutrient calculator
+- **10 brands:** General Hydroponics FloraSeries, Advanced Nutrients, Fox Farm, Canna, Jack’s 321, MegaCrop, Botanicare, Dyna-Gro, House & Garden, Nectar for the Gods
+- Weekly schedules and stage-aware mixing strength
+- Tank size, medium, and watering-method adjustments
+- PPM/EC targets and pH guidance; prefs in `localStorage`; copyable recipes
 
-### 📈 **Activity & Logging System**
-- **Detailed Activity Logs**: Watering, feeding, pruning, training, and general observations
-- **Photo Documentation**: Visual progress tracking with timestamp and notes
-- **Plant Statistics**: Automated tracking of feeding schedules and growth metrics
-- **Historical Timeline**: Complete cultivation history for each plant
-
-### 🎨 **Modern User Interface**
-- **Dark Theme Design**: Cannabis-themed aesthetic with smooth animations
-- **Responsive Layout**: Works perfectly on desktop, tablet, and mobile devices
-- **Interactive Cards**: Hover effects and smooth transitions throughout the interface
-- **Smart Notifications**: Real-time feedback with toast notifications
-- **Intuitive Navigation**: Clean, organized layout with easy access to all features
-
-### 🐳 **Self-Hosted & Privacy-Focused**
-- **Single Docker Container**: Complete setup with one command
-- **SQLite Database**: No external dependencies, simple and reliable
-- **Local Data Storage**: All your cultivation data stays on your hardware
-- **No Internet Required**: Runs completely offline once deployed
-- **Automated Backups**: Built-in data persistence with Docker volumes
-
-### ⚡ **Developer Experience & Code Quality**
-
-- **Modern ESLint Configuration**: Enforces consistent code style and catches potential issues
-- **React Best Practices**: Follows current React patterns and performance optimizations
-- **Clean Codebase**: Zero console statements in production, no unused variables or imports
-- **Type Safety**: Proper prop validation and error handling throughout the application
-- **Maintainable Architecture**: Well-organized file structure with clear separation of concerns
+### Self-hosting
+- Single production image: API + built React SPA on **port 420**
+- SQLite + Docker volumes for DB and uploads
+- Optional API token, rate limiting, Helmet headers, CORS for private LAN ranges
+- Health check: `GET /api/health`
+- DB backup download: `GET /api/backup`
 
 ---
 
-## 🚀 Quick Start (Docker Hub)
+## Quick start (Docker Hub)
 
-You can run Emerald Plant Tracker directly from Docker Hub—no need to clone the repo!
-
-### **Option 1: Docker Run**
+### Docker Run
 
 ```bash
-sudo docker run -d \
+docker run -d \
   --name emerald-plant-tracker \
   -p 420:420 \
   -v emerald_data:/app/backend/data \
@@ -81,24 +61,14 @@ sudo docker run -d \
   dmans218/emerald-plant-tracker:latest
 ```
 
-- App will be available at [http://localhost:420](http://localhost:420)
-- Data is persisted in the `emerald_data` Docker volume
-
-### **Option 2: Docker Compose**
-
-You can use the pre-configured docker-compose.yml file:
+### Docker Compose
 
 ```bash
-# Download the docker-compose.yml file
 curl -O https://raw.githubusercontent.com/Dmans218/emerald-plant-tracker/main/docker-compose.yml
-
-# Start the container
-sudo docker-compose up -d
+docker compose up -d
 ```
 
-### **Option 3: Copy & Paste Docker Compose**
-
-For easy integration into your existing Docker stack, here's the complete `docker-compose.yml`:
+Or use this compose file:
 
 ```yaml
 services:
@@ -112,331 +82,233 @@ services:
       - emerald_uploads:/app/backend/uploads
     environment:
       - NODE_ENV=production
+      - DATABASE_URL=/app/backend/data/emerald-plant-tracker.db
+      - ENABLE_PUBLIC_HEALTH=true
+      # Optional hardening (see docs/SECURITY_AND_OPS.md):
+      # - APP_AUTH_TOKEN=change-me
+      # - INTEGRATION_SECRET=change-me-for-spider-farmer
+      # - CORS_ORIGINS=https://grow.example.com
     restart: unless-stopped
+    user: "1000:1000"
 volumes:
   emerald_data:
   emerald_uploads:
-networks: {}
 ```
 
-**To use this:**
+Open **http://localhost:420**. Persist data with the named volumes above.
 
-1. **Save as `docker-compose.yml`** in your desired directory
-2. **Start the container**:
-
-   ```bash
-   docker-compose up -d
-   ```
-
-The image will be automatically pulled from Docker Hub on first run.
-
----
-
-## 🐳 Docker Deployment Options
-
-### **🎯 Quick Deploy (Recommended)**
-
-**For most users - use the pre-built image:**
+### Build from source
 
 ```bash
-# Create and run with docker-compose
-curl -o docker-compose.yml https://raw.githubusercontent.com/Dmans218/emerald-plant-tracker/main/docker-compose.yml
-docker-compose up -d
-```
-
-### **🔧 Custom Build**
-
-**For developers or custom modifications:**
-
-```bash
-# Clone and build from source
 git clone https://github.com/Dmans218/emerald-plant-tracker.git
 cd emerald-plant-tracker
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
-### **⚡ One-Line Deploy**
+---
 
-**Fastest setup with Docker run:**
+## Development
+
+**Requirements:** Node.js ≥ 20, npm ≥ 10
 
 ```bash
-docker run -d --name emerald-plant-tracker -p 420:420 \
-  -v emerald_data:/app/backend/data \
-  -v emerald_uploads:/app/backend/uploads \
-  dmans218/emerald-plant-tracker:latest
+git clone https://github.com/Dmans218/emerald-plant-tracker.git
+cd emerald-plant-tracker
+
+npm install
+cd backend && npm install && cd ..
+cd frontend && npm install --legacy-peer-deps && cd ..
+
+# API on :420, CRA dev server on :3000 (proxies /api → backend)
+npm run dev
 ```
 
-**🌐 Access your application at: [http://localhost:420](http://localhost:420)**
+| Script | Location | Purpose |
+|--------|----------|---------|
+| `npm run dev` | root | Backend (nodemon) + frontend (CRACO) together |
+| `npm start` | root / backend | Production-style API only |
+| `npm run build` | root | Build React app into `frontend/build` |
+| `npm test` | backend | Node test suite (`backend/test`) |
+| `npm test` | frontend | CRA/CRACO tests |
+| `npm run lint` | frontend | ESLint on `src/` |
+
+Default API port is **420** (`PORT`). Frontend dev uses **3000** with `"proxy": "http://localhost:420"`.
 
 ---
 
-## 🛠️ Development Setup (from Source)
+## Configuration
 
-If you want to contribute or run the app in development mode:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `420` | HTTP listen port |
+| `NODE_ENV` | — | `production` serves SPA from backend `public/` and tightens logging |
+| `DATABASE_URL` | `backend/data/emerald-plant-tracker.db` | SQLite file path |
+| `APP_AUTH_TOKEN` | unset | If set, require `X-API-Token` or `Authorization: Bearer` on API calls |
+| `ENABLE_PUBLIC_HEALTH` | `true` in Docker image | Allow unauthenticated `GET /api/health` when token auth is on |
+| `INTEGRATION_SECRET` | unset | Required (or app token) for Spider Farmer webhook |
+| `CORS_ORIGINS` | — | Extra allowed origins (comma-separated) |
+| `RATE_LIMIT_MAX` | `200` | Max requests per IP per minute |
+| `REACT_APP_API_URL` | same origin / proxy | Frontend API base when SPA and API are split |
 
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/Dmans218/emerald-plant-tracker.git
-   cd emerald-plant-tracker
-   ```
-
-2. **Install dependencies:**
-
-   ```bash
-   # Install backend dependencies
-   cd backend && npm install
-   
-   # Install frontend dependencies
-   cd ../frontend && npm install
-   cd ..
-   ```
-
-3. **Start development servers:**
-
-   ```bash
-   # Option 1: Use Docker Compose for development
-   docker-compose -f docker-compose.dev.yml up
-   
-   # Option 2: Run manually
-   # Terminal 1 - Backend
-   cd backend && npm run dev
-   
-   # Terminal 2 - Frontend  
-   cd frontend && npm start
-   ```
-
-   This starts both frontend and backend. The app will be available at [http://localhost:420](http://localhost:420).
-
-4. **Code Quality & Linting:**
-
-   ```bash
-   # Run ESLint to check code quality
-   cd frontend && npm run lint
-   
-   # Fix automatically fixable issues
-   cd frontend && npm run lint:fix
-   ```
-
-   The project uses modern ESLint configuration with React-specific rules to maintain high code quality and consistency.
+More detail: [docs/SECURITY_AND_OPS.md](docs/SECURITY_AND_OPS.md).
 
 ---
 
-## 🧪 Using the Nutrient Calculator
-
-The built-in nutrient calculator is one of Emerald Plant Tracker's most powerful features:
-
-### **Supported Nutrient Brands**
-
-- **General Hydroponics FloraSeries** - The classic 3-part system
-- **Advanced Nutrients pH Perfect GMB** - Grow, Micro, Bloom with pH buffering
-- **Fox Farm Trio** - Grow Big, Big Bloom, Tiger Bloom
-- **Canna Coco A&B** - Specialized for coco growing
-- **Jack's Nutrients 321** - Professional 3-part system
-- **MegaCrop** - One-part nutrient solution
-- **Botanicare Pure Blend Pro** - Organic-based nutrients
-- **Dyna-Gro** - Complete nutrition system
-- **House & Garden** - Premium Dutch nutrients
-- **Nectar for the Gods** - Organic mineral nutrients
-
-### **How to Use**
-
-1. **Select Your Setup**: Choose nutrient brand, growth stage, grow medium, and watering method
-2. **Set Tank Size**: Enter your reservoir or mixing container size in liters
-3. **Choose Feeding Strength**: Light (50%), Medium (75%), or Aggressive (100%)
-4. **Get Your Recipe**: Precise mixing ratios with step-by-step instructions
-5. **Save & Reuse**: Your preferences are automatically saved for next time
-
-### **Smart Features**
-
-- **Auto-adjustments**: Feeding strength automatically adjusts based on growth stage
-- **Water type optimization**: CalMag recommendations based on soft vs hard water
-- **Method-specific ratios**: Concentrations adjust for drip, aero, hand watering, etc.
-- **Mixing order**: Proper supplement and nutrient addition sequence
-- **Target ranges**: EC/TDS and pH targets for each brand and growth stage
-
----
-
-## ⚙️ Configuration & Environment Variables
-
-The Emerald Plant Tracker uses minimal configuration for easy deployment:
-
-- **Default Port**: 420 (configured in the Docker container)
-- **NODE_ENV**: Only environment variable needed - automatically set to `production` in Docker
-- **Data Persistence**: All data automatically persisted via Docker volumes
-- **No external dependencies**: Works completely offline once deployed
-
-The simplified docker-compose.yml requires only the essential `NODE_ENV=production` setting. All other configuration is handled automatically by the container.
-
----
-
-## 📁 Project Structure
+## Project structure
 
 ```text
-Emerald Plant Tracker/
-├── backend/                 # Node.js API server
-│   ├── data/               # SQLite database files
-│   │   ├── emerald-plant-tracker.db  # Main application database
-│   │   └── growlogger.db   # Legacy database (if migrated)
-│   ├── routes/             # API route handlers
-│   │   ├── plants.js       # Plant CRUD operations
-│   │   ├── logs.js         # Activity logging
-│   │   ├── environment.js  # Environmental data
-│   │   └── tents.js        # Grow tent management
-│   ├── uploads/            # User-uploaded images
-│   ├── database.js         # SQLite database setup
-│   ├── server.js           # Express server
-│   └── Dockerfile          # Backend container config
-├── frontend/               # React web application
-│   ├── public/             # Static files
-│   ├── src/                # Source code
-│   │   ├── components/     # Reusable React components
-│   │   │   ├── Header.js   # Navigation header
-│   │   │   ├── ImageUpload.js  # Image upload component
-│   │   │   └── LogModal.js # Activity logging modal
-│   │   ├── pages/          # Main application pages
-│   │   │   ├── Dashboard.js    # Overview dashboard
-│   │   │   ├── Plants.js       # Plant management
-│   │   │   ├── PlantDetail.js  # Individual plant view
-│   │   │   ├── Calculator.js   # Nutrient calculator
-│   │   │   ├── Environment.js  # Environmental monitoring
-│   │   │   ├── Logs.js         # Activity logs
-│   │   │   └── ArchivedTents.js # Archived tent data
-│   │   ├── utils/          # Utility functions
-│   │   │   ├── api.js      # API communication
-│   │   │   ├── ocrParser.js # OCR text parsing
-│   │   │   └── stageColors.js # Growth stage styling
-│   │   ├── App.js          # Main application component
-│   │   ├── index.js        # React entry point
-│   │   └── index.css       # Global styles
-│   ├── package.json        # Frontend dependencies
-│   └── Dockerfile          # Frontend container config
-├── docs/                   # Documentation files
-├── docker-compose.yml      # Docker orchestration
-├── docker-compose.dev.yml  # Development Docker config
-├── .dockerignore           # Docker build context exclusions
-├── .gitignore              # Git exclusions
-├── package.json            # Root project configuration
-└── README.md               # This file
+emerald-plant-tracker/
+├── backend/
+│   ├── routes/           # plants, logs, environment, tents
+│   ├── utils/            # CSV + DB helpers
+│   ├── test/             # API smoke tests
+│   ├── database.js       # SQLite schema & migrations
+│   ├── server.js         # Express app (API + static SPA in production)
+│   └── uploads/          # Photo storage (volume in Docker)
+├── frontend/
+│   ├── src/
+│   │   ├── components/   # Header, PageHeader, ImageUpload
+│   │   ├── pages/        # Plants, PlantDetail, Logs, Environment, Archive, Calculator
+│   │   ├── data/         # Nutrient brand schedules
+│   │   └── utils/        # API client, dates, OCR helper, stage colors
+│   └── build/            # Production SPA (also copied into image as backend/public)
+├── docs/                 # Ops & security notes
+├── Dockerfile            # Multi-stage unified image
+├── docker-compose.yml    # Production / Docker Hub
+└── package.json          # Root scripts (concurrently)
+```
+
+**App routes (SPA):** `/` plants · `/plants/:id` · `/logs` · `/environment` · `/archived` · `/calculator`
+
+---
+
+## API overview
+
+Base path: `/api`. When `APP_AUTH_TOKEN` is set, send the token on each request.
+
+### Plants
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/plants` | List active plants |
+| `POST` | `/plants` | Create plant |
+| `GET` | `/plants/:id` | Plant detail |
+| `PUT` | `/plants/:id` | Update plant |
+| `DELETE` | `/plants/:id` | Delete plant |
+| `POST` | `/plants/:id/archive` | Archive grow |
+| `GET` | `/plants/archived` | List archived grows |
+| `GET` | `/plants/archived/:id` | Archived grow detail |
+| `POST` | `/plants/archived/:id/unarchive` | Restore plant |
+| `GET` | `/plants/archived/:id/export` | CSV export (single grow) |
+| `GET` | `/plants/archived/tent/:tentName/export` | CSV export (tent) |
+| `GET` | `/plants/grow-tents` | Distinct tent names |
+| `GET` | `/plants/tent/:tentName/summary` | Tent summary |
+
+### Logs
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/logs` | List logs (query filters) |
+| `GET` | `/logs/:id` | Single log |
+| `POST` | `/logs` | Create log |
+| `POST` | `/logs/photo` | Create log with photo (`multipart`) |
+| `PUT` | `/logs/:id` | Update log |
+| `DELETE` | `/logs/:id` | Delete log |
+| `GET` | `/logs/stats/:plant_id` | Stats for a plant |
+
+### Environment
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/environment` | List readings |
+| `GET` | `/environment/latest` | Latest reading(s) |
+| `GET` | `/environment/latest-per-tent` | Latest per tent |
+| `GET` | `/environment/weekly` | Weekly averages |
+| `GET` | `/environment/grow-tents` | Tents with env data |
+| `POST` | `/environment` | Create reading |
+| `POST` | `/environment/spider-farmer` | Integration webhook (secret required) |
+| `PUT` | `/environment/:id` | Update reading |
+| `DELETE` | `/environment/:id` | Delete reading |
+
+### Tents & system
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/tents` | Tent list / metadata |
+| `GET` | `/tents/:tentName/summary` | Tent summary |
+| `DELETE` | `/tents/:tentName/environment` | Clear env data for tent |
+| `GET` | `/health` | Liveness + DB check |
+| `GET` | `/backup` | Download SQLite file |
+
+---
+
+## Tech stack
+
+| Layer | Stack |
+|-------|--------|
+| Frontend | React 19, React Router 7, CRACO / react-scripts, axios, recharts, react-hook-form, lucide-react |
+| Backend | Express 5, SQLite (`sqlite3`), Joi validation, multer, Helmet, express-rate-limit |
+| Runtime | Node ≥ 20 (Docker image uses Node 22) |
+| Deploy | Multi-stage Dockerfile, single process serves API + SPA |
+
+---
+
+## CI / CD
+
+GitHub Actions on `main` / `develop`:
+
+- **CI** — install, security audit (non-blocking), backend + frontend tests, frontend build
+- **Lint** — frontend ESLint
+- **Docker** — image build checks for Docker-related changes
+- **CodeQL** — security analysis
+- **Dependabot** — dependency PRs (auto-merge for safe minor/patch when configured)
+
+---
+
+## Security
+
+Designed for **personal / private LAN** use. Do not expose it to the public internet without authentication, a reverse proxy, and network controls.
+
+- Prefer setting `APP_AUTH_TOKEN` on trusted networks
+- Use `INTEGRATION_SECRET` for device webhooks
+- Back up volumes (`emerald_data`, `emerald_uploads`) and/or `GET /api/backup`
+- Comply with local laws regarding cannabis cultivation
+
+See [docs/SECURITY_AND_OPS.md](docs/SECURITY_AND_OPS.md).
+
+---
+
+## Troubleshooting
+
+| Issue | What to check |
+|-------|----------------|
+| App not reachable | `docker ps`, `docker logs emerald-plant-tracker`, port **420** free |
+| Data lost after recreate | Mount `emerald_data` and `emerald_uploads` volumes |
+| 401 on API | Token auth enabled — send `X-API-Token` / Bearer, or unset `APP_AUTH_TOKEN` |
+| CORS errors | Access via allowed origin, or add host to `CORS_ORIGINS` |
+| Calculator prefs reset | Allow `localStorage` for the app origin |
+| Healthcheck failing | DB path writable; `GET /api/health` returns `status: OK` |
+
+---
+
+## Contributing
+
+Issues and pull requests are welcome. Run backend tests and a frontend build before opening a PR:
+
+```bash
+cd backend && npm test
+cd ../frontend && npm test && npm run build
 ```
 
 ---
 
-## 🔌 API Endpoints
+## Support
 
-### Plantsgo
+Maintained by a Canadian developer. If Emerald is useful for your grow, sponsorships help keep it free and open source:
 
-- `GET /api/plants` - List all plants
-- `POST /api/plants` - Create new plant
-- `GET /api/plants/:id` - Get plant details
-- `PUT /api/plants/:id` - Update plant
-- `DELETE /api/plants/:id` - Delete plant
-
-### Activity Logs
-
-- `GET /api/logs` - List activity logs
-- `POST /api/logs` - Create new log entry
-- `POST /api/logs/photo` - Upload photo log
-- `DELETE /api/logs/:id` - Delete log entry
-- `GET /api/logs/stats/:plantId` - Get plant statistics
-
-### Environment
-
-- `GET /api/environment` - List environment logs
-- `POST /api/environment` - Create new environment log
-- `GET /api/environment/weekly` - Get weekly environment averages
-- `GET /api/environment/export` - Export environment data as CSV
-
-### Tents
-
-- `GET /api/tents` - List available grow tents
-- `POST /api/tents` - Create new tent
-- `PUT /api/tents/:id` - Update tent configuration
-- `DELETE /api/tents/:id` - Delete tent
+- [GitHub Sponsors](https://github.com/sponsors/Dmans218)
+- [Ko-fi](https://ko-fi.com/emeraldplantmanager)
 
 ---
 
-## 🔐 Security Notes
+## License
 
-- This application is designed for **personal/private use only**
-- **Do not expose to the public internet** without proper security measures (VPN, firewall, etc.)
-- Data is stored locally in SQLite and Docker volumes
-- `.env` files and local SQLite DBs are excluded from Docker images by `.dockerignore`
-- Regular backups are recommended
-- Understand your local laws regarding cannabis cultivation
+This project is licensed under the [MIT License](LICENSE). Free to use, modify, and distribute. Donations are optional.
 
----
-
-## 🏗️ Production & Build Context
-
-- The `.dockerignore` file ensures that development files, local node_modules, logs, test images, and other non-production files are **not** included in your Docker images.
-- The `.gitignore` file keeps your repository clean by ignoring dependencies, build output, logs, and local environment files.
-- Only production-ready code and configuration are shipped in your Docker images.
-
----
-
-## 🚨 Troubleshooting
-
-**Cannot connect to backend:**
-
-- Ensure the container is running: `docker ps`
-- Check logs: `docker logs emerald-plant-tracker`
-
-**Database persistence:**
-
-- The SQLite database is stored in a Docker volume (`emerald_data`) and will persist across container rebuilds.
-
-**Port conflicts:**
-
-- Make sure port 420 is not in use by another application.
-
-**Calculator not saving preferences:**
-
-- Ensure your browser allows localStorage for the application domain
-- Check browser developer tools for any JavaScript errors
-
-**Environmental data not appearing:**
-
-- Verify that your grow tent is properly configured in the system
-- Check that all required fields are filled when logging environmental data
-
----
-
-## 🤝 Contributing
-
-Pull requests and suggestions are welcome! Please open an issue or PR on GitHub.
-
-### Continuous Integration / Continuous Deployment
-
-This project uses GitHub Actions for CI/CD:
-
-- **CI Workflow**: Automatically tests and builds the application on every push and pull request.
-- **CodeQL Analysis**: Security scanning to detect vulnerabilities in the codebase.
-- **Docker Workflow**: Builds and tests Docker images when changes are made to Docker-related files.
-- **Dependabot**: Automatically submits PRs for dependency updates with the following schedule:
-  - NPM dependencies: Weekly updates
-  - Docker dependencies: Monthly updates
-  - GitHub Actions: Monthly updates
-
-Minor and patch updates from Dependabot will be automatically merged if all tests pass.
-
----
-
-## 💖 Support & Donations
-
-Emerald Plant Tracker is built and maintained by a Canadian developer. If you find this project useful, please consider supporting its development—your donations help pay my bills and keep this project alive!
-
-- [![GitHub Sponsors](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-fc2967?logo=github)](https://github.com/sponsors/Dmans218)
-- [![Buy Me a Coffee](https://img.shields.io/badge/donate-Ko--fi-29abe0?logo=ko-fi)](https://ko-fi.com/emeraldplantmanager)
-
-*Your support means a lot and helps keep this project free and open source for everyone!*
-
----
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE). You are free to use, modify, and distribute it, including for commercial purposes. Donations are welcome but not required.
-
----
-
-Happy Growing! 🌱
+Happy growing.

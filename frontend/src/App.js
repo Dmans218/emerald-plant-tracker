@@ -1,13 +1,14 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 import Header from './components/Header';
-import Dashboard from './pages/Dashboard';
 import Plants from './pages/Plants';
 import PlantDetail from './pages/PlantDetail';
 import Calculator from './pages/Calculator';
 import Environment from './pages/Environment';
+import Logs from './pages/Logs';
+import ArchivedTents from './pages/ArchivedTents';
 
 function App() {
   return (
@@ -16,9 +17,11 @@ function App() {
         <Header />
         <main className="container mx-auto py-8">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/plants" element={<Plants />} />
+            <Route path="/" element={<Plants />} />
+            <Route path="/plants" element={<Navigate to="/" replace />} />
             <Route path="/plants/:id" element={<PlantDetail />} />
+            <Route path="/logs" element={<Logs />} />
+            <Route path="/archived" element={<ArchivedTents />} />
             <Route path="/calculator" element={<Calculator />} />
             <Route path="/environment" element={<Environment />} />
           </Routes>
@@ -45,4 +48,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

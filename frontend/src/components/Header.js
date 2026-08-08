@@ -1,20 +1,28 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Sprout, Calculator, Home, Thermometer } from 'lucide-react';
+import { Sprout, Calculator, Thermometer, Activity, Archive } from 'lucide-react';
 
 const Header = () => {
   const location = useLocation();
 
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: Home },
-    { path: '/plants', label: 'Plants', icon: Sprout },
-    { path: '/calculator', label: 'Nutrient Calculator', icon: Calculator },
+    { path: '/', label: 'Plants', icon: Sprout, match: 'plants' },
+    { path: '/logs', label: 'Logs', icon: Activity },
     { path: '/environment', label: 'Environment', icon: Thermometer },
+    { path: '/archived', label: 'Archive', icon: Archive },
+    { path: '/calculator', label: 'Calculator', icon: Calculator },
   ];
+
+  const isActive = (item) => {
+    if (item.match === 'plants') {
+      return location.pathname === '/' || location.pathname.startsWith('/plants');
+    }
+    return location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+  };
 
   return (
     <header className="navbar">
-      <div className="container mx-auto">
+      <div className="container">
         <div className="navbar-content">
           <Link to="/" className="navbar-brand">
             <div className="brand-icon">
@@ -27,16 +35,19 @@ const Header = () => {
           </Link>
 
           <nav className="navbar-nav">
-            {navItems.map(({ path, label, icon: Icon }) => (
-              <Link
-                key={path}
-                to={path}
-                className={`nav-item ${location.pathname === path ? 'nav-item-active' : ''}`}
-              >
-                <Icon className="nav-icon" />
-                <span className="nav-label">{label}</span>
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`nav-item ${isActive(item) ? 'nav-item-active' : ''}`}
+                >
+                  <Icon className="nav-icon" />
+                  <span className="nav-label">{item.label}</span>
+                </Link>
+              );
+            })}
           </nav>
         </div>
       </div>
@@ -44,4 +55,4 @@ const Header = () => {
   );
 };
 
-export default Header; 
+export default Header;

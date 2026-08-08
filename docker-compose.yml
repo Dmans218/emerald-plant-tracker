@@ -10,6 +10,10 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=/app/backend/data/emerald-plant-tracker.db
+      - ENABLE_PUBLIC_HEALTH=true
+      # Uncomment to require API token (also set client via reverse proxy or custom build):
+      # - APP_AUTH_TOKEN=change-me
+      # - INTEGRATION_SECRET=change-me-for-spider-farmer
     restart: unless-stopped
     user: "1000:1000"  # Run as user with proper permissions
 volumes:

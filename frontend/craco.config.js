@@ -1,39 +1,29 @@
 module.exports = {
   webpack: {
-    configure: (webpackConfig) => {
-      // Ensure assets are served with relative paths for HTTP compatibility
-      webpackConfig.output.publicPath = './';
-      
+    configure: (webpackConfig, { env }) => {
+      // Relative paths for production/Docker static serving; absolute for local dev HMR
+      webpackConfig.output.publicPath = env === 'production' ? './' : '/';
+
       // Disable ESLint plugin to avoid compatibility issues with ESLint 9
       webpackConfig.plugins = webpackConfig.plugins.filter(
-        plugin => !plugin.constructor.name.includes('ESLint')
+        (plugin) => !plugin.constructor.name.includes('ESLint')
       );
-      
-      // Disable any HTTPS-related optimizations
-      if (webpackConfig.optimization) {
-        webpackConfig.optimization.splitChunks = {
-          ...webpackConfig.optimization.splitChunks,
-          cacheGroups: {
-            ...webpackConfig.optimization.splitChunks?.cacheGroups,
-            default: {
-              ...webpackConfig.optimization.splitChunks?.cacheGroups?.default,
-              enforce: true
-            }
-          }
-        };
-      }
-      
+
       return webpackConfig;
     },
   },
-  devServer: {
-    // Disable HTTPS enforcement in development
-    https: false,
-    // Allow serving over HTTP
-    allowedHosts: 'all',
-    // Disable any automatic redirects
-    historyApiFallback: {
+  devServer: (devServerConfig) => {
+    devServerConfig.https = false;
+    devServerConfig.allowedHosts = 'all';
+    devServerConfig.historyApiFallback = {
+      ...(devServerConfig.historyApiFallback || {}),
       disableDotRule: true,
-    },
+    };
+    // Proxy API to backend when package.json proxy is ignored by craco/wds versions
+    devServerConfig.proxy = {
+      '/api': { target: 'http://127.0.0.1:420', changeOrigin: true },
+      '/uploads': { target: 'http://127.0.0.1:420', changeOrigin: true },
+    };
+    return devServerConfig;
   },
 };
