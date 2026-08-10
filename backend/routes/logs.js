@@ -8,6 +8,26 @@ const crypto = require('crypto');
 const db = require('../database');
 
 const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
+const UPLOADS_ROOT = path.resolve(UPLOADS_DIR);
+
+/**
+ * Resolve a multer-stored upload to a path under UPLOADS_DIR only.
+ * Never trust user-controlled path segments — basename + pattern check only.
+ */
+function resolveSafeUploadPath(filename) {
+  if (!filename || typeof filename !== 'string') return null;
+  const base = path.basename(filename);
+  // Matches generateSecureFilename output: plant-<uuid>.jpg|jpeg|png|gif
+  if (!/^plant-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpe?g|png|gif)$/i.test(base)) {
+    return null;
+  }
+  const resolved = path.resolve(UPLOADS_DIR, base);
+  const rel = path.relative(UPLOADS_ROOT, resolved);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    return null;
+  }
+  return resolved;
+}
 
 const allowedMimeTypes = new Map([
   ['image/jpeg', [0xff, 0xd8, 0xff]],
@@ -17,8 +37,10 @@ const allowedMimeTypes = new Map([
 
 const generateSecureFilename = (originalName) => {
   const ext = path.extname(originalName).toLowerCase();
+  const allowedExt = ['.jpg', '.jpeg', '.png', '.gif'];
+  const safeExt = allowedExt.includes(ext) ? ext : '.jpg';
   const secureId = crypto.randomUUID();
-  return `plant-${secureId}${ext}`;
+  return `plant-${secureId}${safeExt}`;
 };
 
 const validateFileContent = (buffer, mimetype) => {
@@ -277,13 +299,9 @@ router.post('/photo', upload.single('photo'), (req, res) => {
     return res.status(400).json({ error: 'No photo uploaded' });
   }
 
-  const filePath = path.resolve(req.file.path);
-  if (!filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep) && filePath !== path.resolve(UPLOADS_DIR)) {
-    try {
-      fs.unlinkSync(filePath);
-    } catch {
-      /* ignore */
-    }
+  // Only open files under uploads/ using the server-generated basename
+  const filePath = resolveSafeUploadPath(req.file.filename);
+  if (!filePath) {
     return res.status(400).json({ error: 'Invalid file path' });
   }
 
@@ -295,7 +313,11 @@ router.post('/photo', upload.single('photo'), (req, res) => {
   }
 
   if (!validateFileContent(buffer, req.file.mimetype)) {
-    fs.unlinkSync(filePath);
+    try {
+      fs.unlinkSync(filePath);
+    } catch {
+      /* ignore */
+    }
     return res.status(400).json({
       error: 'Invalid file content. File does not match expected image format.'
     });
@@ -303,12 +325,16 @@ router.post('/photo', upload.single('photo'), (req, res) => {
 
   const { plant_id, description } = req.body;
   if (!plant_id) {
-    fs.unlinkSync(filePath);
+    try {
+      fs.unlinkSync(filePath);
+    } catch {
+      /* ignore */
+    }
     return res.status(400).json({ error: 'Plant ID is required' });
   }
 
   const database = db.getDb();
-  const photoUrl = `/uploads/${req.file.filename}`;
+  const photoUrl = `/uploads/${path.basename(filePath)}`;
 
   database.get('SELECT id FROM plants WHERE id = ?', [parseInt(plant_id, 10)], (err, plant) => {
     if (err) {
@@ -316,7 +342,11 @@ router.post('/photo', upload.single('photo'), (req, res) => {
       return res.status(500).json({ error: 'Failed to verify plant' });
     }
     if (!plant) {
-      fs.unlinkSync(filePath);
+      try {
+        fs.unlinkSync(filePath);
+      } catch {
+        /* ignore */
+      }
       return res.status(404).json({ error: 'Plant not found' });
     }
 

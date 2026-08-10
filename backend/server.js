@@ -20,8 +20,27 @@ const APP_TOKEN = process.env.APP_AUTH_TOKEN || '';
 // Trust reverse proxy (for secure cookies / rate limit IP)
 app.set('trust proxy', 1);
 
+// Security headers — CSP enabled for same-origin SPA; skip HSTS upgrade for pure-HTTP self-host
 app.use(
   helmet({
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        'default-src': ["'self'"],
+        'script-src': ["'self'"],
+        'style-src': ["'self'", "'unsafe-inline'"],
+        'img-src': ["'self'", 'data:', 'blob:'],
+        'font-src': ["'self'", 'data:'],
+        'connect-src': ["'self'"],
+        'object-src': ["'none'"],
+        'base-uri': ["'self'"],
+        'form-action': ["'self'"],
+        'frame-ancestors': ["'none'"],
+        // Self-hosted LAN apps often run plain HTTP; do not force HTTPS upgrades
+        'upgrade-insecure-requests': null
+      }
+    },
+    // COEP can break same-origin image loads in some hosts; leave off for this app
     crossOriginEmbedderPolicy: false
   })
 );
