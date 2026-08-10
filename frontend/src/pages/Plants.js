@@ -322,11 +322,35 @@ const Plants = () => {
     fetchPlants();
   }, [fetchPlants]);
 
-  // Adaptive default when user has not saved a preference
+  // Adaptive default when user has not saved a preference (cards on phones)
   useEffect(() => {
     if (viewPreference || loading) return;
+    const narrow =
+      typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
+    if (narrow) {
+      setViewMode('cards');
+      return;
+    }
     setViewMode(plants.length >= VIEW_THRESHOLD ? 'table' : 'cards');
   }, [plants.length, loading, viewPreference]);
+
+  // Phones always use cards (table control is hidden); restore preference on wider screens
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const mq = window.matchMedia('(max-width: 768px)');
+    const apply = () => {
+      if (mq.matches) {
+        setViewMode('cards');
+        setSelectMode(false);
+        setSelectedIds(new Set());
+      } else if (viewPreference) {
+        setViewMode(viewPreference);
+      }
+    };
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, [viewPreference]);
 
   useEffect(() => {
     setSelectedIds(new Set());
@@ -985,7 +1009,7 @@ const Plants = () => {
               </button>
             </div>
 
-            <div className="plants-segment" role="group" aria-label="View mode">
+            <div className="plants-segment plants-view-toggle" role="group" aria-label="View mode">
               <button
                 type="button"
                 className={`plants-segment-btn ${viewMode === 'cards' ? 'is-active' : ''}`}

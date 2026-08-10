@@ -78,7 +78,16 @@ const readRecentPlantIds = () => {
   try {
     const raw = localStorage.getItem(RECENT_PLANTS_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.map(String) : [];
+    if (!Array.isArray(parsed)) return [];
+    const seen = new Set();
+    const ids = [];
+    parsed.forEach((id) => {
+      const s = String(id);
+      if (!s || seen.has(s)) return;
+      seen.add(s);
+      ids.push(s);
+    });
+    return ids;
   } catch {
     return [];
   }
@@ -450,19 +459,36 @@ const Logs = () => {
           || plant.stage?.toLowerCase().includes(pickerQuery)
       ));
 
-    const recentPlants = recentPlantIds
-      .map((id) => activePlants.find((p) => String(p.id) === String(id)))
-      .filter(Boolean)
-      .slice(0, 8);
+    const recentPlants = [];
+    const seenRecent = new Set();
+    recentPlantIds.forEach((id) => {
+      const plant = activePlants.find((p) => String(p.id) === String(id));
+      if (!plant || seenRecent.has(String(plant.id))) return;
+      seenRecent.add(String(plant.id));
+      recentPlants.push(plant);
+    });
+    const recentIds = new Set(recentPlants.map((p) => String(p.id)));
 
-    const pickerGrouped = filteredPickerPlants.reduce((groups, plant) => {
+    // Don't list the same plant twice (Recent + full list)
+    const mainPickerPlants = !pickerQuery
+      ? filteredPickerPlants.filter((p) => !recentIds.has(String(p.id)))
+      : filteredPickerPlants;
+
+    const pickerGrouped = mainPickerPlants.reduce((groups, plant) => {
       const tent = plant.grow_tent || 'Unassigned';
       if (!groups[tent]) groups[tent] = [];
       groups[tent].push(plant);
       return groups;
     }, {});
     const pickerTentEntries = Object.entries(pickerGrouped).sort(([a], [b]) => a.localeCompare(b));
-    const useGrouped = largeGrow || pickerTentEntries.length > 1;
+    // Prefer flat list when few plants remain after Recent
+    const useGrouped = largeGrow || (mainPickerPlants.length > 4 && pickerTentEntries.length > 1);
+
+    // Skip "Recent" label noise when it's the entire roster (duplicates the main list)
+    const showRecent =
+      recentPlants.length > 0
+      && !pickerQuery
+      && mainPickerPlants.length > 0;
 
     const renderPickerRow = (plant) => (
       <button key={plant.id} type="button" className="logs-picker-row" onClick={() => selectPlant(plant.id)}>
@@ -515,18 +541,25 @@ const Logs = () => {
                 </div>
               )}
 
-              {recentPlants.length > 0 && !pickerQuery && (
+              {showRecent && (
                 <div className="logs-picker-section">
                   <h3 className="logs-picker-section-title">Recent</h3>
-                  <div className={largeGrow ? 'logs-picker-list' : 'logs-picker-grid'}>
+                  <div className="logs-picker-list">
                     {recentPlants.map(renderPickerRow)}
                   </div>
                 </div>
               )}
 
-              {filteredPickerPlants.length === 0 ? (
+              {/* Single-plant / only-recent: still show when main is empty but recent has items */}
+              {!showRecent && recentPlants.length > 0 && !pickerQuery && mainPickerPlants.length === 0 && (
+                <div className="logs-picker-list">
+                  {recentPlants.map(renderPickerRow)}
+                </div>
+              )}
+
+              {mainPickerPlants.length === 0 && filteredPickerPlants.length === 0 ? (
                 <div className="journal-empty-inline">No plants match “{pickerSearch}”</div>
-              ) : useGrouped ? (
+              ) : mainPickerPlants.length === 0 ? null : useGrouped ? (
                 pickerTentEntries.map(([tentName, tentPlants]) => (
                   <div key={tentName} className="logs-picker-section">
                     <h3 className="logs-picker-section-title">{tentName} · {tentPlants.length}</h3>
@@ -534,7 +567,7 @@ const Logs = () => {
                   </div>
                 ))
               ) : (
-                <div className="logs-picker-grid">{filteredPickerPlants.map(renderPickerRow)}</div>
+                <div className="logs-picker-list">{mainPickerPlants.map(renderPickerRow)}</div>
               )}
             </>
           )}
@@ -559,19 +592,21 @@ const Logs = () => {
         badge={<span className="journal-header-badge">Journal</span>}
         actions={(
           <div className="journal-header-actions">
-            <button type="button" onClick={changePlant} className="btn btn-outline flex items-center gap-1.5">
+            <button type="button" onClick={changePlant} className="btn btn-outline flex items-center gap-1.5 journal-action-change">
               <ArrowLeft className="w-4 h-4" />
-              Plants
+              <span className="journal-action-change-label">Change plant</span>
             </button>
             {selectedPlant && (
               <Link to={`/plants/${selectedPlant.id}`} className="btn btn-outline flex items-center gap-1.5">
                 Profile
               </Link>
             )}
-            <button type="button" onClick={openAddForm} className="btn btn-primary flex items-center gap-1.5">
-              <Plus className="w-4 h-4" />
-              Add log
-            </button>
+            {(logs.length > 0 || showAddForm || hasFilters) && (
+              <button type="button" onClick={openAddForm} className="btn btn-primary flex items-center gap-1.5">
+                <Plus className="w-4 h-4" />
+                Add log
+              </button>
+            )}
           </div>
         )}
       />

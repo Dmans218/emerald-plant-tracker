@@ -52,7 +52,7 @@ const fieldStyle = {
   borderRadius: '6px',
   background: 'var(--surface)',
   color: 'var(--text-primary)',
-  fontSize: '0.875rem'
+  fontSize: '1rem'
 };
 
 const labelStyle = {
@@ -540,7 +540,7 @@ const Environment = () => {
               </p>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))',
                 gap: '1rem'
               }}
               >
@@ -797,12 +797,13 @@ const Environment = () => {
             background: 'var(--surface)',
             borderRadius: '16px',
             border: '1px solid var(--border)',
-            padding: '1.5rem',
+            padding: '1.25rem',
             width: '100%',
             maxWidth: '600px',
-            maxHeight: '90vh',
+            maxHeight: 'min(90dvh, 90vh)',
             overflowY: 'auto'
           }}
+          className="env-form-dialog"
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h2 style={{ color: 'var(--text-primary)', fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}>
@@ -813,9 +814,9 @@ const Environment = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
-                <div style={{ gridColumn: 'span 3' }}>
+            <form onSubmit={handleSubmit(onSubmit)} className="env-form" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="env-form-grid">
+                <div className="env-form-span-full">
                   <label style={labelStyle}>Grow Tent</label>
                   <input type="hidden" {...register('grow_tent', { required: true })} />
                   <div style={{ ...fieldStyle, color: '#4ade80', fontWeight: 600 }}>
@@ -851,7 +852,7 @@ const Environment = () => {
                   <label style={labelStyle}>Light Hours</label>
                   <input type="number" step="0.1" style={fieldStyle} {...register('light_hours')} placeholder="18.0" />
                 </div>
-                <div style={{ gridColumn: 'span 2' }}>
+                <div className="env-form-span-date">
                   <label style={labelStyle}>Date & Time</label>
                   <input type="datetime-local" style={fieldStyle} {...register('logged_at')} defaultValue={getCurrentDateTime()} />
                 </div>
@@ -913,12 +914,7 @@ const Environment = () => {
               Weekly Averages
             </button>
           </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '1.25rem'
-          }}
-          >
+          <div className="env-trends-grid">
             {CHARTS.map((chart) => {
               const Icon = chart.Icon;
               return (
@@ -1296,40 +1292,22 @@ const Environment = () => {
       {/* Single chart detail modal */}
       {selectedChart && chartConfig && (
         <div
+          className="env-chart-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setSelectedChart(null);
           }}
           role="presentation"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '2rem',
-            cursor: 'pointer'
-          }}
         >
           <div
+            className="env-chart-modal"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-label={`${chartConfig.label} chart`}
-            style={{
-              background: 'rgba(15, 23, 42, 0.98)',
-              border: '1px solid rgba(100, 116, 139, 0.3)',
-              borderRadius: '16px',
-              padding: '1.5rem',
-              width: '100%',
-              maxWidth: '900px',
-              cursor: 'default'
-            }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                {ChartIcon && <ChartIcon className="w-6 h-6" style={{ color: chartConfig.color }} />}
-                <h2 style={{ color: '#f8fafc', margin: 0, fontSize: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                {ChartIcon && <ChartIcon className="w-6 h-6" style={{ color: chartConfig.color, flexShrink: 0 }} />}
+                <h2 style={{ color: '#f8fafc', margin: 0, fontSize: '1.125rem' }}>
                   {chartConfig.label}
                 </h2>
               </div>
@@ -1337,41 +1315,44 @@ const Environment = () => {
                 Close
               </button>
             </div>
-            <ResponsiveContainer width="100%" height={360}>
-              <LineChart data={sortedLogsForGraphs} margin={{ top: 10, right: 20, left: 10, bottom: 40 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.15)" />
-                <XAxis
-                  dataKey="logged_at"
-                  tick={{ fill: '#94a3b8', fontSize: 11 }}
-                  tickFormatter={(value) => format(new Date(value), 'MMM dd HH:mm')}
-                  angle={-35}
-                  textAnchor="end"
-                  height={60}
-                />
-                <YAxis
-                  tick={{ fill: '#94a3b8', fontSize: 11 }}
-                  domain={chartConfig.domain}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: 'rgba(15, 23, 42, 0.95)',
-                    border: '1px solid rgba(100, 116, 139, 0.3)',
-                    borderRadius: '6px',
-                    color: '#f8fafc'
-                  }}
-                  labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy HH:mm')}
-                  formatter={(value) => [`${value}${chartConfig.unit}`, chartConfig.label]}
-                />
-                <Line
-                  type="monotone"
-                  dataKey={chartConfig.dataKey}
-                  stroke={chartConfig.color}
-                  strokeWidth={2.5}
-                  dot={{ r: 3, fill: chartConfig.color }}
-                  activeDot={{ r: 5 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="env-chart-modal-body">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={sortedLogsForGraphs} margin={{ top: 10, right: 12, left: 0, bottom: 40 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.15)" />
+                  <XAxis
+                    dataKey="logged_at"
+                    tick={{ fill: '#94a3b8', fontSize: 11 }}
+                    tickFormatter={(value) => format(new Date(value), 'MMM dd HH:mm')}
+                    angle={-35}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis
+                    tick={{ fill: '#94a3b8', fontSize: 11 }}
+                    domain={chartConfig.domain}
+                    width={40}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'rgba(15, 23, 42, 0.95)',
+                      border: '1px solid rgba(100, 116, 139, 0.3)',
+                      borderRadius: '6px',
+                      color: '#f8fafc'
+                    }}
+                    labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy HH:mm')}
+                    formatter={(value) => [`${value}${chartConfig.unit}`, chartConfig.label]}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey={chartConfig.dataKey}
+                    stroke={chartConfig.color}
+                    strokeWidth={2.5}
+                    dot={{ r: 3, fill: chartConfig.color }}
+                    activeDot={{ r: 5 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       )}

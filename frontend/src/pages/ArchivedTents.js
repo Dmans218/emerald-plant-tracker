@@ -456,11 +456,7 @@ const ArchivedTents = () => {
           </p>
         </div>
       ) : (
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', 
-          gap: '1.5rem'
-        }}>
+        <div className="archive-grows-grid">
           {filteredAndSortedGrows.map((grow) => (
             <ArchivedGrowCard
               key={grow.id}
@@ -722,13 +718,12 @@ const GrowDetailModal = ({
       onClick={onClose}
     >
       <div
+        className="archive-detail-modal"
         style={{
           background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
           borderRadius: '16px',
-          padding: '2rem',
           width: '100%',
           maxWidth: '600px',
-          maxHeight: '80vh',
           overflowY: 'auto',
           border: '1px solid rgba(148, 163, 184, 0.2)',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
@@ -923,37 +918,18 @@ const GrowDetailModal = ({
         )}
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+        <div className="archive-detail-actions">
           <button
+            type="button"
             onClick={onClose}
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: 'rgba(100, 116, 139, 0.2)',
-              color: '#cbd5e1',
-              border: '1px solid rgba(100, 116, 139, 0.3)',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: '500'
-            }}
+            className="btn btn-outline"
           >
             Close
           </button>
           <button
+            type="button"
             onClick={() => onExport(grow)}
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
+            className="btn btn-primary flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
             Export Full Data
