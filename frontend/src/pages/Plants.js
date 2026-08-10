@@ -32,6 +32,8 @@ import toast from 'react-hot-toast';
 import { plantsApi, environmentApi, logsApi } from '../utils/api';
 import { formatPlantDate, parsePlantDate, toDateInputValue } from '../utils/dates';
 import PageHeader from '../components/PageHeader';
+import { useSettings } from '../contexts/SettingsContext';
+import { fromCanonicalTemp } from '../utils/temperature';
 
 const VIEW_THRESHOLD = 8;
 const COLLAPSE_KEY = 'plantsCollapsedTents';
@@ -82,6 +84,8 @@ const formatLastLog = (value) => {
 };
 
 const TentEnvGlance = ({ reading }) => {
+  const { temperatureUnit } = useSettings();
+
   if (!reading) {
     return (
       <span className="plants-env-muted">No climate data</span>
@@ -89,7 +93,7 @@ const TentEnvGlance = ({ reading }) => {
   }
 
   const metrics = [
-    { key: 't', value: reading.temperature != null ? `${reading.temperature}°F` : null, color: '#f87171', Icon: Thermometer },
+    { key: 't', value: reading.temperature != null ? `${fromCanonicalTemp(reading.temperature, temperatureUnit).toFixed(1)}°${temperatureUnit}` : null, color: '#f87171', Icon: Thermometer },
     { key: 'h', value: reading.humidity != null ? `${reading.humidity}%` : null, color: '#60a5fa', Icon: Droplets },
     { key: 'v', value: reading.vpd != null ? `${reading.vpd} kPa` : null, color: '#22d3ee', Icon: Wind },
     { key: 'c', value: reading.co2_ppm != null ? `${reading.co2_ppm} ppm` : null, color: '#fbbf24', Icon: Wind },

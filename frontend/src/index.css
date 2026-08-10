@@ -765,18 +765,6 @@ header {
   background: rgba(74, 222, 128, 0.2);
 }
 
-.nav-item-active::after {
-  content: '';
-  position: absolute;
-  bottom: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  height: 2px;
-  background: #4ade80;
-  border-radius: 1px;
-}
-
 .nav-icon {
   width: 20px;
   height: 20px;
@@ -785,6 +773,29 @@ header {
 .nav-label {
   font-size: 0.95rem;
   font-weight: 500;
+}
+
+.unit-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 44px;
+  height: 36px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.unit-toggle-btn:hover {
+  background: rgba(74, 222, 128, 0.22);
+  color: #f8fafc;
 }
 
 /* Bottom tabs — mobile only (shown under 769px) */

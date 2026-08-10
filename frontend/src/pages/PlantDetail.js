@@ -18,6 +18,8 @@ import toast from 'react-hot-toast';
 import { plantsApi, logsApi } from '../utils/api';
 import { toDateInputValue, formatPlantDate, parsePlantDate } from '../utils/dates';
 import PageHeader from '../components/PageHeader';
+import { useSettings } from '../contexts/SettingsContext';
+import { fromCanonicalTemp } from '../utils/temperature';
 
 const STAGES = [
   { value: 'seedling', label: 'Seedling', icon: '🌱' },
@@ -61,13 +63,13 @@ const formatLogAt = (value) => {
   };
 };
 
-const measurementChips = (log) => {
+const measurementChips = (log, temperatureUnit) => {
   const chips = [];
   if (log.height_cm) chips.push({ key: 'h', label: `${log.height_cm}cm`, tone: 'green' });
   if (log.water_amount) chips.push({ key: 'w', label: `${log.water_amount}L`, tone: 'blue' });
   if (log.ph_level) chips.push({ key: 'p', label: `pH ${log.ph_level}`, tone: 'purple' });
   if (log.ec_tds) chips.push({ key: 'e', label: `${log.ec_tds}ppm`, tone: 'amber' });
-  if (log.temperature) chips.push({ key: 't', label: `${log.temperature}°`, tone: 'amber' });
+  if (log.temperature) chips.push({ key: 't', label: `${fromCanonicalTemp(log.temperature, temperatureUnit).toFixed(1)}°${temperatureUnit}`, tone: 'amber' });
   if (log.humidity) chips.push({ key: 'hu', label: `${log.humidity}%`, tone: 'blue' });
   return chips;
 };
@@ -82,6 +84,7 @@ const PlantDetail = () => {
   const [growTents, setGrowTents] = useState([]);
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm();
+  const { temperatureUnit } = useSettings();
 
   const fetchPlantData = useCallback(async () => {
     try {
@@ -409,7 +412,7 @@ const PlantDetail = () => {
                 {logs.map((log) => {
                   const when = formatLogAt(log.logged_at);
                   const style = logTypeStyle(log.type);
-                  const chips = measurementChips(log);
+                  const chips = measurementChips(log, temperatureUnit);
                   const note = log.notes || log.description || '';
                   return (
                     <tr

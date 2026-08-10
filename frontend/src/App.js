@@ -9,42 +9,45 @@ import Calculator from './pages/Calculator';
 import Environment from './pages/Environment';
 import Logs from './pages/Logs';
 import ArchivedTents from './pages/ArchivedTents';
+import { SettingsProvider } from './contexts/SettingsContext';
 
 function App() {
   return (
-    <Router>
-      <div className="app">
-        <Header />
-        <main className="container mx-auto py-8">
-          <Routes>
-            <Route path="/" element={<Plants />} />
-            <Route path="/plants" element={<Navigate to="/" replace />} />
-            <Route path="/plants/:id" element={<PlantDetail />} />
-            <Route path="/logs" element={<Logs />} />
-            <Route path="/archived" element={<ArchivedTents />} />
-            <Route path="/calculator" element={<Calculator />} />
-            <Route path="/environment" element={<Environment />} />
-          </Routes>
-        </main>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-            },
-            success: {
-              duration: 3000,
-              theme: {
-                primary: '#4ade80',
-                secondary: '#fff',
+    <SettingsProvider>
+      <Router>
+        <div className="app">
+          <Header />
+          <main className="container mx-auto py-8">
+            <Routes>
+              <Route path="/" element={<Plants />} />
+              <Route path="/plants" element={<Navigate to="/" replace />} />
+              <Route path="/plants/:id" element={<PlantDetail />} />
+              <Route path="/logs" element={<Logs />} />
+              <Route path="/archived" element={<ArchivedTents />} />
+              <Route path="/calculator" element={<Calculator />} />
+              <Route path="/environment" element={<Environment />} />
+            </Routes>
+          </main>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#363636',
+                color: '#fff',
               },
-            },
-          }}
-        />
-      </div>
-    </Router>
+              success: {
+                duration: 3000,
+                theme: {
+                  primary: '#4ade80',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
+        </div>
+      </Router>
+    </SettingsProvider>
   );
 }
 

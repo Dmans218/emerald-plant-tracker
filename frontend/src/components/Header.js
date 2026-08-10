@@ -1,10 +1,11 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Sprout, Calculator, Thermometer, Activity, Archive } from 'lucide-react';
+import { Sprout, Calculator, Thermometer, ClipboardList, Archive } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
 
 const navItems = [
   { path: '/', label: 'Plants', shortLabel: 'Plants', icon: Sprout, match: 'plants' },
-  { path: '/logs', label: 'Logs', shortLabel: 'Logs', icon: Activity },
+  { path: '/logs', label: 'Logs', shortLabel: 'Logs', icon: ClipboardList },
   { path: '/environment', label: 'Environment', shortLabel: 'Env', icon: Thermometer },
   { path: '/archived', label: 'Archive', shortLabel: 'Archive', icon: Archive },
   { path: '/calculator', label: 'Calculator', shortLabel: 'Calc', icon: Calculator },
@@ -12,6 +13,7 @@ const navItems = [
 
 const Header = () => {
   const location = useLocation();
+  const { temperatureUnit, toggleTemperatureUnit } = useSettings();
 
   const isActive = (item) => {
     if (item.match === 'plants') {
@@ -34,6 +36,16 @@ const Header = () => {
                 <p className="brand-subtitle">Cannabis Cultivation Tracker</p>
               </div>
             </Link>
+
+            <button
+              type="button"
+              className="unit-toggle-btn"
+              onClick={toggleTemperatureUnit}
+              aria-label="Toggle temperature unit"
+              title={`Switch to °${temperatureUnit === 'F' ? 'C' : 'F'}`}
+            >
+              °{temperatureUnit}
+            </button>
 
             <nav className="navbar-nav" aria-label="Main">
               {navItems.map((item) => {

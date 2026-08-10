@@ -19,6 +19,8 @@ import { format } from 'date-fns';
 import { plantsApi } from '../utils/api';
 import { toast } from 'react-hot-toast';
 import PageHeader from '../components/PageHeader';
+import { useSettings } from '../contexts/SettingsContext';
+import { fromCanonicalTemp } from '../utils/temperature';
 
 const ArchivedTents = () => {
   const [archivedGrows, setArchivedGrows] = useState([]);
@@ -498,6 +500,7 @@ const ArchivedGrowCard = ({
   getArchiveReasonColor, 
   getArchiveReasonText 
 }) => {
+  const { temperatureUnit } = useSettings();
   return (
     <div className="page-panel" style={{ cursor: 'pointer' }}>
       
@@ -598,7 +601,7 @@ const ArchivedGrowCard = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <Thermometer className="w-3 h-3" style={{ color: '#ef4444' }} />
                 <span style={{ fontSize: '0.75rem', color: '#f1f5f9' }}>
-                  {grow.avg_temperature.toFixed(1)}°C
+                  {fromCanonicalTemp(grow.avg_temperature, temperatureUnit).toFixed(1)}°{temperatureUnit}
                 </span>
               </div>
             )}
@@ -700,6 +703,7 @@ const GrowDetailModal = ({
   getArchiveReasonColor, 
   getArchiveReasonText 
 }) => {
+  const { temperatureUnit } = useSettings();
   return (
     <div 
       style={{
@@ -822,11 +826,11 @@ const GrowDetailModal = ({
                     <span style={{ fontSize: '0.875rem', color: '#cbd5e1', fontWeight: '600' }}>Temperature</span>
                   </div>
                   <div style={{ fontSize: '1.25rem', color: '#ef4444', fontWeight: '700' }}>
-                    {grow.avg_temperature.toFixed(1)}°C
+                    {fromCanonicalTemp(grow.avg_temperature, temperatureUnit).toFixed(1)}°{temperatureUnit}
                   </div>
                   {grow.min_temperature && grow.max_temperature && (
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                      Range: {grow.min_temperature.toFixed(1)}° - {grow.max_temperature.toFixed(1)}°
+                      Range: {fromCanonicalTemp(grow.min_temperature, temperatureUnit).toFixed(1)}° - {fromCanonicalTemp(grow.max_temperature, temperatureUnit).toFixed(1)}°{temperatureUnit}
                     </div>
                   )}
                 </div>

@@ -12,6 +12,8 @@ import { createPortal } from 'react-dom';
 
 import { plantsApi, logsApi } from '../utils/api';
 import PageHeader from '../components/PageHeader';
+import { useSettings } from '../contexts/SettingsContext';
+import { fromCanonicalTemp, toCanonicalTemp } from '../utils/temperature';
 
 const LOG_TYPES = [
   { id: 'watering', label: 'Watering', short: 'Water', icon: Droplets, color: '#60a5fa', fields: ['water_amount', 'ph_level', 'ec_tds', 'notes'] },
@@ -42,13 +44,13 @@ const getLogTypeConfig = (type) => {
   };
 };
 
-const formatLogMetrics = (log) => {
+const formatLogMetrics = (log, temperatureUnit) => {
   const parts = [];
   if (log.height_cm != null && log.height_cm !== '') parts.push(`${log.height_cm} cm`);
   if (log.water_amount != null && log.water_amount !== '') parts.push(`${log.water_amount} L`);
   if (log.ph_level != null && log.ph_level !== '') parts.push(`pH ${log.ph_level}`);
   if (log.ec_tds != null && log.ec_tds !== '') parts.push(`${log.ec_tds} ppm`);
-  if (log.temperature != null && log.temperature !== '') parts.push(`${log.temperature}°`);
+  if (log.temperature != null && log.temperature !== '') parts.push(`${fromCanonicalTemp(log.temperature, temperatureUnit).toFixed(1)}°${temperatureUnit}`);
   if (log.humidity != null && log.humidity !== '') parts.push(`${log.humidity}%`);
   if (log.light_intensity != null && log.light_intensity !== '') parts.push(`${log.light_intensity} PPFD`);
   if (log.co2_level != null && log.co2_level !== '') parts.push(`CO₂ ${log.co2_level}`);
@@ -65,7 +67,7 @@ const METRIC_FIELD_META = {
   water_amount: { label: 'Water', unit: 'L', type: 'number', step: '0.1' },
   ph_level: { label: 'pH', unit: '', type: 'number', step: '0.1', min: '0', max: '14' },
   ec_tds: { label: 'EC / TDS', unit: 'ppm', type: 'number', step: '1' },
-  temperature: { label: 'Temp', unit: '°C', type: 'number', step: '0.1' },
+  temperature: { label: 'Temp', unit: null, type: 'number', step: '0.1' },
   humidity: { label: 'Humidity', unit: '%', type: 'number', step: '1', min: '0', max: '100' },
   light_intensity: { label: 'Light', unit: 'PPFD', type: 'number', step: '1' },
   co2_level: { label: 'CO₂', unit: 'ppm', type: 'number', step: '1' },
@@ -177,6 +179,7 @@ const Logs = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm();
+  const { temperatureUnit } = useSettings();
 
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const plantId = params.get('plantId') || '';
@@ -210,11 +213,13 @@ const Logs = () => {
     Object.keys(log).forEach((key) => {
       if (key === 'logged_at') {
         setValue(key, format(new Date(log[key]), "yyyy-MM-dd'T'HH:mm"));
+      } else if (key === 'temperature' && log[key] != null && log[key] !== '') {
+        setValue(key, fromCanonicalTemp(log[key], temperatureUnit).toFixed(1));
       } else {
         setValue(key, log[key] ?? '');
       }
     });
-  }, [setValue]);
+  }, [setValue, temperatureUnit]);
 
   const fetchPlants = useCallback(async () => {
     try {
@@ -336,6 +341,10 @@ const Logs = () => {
         plant_id: parseInt(data.plant_id || plantId, 10),
         logged_at: data.logged_at || new Date().toISOString(),
       };
+
+      if (formData.temperature !== undefined && formData.temperature !== '') {
+        formData.temperature = toCanonicalTemp(formData.temperature, temperatureUnit);
+      }
 
       if (editingLog) {
         await logsApi.update(editingLog.id, formData);
@@ -674,7 +683,8 @@ const Logs = () => {
                 {metricFields.map((fieldKey) => {
                   const meta = METRIC_FIELD_META[fieldKey];
                   if (!meta) return null;
-                  const label = meta.unit ? `${meta.label} (${meta.unit})` : meta.label;
+                  const displayUnit = fieldKey === 'temperature' ? `°${temperatureUnit}` : meta.unit;
+                  const label = displayUnit ? `${meta.label} (${displayUnit})` : meta.label;
                   if (meta.type === 'text' || meta.wide) {
                     return (
                       <div key={fieldKey} className="plant-detail-field journal-form-metric-wide">
@@ -838,7 +848,7 @@ const Logs = () => {
                       </tr>
                       {group.logs.map((log) => {
                         const typeConfig = getLogTypeConfig(log.type);
-                        const metrics = formatLogMetrics(log);
+                        const metrics = formatLogMetrics(log, temperatureUnit);
                         const primary = log.description || typeConfig.label;
                         const secondary = [
                           log.notes,

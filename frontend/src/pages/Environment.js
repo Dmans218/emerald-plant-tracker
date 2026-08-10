@@ -12,11 +12,13 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { environmentApi, plantsApi, tentsApi } from '../utils/api';
 import ImageUpload from '../components/ImageUpload';
 import PageHeader from '../components/PageHeader';
+import { useSettings } from '../contexts/SettingsContext';
+import { fromCanonicalTemp, toCanonicalTemp } from '../utils/temperature';
 
-function exportToCSV(logs) {
+function exportToCSV(logs, unit) {
   if (!logs || logs.length === 0) return;
   const headers = [
-    'Date', 'Time', 'Tent', 'Current Tent Stage', 'Temperature (°F)', 'Humidity (%)',
+    'Date', 'Time', 'Tent', 'Current Tent Stage', `Temperature (°${unit})`, 'Humidity (%)',
     'pH', 'Light (h)', 'VPD (kPa)', 'CO2 (ppm)', 'PPFD', 'Notes'
   ];
   const rows = logs.map((log) => [
@@ -24,7 +26,7 @@ function exportToCSV(logs) {
     format(new Date(log.logged_at), 'HH:mm'),
     log.grow_tent || '',
     log.stage || '',
-    log.temperature ?? '',
+    log.temperature != null ? fromCanonicalTemp(log.temperature, unit).toFixed(1) : '',
     log.humidity ?? '',
     log.ph_level ?? '',
     log.light_hours ?? '',
@@ -74,7 +76,7 @@ const chipStyle = (bg, border, color) => ({
 });
 
 const CHARTS = [
-  { id: 'temperature', label: 'Temperature', dataKey: 'temperature', color: '#f87171', domain: [60, 90], unit: '°F', Icon: Thermometer },
+  { id: 'temperature', label: 'Temperature', dataKey: 'temperature', color: '#f87171', domainF: [60, 90], domainC: [16, 32], unit: '°F', Icon: Thermometer },
   { id: 'humidity', label: 'Humidity', dataKey: 'humidity', color: '#60a5fa', domain: [0, 100], unit: '%', Icon: Droplets },
   { id: 'vpd', label: 'VPD', dataKey: 'vpd', color: '#22d3ee', domain: [0, 3], unit: ' kPa', Icon: Wind },
   { id: 'ph', label: 'pH Level', dataKey: 'ph_level', color: '#bef264', domain: [4, 9], unit: '', Icon: TestTube },
@@ -82,10 +84,17 @@ const CHARTS = [
   { id: 'ppfd', label: 'PPFD', dataKey: 'ppfd', color: '#a78bfa', domain: [0, 2000], unit: '', Icon: Sun }
 ];
 
-const MetricChips = ({ log }) => {
+const chartDomain = (chart, unit) => {
+  if (chart.id !== 'temperature') return chart.domain;
+  return unit === 'C' ? chart.domainC : chart.domainF;
+};
+
+const chartUnit = (chart, unit) => (chart.id === 'temperature' ? `°${unit}` : chart.unit);
+
+const MetricChips = ({ log, unit }) => {
   const chips = [];
   if (log.temperature != null && log.temperature !== '') {
-    chips.push(<span key="t" style={chipStyle('rgba(239, 68, 68, 0.12)', 'rgba(239, 68, 68, 0.25)', '#f87171')}>{log.temperature}°F</span>);
+    chips.push(<span key="t" style={chipStyle('rgba(239, 68, 68, 0.12)', 'rgba(239, 68, 68, 0.25)', '#f87171')}>{fromCanonicalTemp(log.temperature, unit).toFixed(1)}°{unit}</span>);
   }
   if (log.humidity != null && log.humidity !== '') {
     chips.push(<span key="h" style={chipStyle('rgba(59, 130, 246, 0.12)', 'rgba(59, 130, 246, 0.25)', '#60a5fa')}>{log.humidity}%</span>);
@@ -128,6 +137,7 @@ const Environment = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { register, handleSubmit, reset, setValue, formState: { isSubmitting, errors } } = useForm();
+  const { temperatureUnit } = useSettings();
 
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const selectedTent = params.get('tent') || '';
@@ -276,7 +286,7 @@ const Environment = () => {
     setEditingLog(log);
     reset({
       grow_tent: log.grow_tent || selectedTent,
-      temperature: log.temperature ?? '',
+      temperature: log.temperature != null ? fromCanonicalTemp(log.temperature, temperatureUnit).toFixed(1) : '',
       humidity: log.humidity ?? '',
       ph_level: log.ph_level ?? '',
       light_hours: log.light_hours ?? '',
@@ -369,7 +379,7 @@ const Environment = () => {
       const environmentData = {
         ...data,
         grow_tent: selectedTent || data.grow_tent,
-        temperature: data.temperature ? parseFloat(data.temperature) : null,
+        temperature: data.temperature ? toCanonicalTemp(parseFloat(data.temperature), temperatureUnit) : null,
         humidity: data.humidity ? parseFloat(data.humidity) : null,
         ph_level: data.ph_level ? parseFloat(data.ph_level) : null,
         light_hours: data.light_hours ? parseFloat(data.light_hours) : null,
@@ -401,7 +411,11 @@ const Environment = () => {
       grow_tent: selectedTent
     };
     if (parsedData.temperature != null) {
-      formData.temperature = ((parsedData.temperature * 9) / 5 + 32).toFixed(1);
+      // OCR always reads screenshots in Celsius; show it in whichever unit
+      // the form currently displays (converted back to Fahrenheit on submit).
+      formData.temperature = temperatureUnit === 'C'
+        ? parsedData.temperature.toFixed(1)
+        : ((parsedData.temperature * 9) / 5 + 32).toFixed(1);
     }
     if (parsedData.humidity != null) formData.humidity = parsedData.humidity.toString();
     if (parsedData.ph != null) formData.ph_level = parsedData.ph.toString();
@@ -428,6 +442,14 @@ const Environment = () => {
   const sortedLogsForGraphs = useMemo(
     () => [...environmentLogs].sort((a, b) => new Date(a.logged_at) - new Date(b.logged_at)),
     [environmentLogs]
+  );
+
+  // Charts render the temperature series in the user's chosen display unit.
+  const displayLogsForGraphs = useMemo(
+    () => sortedLogsForGraphs.map((log) => (
+      log.temperature != null ? { ...log, temperature: fromCanonicalTemp(log.temperature, temperatureUnit) } : log
+    )),
+    [sortedLogsForGraphs, temperatureUnit]
   );
 
   const filteredReadingLogs = useMemo(() => {
@@ -480,7 +502,7 @@ const Environment = () => {
     const parts = [];
     if (temps.length) {
       const avg = temps.reduce((a, b) => a + Number(b), 0) / temps.length;
-      parts.push(`${avg.toFixed(1)}°F`);
+      parts.push(`${fromCanonicalTemp(avg, temperatureUnit).toFixed(1)}°${temperatureUnit}`);
     }
     if (hums.length) {
       const avg = hums.reduce((a, b) => a + Number(b), 0) / hums.length;
@@ -493,7 +515,7 @@ const Environment = () => {
   const ChartIcon = chartConfig?.Icon;
 
   const heroMetrics = latestReading ? [
-    { label: 'Temp', value: latestReading.temperature != null ? `${latestReading.temperature}°F` : '—', color: '#f87171', Icon: Thermometer },
+    { label: 'Temp', value: latestReading.temperature != null ? `${fromCanonicalTemp(latestReading.temperature, temperatureUnit).toFixed(1)}°${temperatureUnit}` : '—', color: '#f87171', Icon: Thermometer },
     { label: 'Humidity', value: latestReading.humidity != null ? `${latestReading.humidity}%` : '—', color: '#60a5fa', Icon: Droplets },
     { label: 'VPD', value: latestReading.vpd != null ? `${latestReading.vpd} kPa` : '—', color: '#22d3ee', Icon: Wind },
     { label: 'CO₂', value: latestReading.co2_ppm != null ? `${latestReading.co2_ppm}` : '—', color: '#fbbf24', Icon: Wind },
@@ -604,7 +626,7 @@ const Environment = () => {
                         </div>
                         {latest ? (
                           <div style={{ color: '#cbd5e1', fontSize: '0.8rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            {latest.temperature != null && <span style={{ color: '#f87171' }}>{latest.temperature}°F</span>}
+                            {latest.temperature != null && <span style={{ color: '#f87171' }}>{fromCanonicalTemp(latest.temperature, temperatureUnit).toFixed(1)}°{temperatureUnit}</span>}
                             {latest.humidity != null && <span style={{ color: '#60a5fa' }}>{latest.humidity}%</span>}
                             {latest.logged_at && (
                               <span style={{ color: '#64748b' }}>
@@ -825,8 +847,8 @@ const Environment = () => {
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Temp (°F)</label>
-                  <input type="number" step="0.1" style={fieldStyle} {...register('temperature')} placeholder="75.5" />
+                  <label style={labelStyle}>Temp (°{temperatureUnit})</label>
+                  <input type="number" step="0.1" style={fieldStyle} {...register('temperature')} placeholder={temperatureUnit === 'C' ? '24.0' : '75.5'} />
                 </div>
                 <div>
                   <label style={labelStyle}>Humidity (%)</label>
@@ -948,7 +970,7 @@ const Environment = () => {
                     </h3>
                   </div>
                   <ResponsiveContainer width="100%" height={160}>
-                    <LineChart data={sortedLogsForGraphs} margin={{ top: 5, right: 8, left: 0, bottom: 20 }}>
+                    <LineChart data={displayLogsForGraphs} margin={{ top: 5, right: 8, left: 0, bottom: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.1)" />
                       <XAxis
                         dataKey="logged_at"
@@ -960,7 +982,7 @@ const Environment = () => {
                       />
                       <YAxis
                         tick={{ fill: '#94a3b8', fontSize: 11 }}
-                        domain={chart.domain}
+                        domain={chartDomain(chart, temperatureUnit)}
                         axisLine={{ stroke: 'rgba(100, 116, 139, 0.2)' }}
                         width={36}
                       />
@@ -1026,7 +1048,7 @@ const Environment = () => {
                     >
                       <div>
                         <div style={{ fontWeight: 600, color: '#ef4444' }}>
-                          {week.avg_temperature != null ? `${Number(week.avg_temperature).toFixed(1)}°F` : 'N/A'}
+                          {week.avg_temperature != null ? `${fromCanonicalTemp(week.avg_temperature, temperatureUnit).toFixed(1)}°${temperatureUnit}` : 'N/A'}
                         </div>
                         <div style={{ color: 'var(--text-secondary)' }}>Temp</div>
                       </div>
@@ -1120,7 +1142,7 @@ const Environment = () => {
                 type="button"
                 className="btn btn-outline"
                 style={{ fontSize: '0.75rem', padding: '0.35rem 0.7rem' }}
-                onClick={() => exportToCSV(filteredReadingLogs)}
+                onClick={() => exportToCSV(filteredReadingLogs, temperatureUnit)}
               >
                 Export
               </button>
@@ -1218,7 +1240,7 @@ const Environment = () => {
                         {format(new Date(log.logged_at), 'HH:mm')}
                       </div>
                       <div style={{ minWidth: 0 }}>
-                        <MetricChips log={log} />
+                        <MetricChips log={log} unit={temperatureUnit} />
                         {log.notes && (
                           <p style={{
                             color: '#94a3b8',
@@ -1317,7 +1339,7 @@ const Environment = () => {
             </div>
             <div className="env-chart-modal-body">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={sortedLogsForGraphs} margin={{ top: 10, right: 12, left: 0, bottom: 40 }}>
+                <LineChart data={displayLogsForGraphs} margin={{ top: 10, right: 12, left: 0, bottom: 40 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.15)" />
                   <XAxis
                     dataKey="logged_at"
@@ -1329,7 +1351,7 @@ const Environment = () => {
                   />
                   <YAxis
                     tick={{ fill: '#94a3b8', fontSize: 11 }}
-                    domain={chartConfig.domain}
+                    domain={chartDomain(chartConfig, temperatureUnit)}
                     width={40}
                   />
                   <Tooltip
@@ -1340,7 +1362,7 @@ const Environment = () => {
                       color: '#f8fafc'
                     }}
                     labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy HH:mm')}
-                    formatter={(value) => [`${value}${chartConfig.unit}`, chartConfig.label]}
+                    formatter={(value) => [`${value}${chartUnit(chartConfig, temperatureUnit)}`, chartConfig.label]}
                   />
                   <Line
                     type="monotone"
