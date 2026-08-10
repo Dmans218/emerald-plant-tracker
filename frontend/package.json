@@ -55,7 +55,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
     "react-scripts": "^5.1.0-next.26",
-    "webpack-dev-server": "5.2.6"
+    "webpack-dev-server": "6.0.0"
   },
   "engines": {
     "node": ">=20.0.0",
@@ -75,7 +75,7 @@
     "body-parser": "1.20.6",
     "@tootallnate/once": "2.0.1",
     "yaml": "1.10.3",
-    "webpack-dev-server": "5.2.6",
+    "webpack-dev-server": "6.0.0",
     "eslint": "^9.28.0",
     "eslint-webpack-plugin": "^4.0.1",
     "eslint-plugin-flowtype": "^8.0.3",
