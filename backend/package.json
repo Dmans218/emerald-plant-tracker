@@ -8,7 +8,7 @@
     "dev": "nodemon server.js",
     "audit": "npm audit || true",
     "audit-fix": "npm audit fix",
-    "test": "node --test test/**/*.test.js"
+    "test": "node --test ./test/api.smoke.test.js"
   },
   "dependencies": {
     "cors": "^2.8.6",

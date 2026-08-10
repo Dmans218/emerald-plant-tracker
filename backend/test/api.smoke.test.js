@@ -46,9 +46,11 @@ function request(method, urlPath, body, headers = {}) {
 }
 
 let child;
+let childLogs = '';
 
 describe('API smoke tests', () => {
   before(async () => {
+    childLogs = '';
     child = spawn('node', [path.join(__dirname, '..', 'server.js')], {
       env: {
         ...process.env,
@@ -60,9 +62,18 @@ describe('API smoke tests', () => {
       stdio: ['ignore', 'pipe', 'pipe']
     });
 
+    const onChunk = (chunk) => {
+      childLogs += chunk.toString();
+    };
+    child.stdout.on('data', onChunk);
+    child.stderr.on('data', onChunk);
+
     // wait for health
     let ready = false;
     for (let i = 0; i < 40; i++) {
+      if (child.exitCode !== null) {
+        break;
+      }
       try {
         const res = await request('GET', '/api/health');
         if (res.status === 200 && res.body?.status === 'OK') {
@@ -75,8 +86,9 @@ describe('API smoke tests', () => {
       await new Promise((r) => setTimeout(r, 200));
     }
     if (!ready) {
-      const errOut = child.stderr?.read?.() || '';
-      throw new Error(`Server failed to start: ${errOut}`);
+      throw new Error(
+        `Server failed to start (exit=${child.exitCode}): ${childLogs.slice(-2000)}`
+      );
     }
   });
 
