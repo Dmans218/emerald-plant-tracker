@@ -5,12 +5,12 @@
   "dependencies": {
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.4",
+    "@testing-library/user-event": "^14.6.5",
     "axios": "^1.19.0",
     "date-fns": "^4.4.0",
     "exif-js": "^2.3.0",
     "globals": "^17.11.0",
-    "lucide-react": "^1.31.0",
+    "lucide-react": "^1.33.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-hook-form": "^7.85.0",
@@ -18,7 +18,7 @@
     "react-router-dom": "^7.18.2",
     "recharts": "^3.10.1",
     "tesseract.js": "^7.0.0",
-    "web-vitals": "^6.1.0"
+    "web-vitals": "^6.1.1"
   },
   "scripts": {
     "start": "craco start",
