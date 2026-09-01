@@ -1,5 +1,5 @@
 # ---- Build frontend ----
-FROM node:22-bookworm-slim AS frontend-build
+FROM node:26-bookworm-slim AS frontend-build
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
@@ -7,7 +7,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # ---- Install backend deps (native modules against bookworm glibc) ----
-FROM node:22-bookworm-slim AS backend-deps
+FROM node:26-bookworm-slim AS backend-deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
@@ -17,7 +17,7 @@ COPY backend/package*.json ./
 RUN npm ci --omit=dev --build-from-source
 
 # ---- Final unified container ----
-FROM node:22-bookworm-slim
+FROM node:26-bookworm-slim
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
