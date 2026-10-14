@@ -230,7 +230,13 @@ router.get('/weekly', (req, res) => {
   const database = db.getDb();
   const { weeks = 8, grow_tent } = req.query;
   
-  let whereClause = `logged_at >= datetime('now', '-${parseInt(weeks)} weeks')`;
+  let parsedWeeks = parseInt(weeks);
+  if (isNaN(parsedWeeks) || parsedWeeks < 1) {
+    parsedWeeks = 8;
+  }
+  parsedWeeks = Math.min(parsedWeeks, 52);
+  
+  let whereClause = `logged_at >= datetime('now', '-${parsedWeeks} weeks')`;
   const params = [];
   
   if (grow_tent) {
