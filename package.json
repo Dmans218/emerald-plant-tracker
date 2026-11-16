@@ -16,7 +16,7 @@
     "audit-fix": "npm audit fix"
   },
   "dependencies": {
-    "concurrently": "^10.0.6"
+    "concurrently": "^10.0.7"
   },
   "devDependencies": {},
   "keywords": [
